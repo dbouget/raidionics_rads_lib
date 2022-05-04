@@ -31,5 +31,6 @@ ANTs/
 *.deb
 quickpkg/
 *.nii.gz
+*.nii
 *.csv
 *.zip
