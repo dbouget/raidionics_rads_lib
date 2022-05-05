@@ -64,8 +64,8 @@ class NeuroDiagnosisParameters:
         pfile.write('  * MNI space: {} (ml)\n'.format(self.statistics['Main']['Overall'].mni_space_tumor_volume))
 
         pfile.write('\nLaterality\n')
-        pfile.write('  * Left hemisphere: {}%\n'.format(np.round(self.statistics['Main']['Overall'].left_laterality_percentage * 100., 2)))
-        pfile.write('  * Right hemisphere: {}%\n'.format(np.round(self.statistics['Main']['Overall'].right_laterality_percentage * 100., 2)))
+        pfile.write('  * Left hemisphere: {}%\n'.format(self.statistics['Main']['Overall'].left_laterality_percentage))
+        pfile.write('  * Right hemisphere: {}%\n'.format(self.statistics['Main']['Overall'].right_laterality_percentage))
         pfile.write('  * Midline crossing: {}\n'.format(self.statistics['Main']['Overall'].laterality_midline_crossing))
 
         if self.tumor_type == 'High-Grade Glioma':
@@ -133,8 +133,8 @@ class NeuroDiagnosisParameters:
         param_json['Main']['Total'] = {}
         param_json['Main']['Total']['Volume original (ml)'] = self.statistics['Main']['Overall'].original_space_tumor_volume
         param_json['Main']['Total']['Volume in MNI (ml)'] = self.statistics['Main']['Overall'].mni_space_tumor_volume
-        param_json['Main']['Total']['Left laterality (%)'] = np.round(self.statistics['Main']['Overall'].left_laterality_percentage*100., 2)
-        param_json['Main']['Total']['Right laterality (%)'] = np.round(self.statistics['Main']['Overall'].right_laterality_percentage*100., 2)
+        param_json['Main']['Total']['Left laterality (%)'] = self.statistics['Main']['Overall'].left_laterality_percentage
+        param_json['Main']['Total']['Right laterality (%)'] = self.statistics['Main']['Overall'].right_laterality_percentage
         param_json['Main']['Total']['Midline crossing'] = self.statistics['Main']['Overall'].laterality_midline_crossing
 
         if self.tumor_type == 'High-Grade Glioma':
@@ -207,8 +207,8 @@ class NeuroDiagnosisParameters:
         values.extend([self.statistics['Main']['Overall'].original_space_tumor_volume, self.statistics['Main']['Overall'].mni_space_tumor_volume])
         column_names.extend(['Volume original (ml)', 'Volume in MNI (ml)'])
 
-        values.extend([np.round(self.statistics['Main']['Overall'].left_laterality_percentage*100., 2),
-                       np.round(self.statistics['Main']['Overall'].right_laterality_percentage*100., 2),
+        values.extend([self.statistics['Main']['Overall'].left_laterality_percentage,
+                       self.statistics['Main']['Overall'].right_laterality_percentage,
                        self.statistics['Main']['Overall'].laterality_midline_crossing])
         column_names.extend(['Left laterality (%)', 'Right laterality (%)', 'Midline crossing'])
 
