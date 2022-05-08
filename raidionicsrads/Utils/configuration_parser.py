@@ -80,7 +80,7 @@ class ResourcesConfiguration:
         self.mni_atlas_filepath_T1 = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../',
                                                   'Atlases/mni_icbm152_nlin_sym_09a/mni_icbm152_t1_tal_nlin_sym_09a.nii')
         self.mni_atlas_filepath_T2 = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../',
-                                                  'Atlases/mni_icbm152_nlin_sym_09a/mni_icbm152_t2_relx_tal_nlin_sym_09a.nii')
+                                                  'Atlases/mni_icbm152_nlin_sym_09a/mni_icbm152_t2_tal_nlin_sym_09a.nii')
         self.mni_atlas_mask_filepath = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../',
                                                     'Atlases/mni_icbm152_nlin_sym_09a/mni_icbm152_t1_tal_nlin_sym_09a_mask.nii')
         self.mni_atlas_brain_mask_filepath = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../',
