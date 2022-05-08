@@ -14,8 +14,7 @@ jobs:
         include:
           - os: ubuntu-18.04
             TARGET: ubuntu
-            CMD_BUILD: "pip install tensorflow-gpu==1.14.0 && 
-                        pip install git+https://github.com/dbouget/raidionics-seg-lib.git &&
+            CMD_BUILD: "pip install git+https://github.com/dbouget/raidionics-seg-lib.git &&
                         pip install antspyx==0.2.7 && 
                         pip install git+https://github.com/dbouget/raidionics-rads-lib.git"
 
