@@ -20,15 +20,27 @@ class NeuroDiagnostics:
     """
     Performs the standardized reporting (RADS) for neuro-related applications. All parameters have been stored in
     ResourcesConfiguration from a user-defined (or software-defined) configuration file.
+    @TODO1. In the future, we will need access to multiple inputs (T1, T2, FLAIR, etc...) and at different
+    timestamps (e.g., preop, postop).
+    @TODO2. For now only T1 MNI atlas is needed, fitting for both T1 and FLAIR inputs. Might have to expand.
     """
     def __init__(self, input_filename: str) -> None:
-        # @TODO. In the future, we will need access to multiple inputs (T1, T2, FLAIR, etc...) and at different
-        # timestamps (e.g., preop, postop).
+        """
+
+
+        Parameters
+        ----------
+        input_filename : str
+            .
+
+        Returns
+        -------
+        None
+        """
         self.input_filename = input_filename
         self.output_path = ResourcesConfiguration.getInstance().output_folder
         self.selected_model = ResourcesConfiguration.getInstance().model_folder
 
-        # @Fixme. For now only needed T1 atlas, fitting for both T1 and FLAIR inputs
         self.atlas_brain_filepath = ResourcesConfiguration.getInstance().mni_atlas_filepath_T1
         self.from_slicer = True if ResourcesConfiguration.getInstance().caller == 'slicer' else False
         self.registration_runner = ANTsRegistration()
@@ -46,61 +58,45 @@ class NeuroDiagnostics:
         intermediate_time = time.time()
 
         # Generating the brain mask for the input file
-        logging.info("Brain extraction - Begin")
+        logging.info("LOG: Brain extraction - Begin (1/6)\n")
         if not ResourcesConfiguration.getInstance().runtime_brain_mask_filepath is None \
                 and os.path.exists(ResourcesConfiguration.getInstance().runtime_brain_mask_filepath):
             brain_mask_filepath = ResourcesConfiguration.getInstance().runtime_brain_mask_filepath
         else:
-            if self.from_slicer:
-                print('SLICERLOG: Brain extraction - Begin')
             brain_mask_filepath = perform_brain_extraction(image_filepath=self.input_filename, method='deep_learning')
-            if self.from_slicer:
-                print('SLICERLOG: Brain extraction - End')
         ResourcesConfiguration.getInstance().runtime_brain_mask_filepath = brain_mask_filepath
-        logging.info("Brain extraction - End")
-        logging.info('Step runtime: {} seconds.'.format(round(time.time() - intermediate_time, 3)) + "\n")
+        logging.info("LOG: Brain extraction - End (1/6)\n")
+        logging.info('Step runtime: {} seconds.\n'.format(round(time.time() - intermediate_time, 3)))
         intermediate_time = time.time()
 
         # Generating brain-masked fixed and moving images to serve as input for the registration
-        logging.info("Registration preprocessing - Begin")
-        if self.from_slicer:
-            print('SLICERLOG: Registration preprocessing - Begin')
+        logging.info("LOG: Registration preprocessing - Begin (2/6)\n")
         input_masked_filepath = perform_brain_masking(image_filepath=self.input_filename,
                                                       mask_filepath=brain_mask_filepath)
         atlas_masked_filepath = perform_brain_masking(image_filepath=self.atlas_brain_filepath,
                                                       mask_filepath=ResourcesConfiguration.getInstance().mni_atlas_brain_mask_filepath)
-        if self.from_slicer:
-            print('SLICERLOG: Registration preprocessing - End')
-        logging.info("Registration preprocessing - End")
-        logging.info('Step runtime: {} seconds.'.format(round(time.time() - intermediate_time, 3)) + "\n")
+        logging.info("LOG: Registration preprocessing - End (2/6)\n")
+        logging.info('Step runtime: {} seconds.\n'.format(round(time.time() - intermediate_time, 3)))
         intermediate_time = time.time()
 
         # Performing registration
-        logging.info("Registration to MNI - Begin")
-        if self.from_slicer:
-            print('SLICERLOG: Registration - Begin')
+        logging.info("LOG: Registration to MNI atlas space - Begin (3/6)\n")
         self.registration_runner.compute_registration(fixed=atlas_masked_filepath, moving=input_masked_filepath,
                                                       registration_method='SyN')
-        logging.info("Registration to MNI - End")
-        if self.from_slicer:
-            print('SLICERLOG: Registration - End')
-        logging.info('Step runtime: {} seconds.'.format(round(time.time() - intermediate_time, 3)) + "\n")
+        logging.info("LOG: Registration to MNI atlas space - End (3/6)\n")
+        logging.info('Step runtime: {} seconds.\n'.format(round(time.time() - intermediate_time, 3)))
         intermediate_time = time.time()
 
         # Performing tumor segmentation
-        if self.from_slicer:
-            print('SLICERLOG: Tumor segmentation - Begin')
+        print('LOG: Tumor segmentation - Begin (4/6)\n')
         seg_fn = self.__perform_tumor_segmentation()
         ResourcesConfiguration.getInstance().runtime_tumor_mask_filepath = seg_fn
-        if self.from_slicer:
-            print('SLICERLOG: Tumor segmentation - End')
-        logging.info('Step runtime: {} seconds.'.format(round(time.time() - intermediate_time, 3)) + "\n")
+        print('LOG: Tumor segmentation - End (4/6)\n')
+        logging.info('Step runtime: {} seconds.'.format(round(time.time() - intermediate_time, 3)))
         intermediate_time = time.time()
 
         # Registering the tumor to the atlas
-        logging.info("Apply registration to atlas files - Begin")
-        if self.from_slicer:
-            print('SLICERLOG: Apply registration - Begin')
+        logging.info("LOG: Register atlas files to patient space - Begin (5/6)\n")
         self.registration_runner.apply_registration_transform(moving=seg_fn,
                                                               fixed=self.atlas_brain_filepath,
                                                               interpolation='nearestNeighbor')
@@ -108,30 +104,22 @@ class NeuroDiagnostics:
         self.__apply_registration_cortical_structures()
         # if ResourcesConfiguration.getInstance().neuro_diagnosis_compute_subcortical_structures:
         self.__apply_registration_subcortical_structures()
-        logging.info("Apply registration to atlas files - End")
-        if self.from_slicer:
-            print('SLICERLOG: Apply registration - End')
-        logging.info('Step runtime: {} seconds.'.format(round(time.time() - intermediate_time, 3)) + "\n")
+        logging.info("LOG: Register atlas files to patient space - End (5/6)\n")
+        logging.info('Step runtime: {} seconds.\n'.format(round(time.time() - intermediate_time, 3)))
         intermediate_time = time.time()
 
         # Computing tumor location and statistics
-        logging.info("Tumor characteristics computation and report generation - Begin")
-        if self.from_slicer:
-            print('SLICERLOG: Generate report - Begin')
+        logging.info("LOG: Tumor characteristics computation and report generation - Begin (6/6)\n")
         self.__compute_statistics()
         self.diagnosis_parameters.to_txt(self.output_report_filepath)
         self.diagnosis_parameters.to_csv(self.output_report_filepath[:-4] + '.csv')
         self.diagnosis_parameters.to_json(self.output_report_filepath[:-4] + '.json')
-        logging.info("Tumor characteristics computation and report generation - End")
-        if self.from_slicer:
-            print('SLICERLOG: Generate report - End')
-        logging.info('Step runtime: {} seconds.'.format(round(time.time() - intermediate_time, 3)) + "\n")
+        logging.info("LOG: Tumor characteristics computation and report generation - End (6/6)\n")
+        logging.info('Step runtime: {} seconds.\n'.format(round(time.time() - intermediate_time, 3)))
         intermediate_time = time.time()
 
         # Cleaning the temporary files
-        logging.info("Disk dump and cleanup - Begin")
-        if self.from_slicer:
-            print('SLICERLOG: Cleaning and copying - Begin')
+        logging.info("LOG: Disk dump and cleanup - Begin\n")
         self.registration_runner.dump_and_clean()
         if not ResourcesConfiguration.getInstance().diagnosis_full_trace:
             tmp_folder = os.path.join(self.output_path, 'tmp')
@@ -164,8 +152,6 @@ class NeuroDiagnostics:
             os.remove(os.path.join(self.output_path, 'input_tumor_to_mni.nii.gz'))
             self.__generate_cortical_structures_description_file_slicer()
             self.__generate_subcortical_structures_description_file_slicer()
-            print('SLICERLOG: Cleaning and copying - End')
-            print('Step runtime: {} seconds.'.format(round(time.time() - intermediate_time, 3)) + "\n")
         else:
             atlas_desc_dir = os.path.join(self.output_path, 'atlas_descriptions')
             os.makedirs(atlas_desc_dir, exist_ok=True)
@@ -184,8 +170,9 @@ class NeuroDiagnostics:
             shutil.move(src=brain_mask_filepath,
                         dst=os.path.join(self.output_path, 'patient', 'input_brain_mask.nii.gz'))
 
-        logging.info("Disk dump and cleanup - End")
-        logging.info('Total runtime: {} seconds.'.format(round(time.time() - start_time, 3)) + "\n")
+        logging.info("LOG: Disk dump and cleanup - End\n")
+        logging.info('Step runtime: {} seconds.\n'.format(round(time.time() - intermediate_time, 3)))
+        logging.info('Total runtime: {} seconds.\n'.format(round(time.time() - start_time, 3)))
 
     def __perform_tumor_segmentation(self):
         """

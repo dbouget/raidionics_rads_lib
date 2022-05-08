@@ -6,24 +6,6 @@ from skimage.measure import regionprops
 from raidionicsrads.Utils.configuration_parser import *
 
 
-# def crop(volume, parameters, spacing=(1, 1, 1)):
-#     original_volume = np.copy(volume)
-#     volume[volume >= 0.2] = 1
-#     volume[volume < 0.2] = 0
-#     volume = volume.astype(np.uint8)
-#     volume = binary_fill_holes(volume).astype(np.uint8)
-#     regions = regionprops(volume)
-#     min_row, min_col, min_depth, max_row, max_col, max_depth = regions[0].bbox
-#     print('cropping params', min_row, min_col, min_depth, max_row, max_col, max_depth)
-#
-#     new_depth = int(volume.shape[2] * (256 / volume.shape[1]))
-#     cropped_MR = original_volume[min_row:max_row, min_col:max_col, min_depth:max_depth]
-#     bbox = [min_row, min_col, min_depth, max_row, max_col, max_depth]
-#     new_MR = resize(cropped_MR, (192, 256, new_depth), order=1)
-#     new_spacing = spacing * (np.divide(cropped_MR.shape, new_MR.shape))
-#
-#     return new_MR, new_spacing, bbox
-
 def crop_MR(volume, parameters):
     original_volume = np.copy(volume)
     volume[volume >= 0.2] = 1
