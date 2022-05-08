@@ -3,7 +3,7 @@ from setuptools import find_packages, setup
 with open("README.md", "r", errors='ignore') as f:
     long_description = f.read()
 
-with open('requirements.txt', 'r', errors='ignore') as ff:
+with open('requirements.txt', 'r', encoding='utf-16', errors='ignore') as ff:
     required = ff.read().splitlines()
 
 setup(
@@ -24,7 +24,7 @@ setup(
         ]
     },
     install_requires=required,
-    include_package_data=True,
+    # include_package_data=True,
     python_requires=">=3.6",
     version='0.1.0',
     author='David Bouget (david.bouget@sintef.no)',
