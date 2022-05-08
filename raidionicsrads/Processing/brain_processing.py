@@ -1,4 +1,5 @@
 import configparser
+import logging
 
 import numpy as np
 import sys, os, shutil
@@ -93,7 +94,7 @@ def perform_custom_brain_extraction(image_filepath, folder):
         brain_config.write(outfile)
 
     subprocess.call(['raidionicsseg',
-                     '{config}'.format(config=brain_config_filename)])
+                     '{config}'.format(config=brain_config_filename)]) # '-v {verbose}'.format(verbose=logging.getLogger().level)
     brain_mask_filename = os.path.join(ResourcesConfiguration.getInstance().output_folder, 'labels_Brain.nii.gz')
     brain_mask_ni = load_nifti_volume(brain_mask_filename)
     brain_mask = brain_mask_ni.get_data()[:].astype('uint8')

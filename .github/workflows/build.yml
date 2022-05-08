@@ -1,0 +1,57 @@
+name: Build
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-18.04
+            TARGET: ubuntu
+            CMD_BUILD: "pip install tensorflow-gpu==1.14.0 && 
+                        pip install git+https://github.com/dbouget/raidionics-seg-lib.git &&
+                        pip install antspyx==0.2.7 && 
+                        pip install git+https://github.com/dbouget/raidionics-rads-lib.git"
+
+          - os: macos-10.15
+            TARGET: macos
+            CMD_BUILD: "pip install git+https://github.com/dbouget/raidionics-seg-lib.git &&
+                        pip install antspyx==0.2.7 && 
+                        pip install git+https://github.com/dbouget/raidionics-rads-lib.git"
+
+          - os: windows-2019
+            TARGET: windows
+            CMD_BUILD: "pip install git+https://github.com/dbouget/raidionics-seg-lib.git &&
+                        pip install https://github.com/SGotla/ANTsPy/releases/download/0.1.7Win64/antspy-0.1.7-cp37-cp37m-win_amd64.whl &&
+                        pip install git+https://github.com/dbouget/raidionics-rads-lib.git"
+    steps:
+      - uses: actions/checkout@v1
+      - name: Set up Python 3.7
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+
+      - name: Install dependencies
+        run: pip install wheel setuptools
+
+      - name: Build wheel
+        run: python setup.py bdist_wheel --universal
+
+      - name: Install program for ${{matrix.TARGET}}
+        run: ${{matrix.CMD_BUILD}}
+
+      - name: Test CLI
+        run: raidionicsrads --help
+
+      - name: Upload Python wheel
+        uses: actions/upload-artifact@v2
+        with:
+          name: Python wheel
+          path: ${{github.workspace}}/dist/raidionicsrads-*.whl
+          if-no-files-found: error

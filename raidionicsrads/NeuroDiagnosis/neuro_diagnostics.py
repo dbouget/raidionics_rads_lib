@@ -5,6 +5,7 @@ from copy import deepcopy
 import operator
 from medpy.metric.binary import hd95
 import collections
+from tqdm import tqdm
 from skimage.morphology import ball
 from scipy.ndimage.measurements import center_of_mass
 from scipy.ndimage import binary_opening, measurements, binary_closing
@@ -88,10 +89,10 @@ class NeuroDiagnostics:
         intermediate_time = time.time()
 
         # Performing tumor segmentation
-        print('LOG: Tumor segmentation - Begin (4/6)\n')
+        logging.info('LOG: Tumor segmentation - Begin (4/6)\n')
         seg_fn = self.__perform_tumor_segmentation()
         ResourcesConfiguration.getInstance().runtime_tumor_mask_filepath = seg_fn
-        print('LOG: Tumor segmentation - End (4/6)\n')
+        logging.info('LOG: Tumor segmentation - End (4/6)\n')
         logging.info('Step runtime: {} seconds.'.format(round(time.time() - intermediate_time, 3)))
         intermediate_time = time.time()
 
@@ -217,7 +218,7 @@ class NeuroDiagnostics:
             return final_tumor_mask_filename
 
     def __apply_registration_cortical_structures(self):
-        # Registering the brain lobes to the patient's space
+        logging.info("Register cortical structure atlas files to patient space.\n")
         patient_dump_folder = os.path.join(ResourcesConfiguration.getInstance().output_folder, 'patient',
                                            'Cortical-structures')
         os.makedirs(patient_dump_folder, exist_ok=True)
@@ -239,11 +240,12 @@ class NeuroDiagnostics:
                                                                       label='Cortical-structures/Harvard-Oxford')
 
     def __apply_registration_subcortical_structures(self):
+        logging.info("Register subcortical structure atlas files to patient space.\n")
         bcb_tracts_cutoff = 0.5
         patient_dump_folder = os.path.join(ResourcesConfiguration.getInstance().output_folder, 'patient',
                                            'Subcortical-structures')
         os.makedirs(patient_dump_folder, exist_ok=True)
-        for i, elem in enumerate(ResourcesConfiguration.getInstance().subcortical_structures['MNI']['BCB']['Singular'].keys()):
+        for i, elem in tqdm(enumerate(ResourcesConfiguration.getInstance().subcortical_structures['MNI']['BCB']['Singular'].keys())):
             raw_filename = ResourcesConfiguration.getInstance().subcortical_structures['MNI']['BCB']['Singular'][elem]
             raw_tract_ni = nib.load(raw_filename)
             raw_tract = raw_tract_ni.get_data()[:]
@@ -423,6 +425,7 @@ class NeuroDiagnostics:
         self.diagnosis_parameters.statistics[category]['Overall'].mni_space_resectability_index = average
 
     def __compute_cortical_structures_location(self, volume, category=None, reference='MNI'):
+        logging.debug("Computing cortical structures location with {}.\n".format(reference))
         regions_data = ResourcesConfiguration.getInstance().cortical_structures['MNI'][reference]
         region_mask_ni = nib.load(regions_data['Mask'])
         region_mask = region_mask_ni.get_data()
@@ -464,6 +467,7 @@ class NeuroDiagnostics:
             self.diagnosis_parameters.statistics[category]['Overall'].mni_space_cortical_structures_overlap[reference] = ordered_l
 
     def __compute_subcortical_structures_location(self, volume, spacing, category=None, reference='BCB'):
+        logging.debug("Computing subcortical structures location with {}.\n".format(reference))
         distances = {}
         overlaps = {}
         distances_columns = []
