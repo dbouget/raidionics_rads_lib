@@ -336,9 +336,13 @@ class ResourcesConfiguration:
                     os.path.isdir(self.config['System']['ants_root'].split('#')[0].strip()):
                 self.ants_root = self.config['System']['ants_root'].split('#')[0].strip()
 
-        os.environ["ANTSPATH"] = os.path.join(self.ants_root, "build/bin/")
-        self.ants_reg_dir = os.path.join(self.ants_root, 'src', 'Scripts')
-        self.ants_apply_dir = os.path.join(self.ants_root, 'build', 'bin')
+        if os.path.exists(self.ants_root):
+            os.environ["ANTSPATH"] = os.path.join(self.ants_root, "build/bin/")
+            self.ants_reg_dir = os.path.join(self.ants_root, 'src', 'Scripts')
+            self.ants_apply_dir = os.path.join(self.ants_root, 'build', 'bin')
+            self.system_ants_backend = 'cpp'
+        else:
+            self.system_ants_backend = 'python'
 
         if self.config.has_option('System', 'output_folder'):
             if self.config['System']['output_folder'].split('#')[0].strip() != '':
