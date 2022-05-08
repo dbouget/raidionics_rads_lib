@@ -3,6 +3,7 @@ import os
 import sys
 import datetime
 import time
+from pathlib import PurePath
 
 
 class ResourcesConfiguration:
@@ -79,7 +80,7 @@ class ResourcesConfiguration:
         self.mni_atlas_filepath_T1 = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../',
                                                   'Atlases/mni_icbm152_nlin_sym_09a/mni_icbm152_t1_tal_nlin_sym_09a.nii')
         self.mni_atlas_filepath_T2 = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../',
-                                                  'Atlases/mni_icbm152_nlin_sym_09a/mni_icbm152_t2_relx_tal_nlin_sym_09a.nii')
+                                                  'Atlases/mni_icbm152_nlin_sym_09a/mni_icbm152_t2_tal_nlin_sym_09a.nii')
         self.mni_atlas_mask_filepath = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../',
                                                     'Atlases/mni_icbm152_nlin_sym_09a/mni_icbm152_t1_tal_nlin_sym_09a_mask.nii')
         self.mni_atlas_brain_mask_filepath = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../',
@@ -90,6 +91,48 @@ class ResourcesConfiguration:
                                                                  'Atlases/mni_icbm152_nlin_sym_09a/lobe_labels_description.csv')
         self.mni_atlas_lateralisation_mask_filepath = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../',
                                                                    'Atlases/mni_icbm152_nlin_sym_09a/extended_lateralisation_mask.nii.gz')
+        if os.name == 'nt':
+            script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'mni_icbm152_nlin_sym_09a', 'mni_icbm152_t1_tal_nlin_sym_09a.nii'))
+            script_path = PurePath()
+            for x in script_path_parts:
+                script_path = script_path.joinpath(x)
+            self.mni_atlas_filepath_T1 = str(script_path)
+
+            script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'mni_icbm152_nlin_sym_09a', 'mni_icbm152_t2_relx_tal_nlin_sym_09a.nii'))
+            script_path = PurePath()
+            for x in script_path_parts:
+                script_path = script_path.joinpath(x)
+            self.mni_atlas_filepath_T2 = str(script_path)
+
+            script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'mni_icbm152_nlin_sym_09a', 'mni_icbm152_t1_tal_nlin_sym_09a_mask.nii'))
+            script_path = PurePath()
+            for x in script_path_parts:
+                script_path = script_path.joinpath(x)
+            self.mni_atlas_mask_filepath = str(script_path)
+
+            script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'mni_icbm152_nlin_sym_09a', 'mni_icbm152_t1_tal_nlin_sym_09a_mask.nii'))
+            script_path = PurePath()
+            for x in script_path_parts:
+                script_path = script_path.joinpath(x)
+            self.mni_atlas_brain_mask_filepath = str(script_path)
+
+            script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'mni_icbm152_nlin_sym_09a', 'reduced_lobes_brain.nii.gz'))
+            script_path = PurePath()
+            for x in script_path_parts:
+                script_path = script_path.joinpath(x)
+            self.mni_atlas_lobes_mask_filepath = str(script_path)
+
+            script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'mni_icbm152_nlin_sym_09a', 'lobe_labels_description.csv'))
+            script_path = PurePath()
+            for x in script_path_parts:
+                script_path = script_path.joinpath(x)
+            self.mni_atlas_lobes_description_filepath = str(script_path)
+
+            script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'mni_icbm152_nlin_sym_09a', 'extended_lateralisation_mask.nii.gz'))
+            script_path = PurePath()
+            for x in script_path_parts:
+                script_path = script_path.joinpath(x)
+            self.mni_atlas_lateralisation_mask_filepath = str(script_path)
 
     def __set_neuro_cortical_structures_parameters(self):
         self.cortical_structures = {}
@@ -129,6 +172,66 @@ class ResourcesConfiguration:
         self.cortical_structures['MNI']['Schaefer7']['Description'] = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                                                             '../',
                                                                             'Atlases/Schaefer400/7regions_description.csv')
+        if os.name == 'nt':
+            script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'mni_icbm152_nlin_sym_09a', 'reduced_lobes_brain.nii.gz'))
+            filepath = PurePath()
+            for x in script_path_parts:
+                filepath = filepath.joinpath(x)
+            self.cortical_structures['MNI']['MNI']['Mask'] = str(filepath)
+
+            script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'mni_icbm152_nlin_sym_09a', 'lobe_labels_description.csv'))
+            filepath = PurePath()
+            for x in script_path_parts:
+                filepath = filepath.joinpath(x)
+            self.cortical_structures['MNI']['MNI']['Description'] = str(filepath)
+
+            script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'Harvard-Oxford', 'HarvardOxford-cort-maxprob-thr0-1mm_mni.nii.gz'))
+            filepath = PurePath()
+            for x in script_path_parts:
+                filepath = filepath.joinpath(x)
+            self.cortical_structures['MNI']['Harvard-Oxford']['Mask'] = str(filepath)
+
+            script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'Harvard-Oxford', 'regions_description.csv'))
+            filepath = PurePath()
+            for x in script_path_parts:
+                filepath = filepath.joinpath(x)
+            self.cortical_structures['MNI']['Harvard-Oxford']['Description'] = str(filepath)
+
+            script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'Schaefer400', 'schaefer7MNI_mni.nii.gz'))
+            filepath = PurePath()
+            for x in script_path_parts:
+                filepath = filepath.joinpath(x)
+            self.cortical_structures['MNI']['Schaefer7']['Mask'] = str(filepath)
+
+            script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'Schaefer400', '7regions_description.csv'))
+            filepath = PurePath()
+            for x in script_path_parts:
+                filepath = filepath.joinpath(x)
+            self.cortical_structures['MNI']['Schaefer7']['Description'] = str(filepath)
+
+            script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'Schaefer400', 'schaefer17MNI_mni.nii.gz'))
+            filepath = PurePath()
+            for x in script_path_parts:
+                filepath = filepath.joinpath(x)
+            self.cortical_structures['MNI']['Schaefer17']['Mask'] = str(filepath)
+
+            script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'Schaefer400', '17regions_description.csv'))
+            filepath = PurePath()
+            for x in script_path_parts:
+                filepath = filepath.joinpath(x)
+            self.cortical_structures['MNI']['Schaefer17']['Description'] = str(filepath)
+
+            script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'Schaefer400', 'schaefer400MNI_mni.nii.gz'))
+            filepath = PurePath()
+            for x in script_path_parts:
+                filepath = filepath.joinpath(x)
+            self.cortical_structures['MNI']['Schaefer400']['Mask'] = str(filepath)
+
+            script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'Schaefer400', '400regions_description.csv'))
+            filepath = PurePath()
+            for x in script_path_parts:
+                filepath = filepath.joinpath(x)
+            self.cortical_structures['MNI']['Schaefer400']['Description'] = str(filepath)
 
     def __set_neuro_resection_maps_parameters(self):
         self.mni_resection_maps = {}
@@ -139,6 +242,19 @@ class ResourcesConfiguration:
         self.mni_resection_maps['Probability']['Right'] = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                                                        '../',
                                                                        'Atlases/resectability_maps/Resection_probability_map_right_mni.nii.gz')
+
+        if os.name == 'nt':
+            script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'resectability_maps', 'Resection_probability_map_left_mni.nii.gz'))
+            filepath = PurePath()
+            for x in script_path_parts:
+                filepath = filepath.joinpath(x)
+            self.mni_resection_maps['Probability']['Left'] = str(filepath)
+
+            script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'resectability_maps', 'Resection_probability_map_right_mni.nii.gz'))
+            filepath = PurePath()
+            for x in script_path_parts:
+                filepath = filepath.joinpath(x)
+            self.mni_resection_maps['Probability']['Right'] = str(filepath)
 
     def __set_neuro_subcortical_structures_parameters(self):
         self.subcortical_structures = {}
@@ -163,6 +279,34 @@ class ResourcesConfiguration:
             substruc_fn = os.path.join(substruc_folder, n)
             readable_name = '_'.join(n.split('.')[0].split('_')[:-1])
             self.subcortical_structures['MNI']['BCB']['Singular'][readable_name] = substruc_fn
+
+        if os.name == 'nt':
+            script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'bcb_tracts', 'bcb_subcortical_structures_overall_mask.nii.gz'))
+            filepath = PurePath()
+            for x in script_path_parts:
+                filepath = filepath.joinpath(x)
+            self.subcortical_structures['MNI']['BCB']['Mask'] = str(filepath)
+
+            script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'bcb_tracts', 'bcb_subcortical_structures_description.csv'))
+            filepath = PurePath()
+            for x in script_path_parts:
+                filepath = filepath.joinpath(x)
+            self.subcortical_structures['MNI']['BCB']['Description'] = str(filepath)
+
+            script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'bcb_tracts', 'StandAlone'))
+            filepath = PurePath()
+            for x in script_path_parts:
+                filepath = filepath.joinpath(x)
+            substruc_names = []
+            for _, _, files in os.walk(filepath):
+                for f in files:
+                    substruc_names.append(f)
+                break
+            substruc_names = sorted(substruc_names, key=str.lower)
+            for n in substruc_names:
+                substruc_fn = os.path.join(substruc_folder, n)
+                readable_name = '_'.join(n.split('.')[0].split('_')[:-1])
+                self.subcortical_structures['MNI']['BCB']['Singular'][readable_name] = str(substruc_fn)
 
     def __parse_default_parameters(self):
         eligible_tasks = ['neuro_diagnosis', 'mediastinum_diagnosis']
@@ -192,9 +336,13 @@ class ResourcesConfiguration:
                     os.path.isdir(self.config['System']['ants_root'].split('#')[0].strip()):
                 self.ants_root = self.config['System']['ants_root'].split('#')[0].strip()
 
-        os.environ["ANTSPATH"] = os.path.join(self.ants_root, "build/bin/")
-        self.ants_reg_dir = os.path.join(self.ants_root, 'src', 'Scripts')
-        self.ants_apply_dir = os.path.join(self.ants_root, 'build', 'bin')
+        if os.path.exists(self.ants_root):
+            os.environ["ANTSPATH"] = os.path.join(self.ants_root, "build/bin/")
+            self.ants_reg_dir = os.path.join(self.ants_root, 'src', 'Scripts')
+            self.ants_apply_dir = os.path.join(self.ants_root, 'build', 'bin')
+            self.system_ants_backend = 'cpp'
+        else:
+            self.system_ants_backend = 'python'
 
         if self.config.has_option('System', 'output_folder'):
             if self.config['System']['output_folder'].split('#')[0].strip() != '':

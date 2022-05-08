@@ -1,10 +1,10 @@
-# Raidionics backend for computing tumor characteristics and generating a standardized report (RADS).
+# Raidionics backend for computing tumor characteristics and standardized report (RADS)
 
 [![License](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
-#[![Build Actions Status](https://github.com/dbouget/raidionics-rads-lib/workflows/Build/badge.svg)](https://github.com/dbouget/raidionics-rads-lib/actions)
+[![Build Actions Status](https://github.com/dbouget/raidionics-rads-lib/workflows/Build/badge.svg)](https://github.com/dbouget/raidionics-rads-lib/actions)
 [![Paper](https://zenodo.org/badge/DOI/10.48550/arXiv.2204.14199.svg)](https://doi.org/10.48550/arXiv.2204.14199)
 
-The code corresponds to the RADS backend of MRI/CT volumes.  
+The code corresponds to the Raidionics backend for generating standardized reports from MRI/CT volumes.  
 The module can either be used as a Python library, as CLI, or as Docker container.
 
 # Installation
@@ -16,7 +16,7 @@ pip install git+https://github.com/dbouget/raidionics-rads-lib.git
 # Usage
 ## CLI
 ```
-raidionicsseg CONFIG
+raidionicsrads CONFIG
 ```
 
 CONFIG should point to a configuration file (*.ini), specifying all runtime parameters,
@@ -31,13 +31,23 @@ run_rads(config_filename="/path/to/main_config.ini")
 ## Docker
 ```
 docker pull dbouget/raidionics-rads:v1
-docker run --entrypoint /bin/bash -v /home/ubuntu:/home/ubuntu -t -i --runtime=nvidia --network=host --ipc=host dbouget/raidionics-radsr:v1
+docker run --entrypoint /bin/bash -v /home/ubuntu:/home/ubuntu -t -i --runtime=nvidia --network=host --ipc=host dbouget/raidionics-rads:v1
 ```
 
 The `/home/ubuntu` before the column sign has to be changed to match your local machine.
 
 # Models
-The trained models, necessary for segmentation, are automatically downloaded when running Raidionics or Raidionics-Slicer.
+The trained models are automatically downloaded when running Raidionics or Raidionics-Slicer.
+
+# For developers
+A manual installation of CUDA and of the following Python package is necessary to benefit from the GPU.
+
+```
+pip install tensorflow-gpu==1.14.0
+```
+
+The ANTs library can be manually installed (from source) and be used as a cpp backend rather than Python.
+Visit https://github.com/ANTsX/ANTs.
 
 # How to cite
 Please, consider citing our paper, if you find the work useful:

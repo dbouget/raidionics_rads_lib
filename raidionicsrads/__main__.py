@@ -40,5 +40,6 @@ def main():
 
 
 if __name__ == "__main__":
+    logging.info("Internal main call.\n")
     main()
 

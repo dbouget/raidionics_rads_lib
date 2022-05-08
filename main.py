@@ -4,6 +4,7 @@ import sys
 import logging
 import traceback
 from raidionicsrads.compute import run_rads
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
 def main(argv):
@@ -22,18 +23,18 @@ def main(argv):
         elif opt in ("-c", "--Config"):
             config_filename = arg
         elif opt in ("-v", "--Verbose"):
-            if opt.lower() == 'debug':
+            if arg.lower() == 'debug':
                 logging.getLogger().setLevel(logging.DEBUG)
-            elif opt.lower() == 'info':
+            elif arg.lower() == 'info':
                 logging.getLogger().setLevel(logging.INFO)
-            elif opt.lower() == 'warning':
+            elif arg.lower() == 'warning':
                 logging.getLogger().setLevel(logging.WARNING)
-            elif opt.lower() == 'error':
+            elif arg.lower() == 'error':
                 logging.getLogger().setLevel(logging.ERROR)
 
     if not config_filename or not os.path.exists(config_filename):
-        print('usage: main.py --Config <config_filepath> (--Verbose <mode>)')
-        sys.exit(2)
+        print('usage: main.py <config_filepath> (--Verbose <mode>)')
+        sys.exit()
 
     try:
         run_rads(config_filename=config_filename)
