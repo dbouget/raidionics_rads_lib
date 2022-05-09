@@ -14,15 +14,15 @@ jobs:
         include:
           - os: ubuntu-18.04
             TARGET: ubuntu
-            CMD_BUILD: python setup.py bdist_wheel
+            CMD_BUILD: python setup.py bdist_wheel --plat-name manylinux1_x86_64
 
           - os: macos-10.15
             TARGET: macos
-            CMD_BUILD: python setup.py bdist_wheel
+            CMD_BUILD: python setup.py bdist_wheel --plat-name macosx_10_13_x86_64
 
           - os: windows-2019
             TARGET: windows
-            CMD_BUILD: python setup.py bdist_wheel
+            CMD_BUILD: python setup.py bdist_wheel --plat-name win_amd64
     steps:
       - uses: actions/checkout@v1
       - name: Set up Python 3.7
