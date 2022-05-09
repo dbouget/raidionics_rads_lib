@@ -8,13 +8,15 @@ with open('requirements.txt', 'r', encoding='utf-16', errors='ignore') as ff:
     required = ff.read().splitlines()
 
 if platform.system() == 'Windows':
-    required.append('raidionicsseg @ git+https://github.com/dbouget/raidionics-seg-lib/releases/download/v0.1.0-alpha/raidionicsseg-0.1.1-py2.py3-none-any.whl')
-    required.append('antspyx @ git+https://github.com/SGotla/ANTsPy/releases/download/0.1.7Win64/antspy-0.1.7-cp37-cp37m-win_amd64.whl')
+    required.append('raidionicsseg @ git+https://github.com/dbouget/raidionics-seg-lib.git@v0.1.0-alpha')
+    # required.append('antspyx @ git+https://github.com/SGotla/ANTsPy/releases/download/0.1.7Win64/antspy-0.1.7-cp37-cp37m-win_amd64.whl')
+    required.append('antspyx @ git+https://github.com/SGotla/ANTsPy.git@0.1.7Win64')
 elif platform.system() == 'Darwin':
-    required.append('raidionicsseg @ git+https://github.com/dbouget/raidionics-seg-lib/releases/download/v0.1.0-alpha/raidionicsseg-0.1.1-py2.py3-none-any.whl')
-    required.append('antspyx @ git+https://github.com/ANTsX/ANTsPy/releases/download/v0.1.8/antspyx-0.1.8-cp37-cp37m-macosx_10_14_x86_64.whl')
+    required.append('raidionicsseg @ git+https://github.com/dbouget/raidionics-seg-lib.git@v0.1.0-alpha')
+    # required.append('antspyx @ git+https://github.com/ANTsX/ANTsPy/releases/download/v0.1.8/antspyx-0.1.8-cp37-cp37m-macosx_10_14_x86_64.whl')
+    required.append('antspyx @ git+https://github.com/ANTsX/ANTsPy.git@v0.2.0')
 else:
-    required.append('raidionicsseg @ git+https://github.com/dbouget/raidionics-seg-lib/releases/download/v0.1.0-alpha/raidionicsseg-0.1.1-py2.py3-none-any.whl')
+    required.append('raidionicsseg @ git+https://github.com/dbouget/raidionics-seg-lib.git@v0.1.0-alpha')
     required.append('antspyx')
 
 setup(
@@ -36,7 +38,7 @@ setup(
     },
     install_requires=required,
     # include_package_data=True,
-    python_requires=">=3.6",
+    python_requires=">=3.6, <=3.7",
     version='0.1.0',
     author='David Bouget (david.bouget@sintef.no)',
     license='BSD 2-Clause',
