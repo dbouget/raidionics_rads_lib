@@ -1,10 +1,21 @@
 from setuptools import find_packages, setup
+import platform
 
 with open("README.md", "r", errors='ignore') as f:
     long_description = f.read()
 
 with open('requirements.txt', 'r', encoding='utf-16', errors='ignore') as ff:
     required = ff.read().splitlines()
+
+if platform.system() == 'Windows':
+    required.append('raidionicsseg @ git+https://github.com/dbouget/raidionics-seg-lib/releases/download/v0.1.0-alpha/raidionicsseg-0.1.1-py2.py3-none-any.whl')
+    required.append('antspyx @ git+https://github.com/SGotla/ANTsPy/releases/download/0.1.7Win64/antspy-0.1.7-cp37-cp37m-win_amd64.whl')
+elif platform.system() == 'Darwin':
+    required.append('raidionicsseg @ git+https://github.com/dbouget/raidionics-seg-lib/releases/download/v0.1.0-alpha/raidionicsseg-0.1.1-py2.py3-none-any.whl')
+    required.append('antspyx @ git+https://github.com/ANTsX/ANTsPy/releases/download/v0.1.8/antspyx-0.1.8-cp37-cp37m-macosx_10_14_x86_64.whl')
+else:
+    required.append('raidionicsseg @ git+https://github.com/dbouget/raidionics-seg-lib/releases/download/v0.1.0-alpha/raidionicsseg-0.1.1-py2.py3-none-any.whl')
+    required.append('antspyx')
 
 setup(
     name='raidionicsrads',

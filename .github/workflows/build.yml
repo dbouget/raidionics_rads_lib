@@ -14,21 +14,15 @@ jobs:
         include:
           - os: ubuntu-18.04
             TARGET: ubuntu
-            CMD_BUILD: "pip install git+https://github.com/dbouget/raidionics-seg-lib.git &&
-                        pip install antspyx && 
-                        pip install git+https://github.com/dbouget/raidionics-rads-lib.git"
+            CMD_BUILD: python setup.py bdist_wheel
 
           - os: macos-10.15
             TARGET: macos
-            CMD_BUILD: "pip install git+https://github.com/dbouget/raidionics-seg-lib.git &&
-                        pip install https://github.com/ANTsX/ANTsPy/releases/download/v0.1.8/antspyx-0.1.8-cp37-cp37m-macosx_10_14_x86_64.whl && 
-                        pip install git+https://github.com/dbouget/raidionics-rads-lib.git"
+            CMD_BUILD: python setup.py bdist_wheel
 
           - os: windows-2019
             TARGET: windows
-            CMD_BUILD: "pip install git+https://github.com/dbouget/raidionics-seg-lib.git &&
-                        pip install https://github.com/SGotla/ANTsPy/releases/download/0.1.7Win64/antspy-0.1.7-cp37-cp37m-win_amd64.whl &&
-                        pip install git+https://github.com/dbouget/raidionics-rads-lib.git"
+            CMD_BUILD: python setup.py bdist_wheel
     steps:
       - uses: actions/checkout@v1
       - name: Set up Python 3.7
@@ -39,11 +33,11 @@ jobs:
       - name: Install dependencies
         run: pip install wheel setuptools
 
-      - name: Build wheel
-        run: python setup.py bdist_wheel --universal
-
-      - name: Install program for ${{matrix.TARGET}}
+      - name: Built wheel for ${{matrix.TARGET}}
         run: ${{matrix.CMD_BUILD}}
+
+      - name: Install software
+        run: pip install --find-links=${{github.workspace}}/dist/ raidionicsrads
 
       - name: Test CLI
         run: raidionicsrads --help
