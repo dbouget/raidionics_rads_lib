@@ -1,5 +1,6 @@
 import configparser
 import logging
+import traceback
 
 import numpy as np
 import sys, os, shutil
@@ -62,6 +63,23 @@ def perform_ants_skull_stripping(image_filepath):
 
 
 def perform_brain_extraction(image_filepath: str, method: str = 'deep_learning') -> str:
+    """
+
+    The brain extraction process.
+
+    Parameters
+    ----------
+    image_filepath : str
+        Filepath of the patient input MRI volume.
+    method : str
+        Skull stripping method to use to choose from [ants, deep_learning]. In ants mode the ANTs library is used
+        to perform the task, and in deep_learning mode a custom brain segmentation model is used.
+        AT THE TIME, ONLY THE deep_learning MODE IS IMPLEMENTED AND AVAILABLE!
+    Returns
+    -------
+    str
+        Full filepath of the newly created brain mask.
+    """
     # Creating temporary folder to delete when all is done
     tmp_folder = os.path.join(ResourcesConfiguration.getInstance().output_folder, 'tmp')
     os.makedirs(tmp_folder, exist_ok=True)
@@ -76,43 +94,70 @@ def perform_brain_extraction(image_filepath: str, method: str = 'deep_learning')
     return brain_predictions_file
 
 
-def perform_custom_brain_extraction(image_filepath, folder):
+def perform_custom_brain_extraction(image_filepath: str, folder: str) -> str:
     """
-    The custom brain extraction is performed by using the pre-trained model.
+
+    The custom brain segmentation is performed by using the pre-trained model followed by skull-stripping.
+
+    Parameters
+    ----------
+    image_filepath : str
+        Filepath of the patient input MRI volume.
+    folder : str
+        Destination folder in which the brain mask will be saved.
+    Returns
+    -------
+    str
+        Full filepath of the newly created brain mask.
     """
-    brain_config = configparser.ConfigParser()
-    brain_config.add_section('System')
-    brain_config.set('System', 'gpu_id', ResourcesConfiguration.getInstance().gpu_id)
-    brain_config.set('System', 'input_filename', image_filepath)
-    brain_config.set('System', 'output_folder', ResourcesConfiguration.getInstance().output_folder)
-    brain_config.set('System', 'model_folder', os.path.join(os.path.dirname(ResourcesConfiguration.getInstance().model_folder), 'MRI_Brain'))
-    brain_config.add_section('Runtime')
-    brain_config.set('Runtime', 'reconstruction_method', 'thresholding')
-    brain_config.set('Runtime', 'reconstruction_order', 'resample_first')
-    brain_config_filename = os.path.join(os.path.dirname(ResourcesConfiguration.getInstance().config_filename), 'brain_config.ini')
-    with open(brain_config_filename, 'w') as outfile:
-        brain_config.write(outfile)
+    brain_config_filename = ''
+    dump_brain_mask_filepath = ''
+    try:
+        brain_config = configparser.ConfigParser()
+        brain_config.add_section('System')
+        brain_config.set('System', 'gpu_id', ResourcesConfiguration.getInstance().gpu_id)
+        brain_config.set('System', 'input_filename', image_filepath)
+        brain_config.set('System', 'output_folder', ResourcesConfiguration.getInstance().output_folder)
+        brain_config.set('System', 'model_folder', os.path.join(os.path.dirname(ResourcesConfiguration.getInstance().model_folder), 'MRI_Brain'))
+        brain_config.add_section('Runtime')
+        brain_config.set('Runtime', 'reconstruction_method', 'thresholding')
+        brain_config.set('Runtime', 'reconstruction_order', 'resample_first')
+        brain_config_filename = os.path.join(os.path.dirname(ResourcesConfiguration.getInstance().config_filename), 'brain_config.ini')
+        with open(brain_config_filename, 'w') as outfile:
+            brain_config.write(outfile)
 
-    subprocess.call(['raidionicsseg',
-                     '{config}'.format(config=brain_config_filename)]) # '-v {verbose}'.format(verbose=logging.getLogger().level)
-    brain_mask_filename = os.path.join(ResourcesConfiguration.getInstance().output_folder, 'labels_Brain.nii.gz')
-    brain_mask_ni = load_nifti_volume(brain_mask_filename)
-    brain_mask = brain_mask_ni.get_data()[:].astype('uint8')
+        subprocess.call(['raidionicsseg',
+                         '{config}'.format(config=brain_config_filename)]) # '-v {verbose}'.format(verbose=logging.getLogger().level)
+    except Exception as e:
+        logging.error("Automatic brain segmentation failed with: {}.\n".format(traceback.format_exc()))
+        if os.path.exists(brain_config_filename):
+            os.remove(brain_config_filename)
+        raise ValueError("Impossible to perform automatic brain segmentation.\n")
 
-    # The automatic segmentation should be clean, but just in case, only the largest component is retained.
-    labels, nb_components = label(brain_mask)
-    brain_objects_properties = regionprops(labels)
-    brain_object = brain_objects_properties[0]
-    brain_component = np.zeros(brain_mask.shape).astype('uint8')
-    brain_component[brain_object.bbox[0]:brain_object.bbox[3],
-    brain_object.bbox[1]:brain_object.bbox[4],
-    brain_object.bbox[2]:brain_object.bbox[5]] = 1
+    try:
+        brain_mask_filename = os.path.join(ResourcesConfiguration.getInstance().output_folder, 'labels_Brain.nii.gz')
+        brain_mask_ni = load_nifti_volume(brain_mask_filename)
+        brain_mask = brain_mask_ni.get_data()[:].astype('uint8')
 
-    dump_brain_mask = brain_mask & brain_component
-    dump_brain_mask_ni = nib.Nifti1Image(dump_brain_mask, affine=brain_mask_ni.affine)
-    dump_brain_mask_filepath = os.path.join('/'.join(folder.split('/')[:-1]), 'input_brain_mask.nii.gz')
-    nib.save(dump_brain_mask_ni, dump_brain_mask_filepath)
-    os.remove(brain_config_filename)
+        # The automatic segmentation should be clean, but just in case, only the largest component is retained.
+        labels, nb_components = label(brain_mask)
+        brain_objects_properties = regionprops(labels)
+        brain_object = brain_objects_properties[0]
+        brain_component = np.zeros(brain_mask.shape).astype('uint8')
+        brain_component[brain_object.bbox[0]:brain_object.bbox[3],
+        brain_object.bbox[1]:brain_object.bbox[4],
+        brain_object.bbox[2]:brain_object.bbox[5]] = 1
+
+        dump_brain_mask = brain_mask & brain_component
+        dump_brain_mask_ni = nib.Nifti1Image(dump_brain_mask, affine=brain_mask_ni.affine)
+        dump_brain_mask_filepath = os.path.join('/'.join(folder.split('/')[:-1]), 'input_brain_mask.nii.gz')
+        nib.save(dump_brain_mask_ni, dump_brain_mask_filepath)
+        os.remove(brain_config_filename)
+    except Exception as e:
+        logging.error("Skull stripping operation failed with: {}.\n".format(traceback.format_exc()))
+        if os.path.exists(brain_config_filename):
+            os.remove(brain_config_filename)
+        raise ValueError("Impossible to perform skull stripping.\n")
 
     return dump_brain_mask_filepath
 
