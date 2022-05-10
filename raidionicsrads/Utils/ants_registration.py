@@ -10,7 +10,7 @@ import subprocess
 import shutil
 import zipfile
 import gzip
-from dipy.align.reslice import reslice
+# from dipy.align.reslice import reslice
 from raidionicsrads.Processing.brain_processing import *
 
 
