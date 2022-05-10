@@ -11,10 +11,12 @@ if platform.system() == 'Windows':
     required.append('raidionicsseg@https://github.com/dbouget/raidionics-seg-lib/releases/download/v0.1.2-alpha/raidionicsseg-0.1.2-py3-none-win_amd64.whl')
     required.append('antspy@https://github.com/SGotla/ANTsPy/releases/download/0.1.7Win64/antspy-0.1.7-cp37-cp37m-win_amd64.whl')
     required.append('pandas==1.1.5')
+    required.append('scikit-learn==0.24.2')
 elif platform.system() == 'Darwin':
     required.append('raidionicsseg@https://github.com/dbouget/raidionics-seg-lib/releases/download/v0.1.2-alpha/raidionicsseg-0.1.2-py3-none-macosx_10_13_x86_64.whl')
     required.append('antspyx@https://github.com/ANTsX/ANTsPy/releases/download/v0.1.8/antspyx-0.1.8-cp37-cp37m-macosx_10_14_x86_64.whl')
     required.append('pandas==1.1.5')
+    required.append('scikit-learn==0.24.2')
 else:
     required.append('raidionicsseg@https://github.com/dbouget/raidionics-seg-lib/releases/download/v0.1.2-alpha/raidionicsseg-0.1.2-py3-none-manylinux1_x86_64.whl')
     required.append('antspyx')
