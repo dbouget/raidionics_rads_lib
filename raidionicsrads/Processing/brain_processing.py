@@ -126,8 +126,18 @@ def perform_custom_brain_extraction(image_filepath: str, folder: str) -> str:
         with open(brain_config_filename, 'w') as outfile:
             brain_config.write(outfile)
 
+        log_level = logging.getLogger().level
+        log_str = 'warning'
+        if log_level == 10:
+            log_str = 'debug'
+        elif log_level == 20:
+            log_str = 'info'
+        elif log_level == 40:
+            log_str = 'error'
+
         subprocess.call(['raidionicsseg',
-                         '{config}'.format(config=brain_config_filename)]) # '-v {verbose}'.format(verbose=logging.getLogger().level)
+                         '{config}'.format(config=brain_config_filename),
+                         '-v {verbose}'.format(verbose=log_str)])
     except Exception as e:
         logging.error("Automatic brain segmentation failed with: {}.\n".format(traceback.format_exc()))
         if os.path.exists(brain_config_filename):
