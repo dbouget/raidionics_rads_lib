@@ -44,7 +44,7 @@ def standardreporting_test():
     except Exception as e:
         logging.error("Error during resources download with: \n {}.\n".format(traceback.format_exc()))
         shutil.rmtree(test_dir)
-        return
+        raise ValueError("Error during resources download.\n")
 
     logging.info("Preparing configuration file.\n")
     try:
@@ -75,7 +75,7 @@ def standardreporting_test():
     except Exception as e:
         logging.error("Error during inference with: \n {}.\n".format(traceback.format_exc()))
         shutil.rmtree(test_dir)
-        return
+        raise ValueError("Error during inference.\n")
 
     logging.info("Standard reporting unit test succeeded.\n")
     shutil.rmtree(test_dir)

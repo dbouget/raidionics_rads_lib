@@ -245,7 +245,7 @@ class NeuroDiagnostics:
         patient_dump_folder = os.path.join(ResourcesConfiguration.getInstance().output_folder, 'patient',
                                            'Subcortical-structures')
         os.makedirs(patient_dump_folder, exist_ok=True)
-        for i, elem in tqdm(enumerate(ResourcesConfiguration.getInstance().subcortical_structures['MNI']['BCB']['Singular'].keys())):
+        for i, elem in enumerate(tqdm(ResourcesConfiguration.getInstance().subcortical_structures['MNI']['BCB']['Singular'].keys())):
             raw_filename = ResourcesConfiguration.getInstance().subcortical_structures['MNI']['BCB']['Singular'][elem]
             raw_tract_ni = nib.load(raw_filename)
             raw_tract = raw_tract_ni.get_data()[:]
