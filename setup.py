@@ -38,7 +38,7 @@ setup(
         ]
     },
     install_requires=required,
-    # include_package_data=True,
+    include_package_data=True,
     python_requires=">=3.6, <3.8",
     version='0.1.0',
     author='David Bouget (david.bouget@sintef.no)',
