@@ -137,7 +137,7 @@ def perform_custom_brain_extraction(image_filepath: str, folder: str) -> str:
 
         subprocess.call(['raidionicsseg',
                          '{config}'.format(config=brain_config_filename),
-                         '--verbose {verbose}'.format(verbose=log_str)])
+                         '--verbose', log_str])
     except Exception as e:
         logging.error("Automatic brain segmentation failed with: {}.\n".format(traceback.format_exc()))
         if os.path.exists(brain_config_filename):
