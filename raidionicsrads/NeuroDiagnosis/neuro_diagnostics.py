@@ -184,24 +184,41 @@ class NeuroDiagnostics:
                 and os.path.exists(ResourcesConfiguration.getInstance().runtime_tumor_mask_filepath):
             return ResourcesConfiguration.getInstance().runtime_tumor_mask_filepath
         else:
-            tumor_config = configparser.ConfigParser()
-            tumor_config.add_section('System')
-            tumor_config.set('System', 'gpu_id', ResourcesConfiguration.getInstance().gpu_id)
-            tumor_config.set('System', 'input_filename', self.input_filename)
-            tumor_config.set('System', 'output_folder', ResourcesConfiguration.getInstance().output_folder)
-            tumor_config.set('System', 'model_folder', self.selected_model)
-            tumor_config.add_section('Runtime')
-            tumor_config.set('Runtime', 'reconstruction_method', 'thresholding')
-            tumor_config.set('Runtime', 'reconstruction_order', 'resample_first')
-            tumor_config.add_section('Neuro')
-            tumor_config.set('Neuro', 'brain_segmentation_filename', ResourcesConfiguration.getInstance().runtime_brain_mask_filepath)
-            tumor_config_filename = os.path.join(os.path.dirname(ResourcesConfiguration.getInstance().config_filename),
-                                                 'tumor_config.ini')
-            with open(tumor_config_filename, 'w') as outfile:
-                tumor_config.write(outfile)
+            try:
+                tumor_config = configparser.ConfigParser()
+                tumor_config.add_section('System')
+                tumor_config.set('System', 'gpu_id', ResourcesConfiguration.getInstance().gpu_id)
+                tumor_config.set('System', 'input_filename', self.input_filename)
+                tumor_config.set('System', 'output_folder', ResourcesConfiguration.getInstance().output_folder)
+                tumor_config.set('System', 'model_folder', self.selected_model)
+                tumor_config.add_section('Runtime')
+                tumor_config.set('Runtime', 'reconstruction_method', 'thresholding')
+                tumor_config.set('Runtime', 'reconstruction_order', 'resample_first')
+                tumor_config.add_section('Neuro')
+                tumor_config.set('Neuro', 'brain_segmentation_filename', ResourcesConfiguration.getInstance().runtime_brain_mask_filepath)
+                tumor_config_filename = os.path.join(os.path.dirname(ResourcesConfiguration.getInstance().config_filename),
+                                                     'tumor_config.ini')
+                with open(tumor_config_filename, 'w') as outfile:
+                    tumor_config.write(outfile)
 
-            subprocess.call(['raidionicsseg',
-                             '{config}'.format(config=tumor_config_filename)])
+                log_level = logging.getLogger().level
+                log_str = 'warning'
+                if log_level == 10:
+                    log_str = 'debug'
+                elif log_level == 20:
+                    log_str = 'info'
+                elif log_level == 40:
+                    log_str = 'error'
+
+                subprocess.call(['raidionicsseg',
+                                 '{config}'.format(config=tumor_config_filename),
+                                 '--verbose', log_str])
+            except Exception as e:
+                logging.error("Automatic tumor segmentation failed with: {}.\n".format(traceback.format_exc()))
+                if os.path.exists(tumor_config_filename):
+                    os.remove(tumor_config_filename)
+                raise ValueError("Impossible to perform automatic tumor segmentation.\n")
+
             tumor_mask_filename = os.path.join(ResourcesConfiguration.getInstance().output_folder,
                                                'labels_Tumor.nii.gz')
             tumor_mask_ni = load_nifti_volume(tumor_mask_filename)
