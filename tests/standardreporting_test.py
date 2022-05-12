@@ -64,18 +64,44 @@ def standardreporting_test():
         with open(rads_config_filename, 'w') as outfile:
             rads_config.write(outfile)
 
-        logging.info("Running standardized reporting.\n")
+        logging.info("Standardized reporting CLI unit test started.\n")
+        try:
+            import platform
+            if platform.system() == 'Windows':
+                subprocess.check_call(['raidionicsrads',
+                                       '{config}'.format(config=rads_config_filename),
+                                       '--verbose', 'debug'], shell=True)
+            else:
+                subprocess.check_call(['raidionicsrads',
+                                       '{config}'.format(config=rads_config_filename),
+                                       '--verbose', 'debug'])
+        except Exception as e:
+            logging.error("Error during Standardized reporting CLI unit test with: \n {}.\n".format(traceback.format_exc()))
+            shutil.rmtree(test_dir)
+            raise ValueError("Error during Standardized reporting CLI unit test.\n")
+
+        logging.info("Collecting and comparing results.\n")
+        report_filename = os.path.join(test_dir, 'neuro_standardized_report.json')
+        if not os.path.exists(report_filename):
+            logging.error("Standardized reporting CLI unit test failed, no report was generated.\n")
+            shutil.rmtree(test_dir)
+            raise ValueError("Standardized reporting CLI unit test failed, no report was generated.\n")
+        logging.info("Standardized reporting CLI unit test succeeded.\n")
+
+        logging.info("Running standardized reporting unit test.\n")
         from raidionicsrads.compute import run_rads
         run_rads(rads_config_filename)
 
         logging.info("Collecting and comparing results.\n")
-        brain_segmentation_filename = os.path.join(test_dir, 'labels_Brain.nii.gz')
-        if not os.path.exists(brain_segmentation_filename):
-            logging.error("Inference unit test failed, no created brain mask was generated.\n")
+        report_filename = os.path.join(test_dir, 'neuro_standardized_report.json')
+        if not os.path.exists(report_filename):
+            logging.error("Standardized reporting unit test failed, no report was generated.\n")
+            shutil.rmtree(test_dir)
+            raise ValueError("Standardized reporting unit test failed, no report was generated.\n")
     except Exception as e:
-        logging.error("Error during inference with: \n {}.\n".format(traceback.format_exc()))
+        logging.error("Error during standardized reporting unit test with: \n {}.\n".format(traceback.format_exc()))
         shutil.rmtree(test_dir)
-        raise ValueError("Error during inference.\n")
+        raise ValueError("Error during standardized reporting unit test with.\n")
 
     logging.info("Standard reporting unit test succeeded.\n")
     shutil.rmtree(test_dir)
