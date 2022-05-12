@@ -131,18 +131,22 @@ class NeuroDiagnostics:
                         os.path.join(self.output_path, 'Tumor.nii.gz'))
             shutil.move(brain_mask_filepath,
                         os.path.join(self.output_path, 'Brain.nii.gz'))
-            if True: #ResourcesConfiguration.getInstance().neuro_diagnosis_compute_cortical_structures:
-                shutil.move(os.path.join(self.output_path, 'Cortical-structures/MNI_mask_to_input.nii.gz'),
-                            os.path.join(self.output_path, 'MNI.nii.gz'))
-                shutil.move(os.path.join(self.output_path, 'Cortical-structures/Schaefer7_mask_to_input.nii.gz'),
-                            os.path.join(self.output_path, 'Schaefer7.nii.gz'))
-                shutil.move(os.path.join(self.output_path, 'Cortical-structures/Schaefer17_mask_to_input.nii.gz'),
-                            os.path.join(self.output_path, 'Schaefer17.nii.gz'))
-                shutil.move(os.path.join(self.output_path, 'Cortical-structures/Harvard-Oxford_mask_to_input.nii.gz'),
-                            os.path.join(self.output_path, 'Harvard-Oxford.nii.gz'))
-            if True: #ResourcesConfiguration.getInstance().neuro_diagnosis_compute_subcortical_structures:
-                shutil.move(os.path.join(self.output_path, 'Subcortical-structures/BCB_mask_to_input.nii.gz'),
-                            os.path.join(self.output_path, 'BCB.nii.gz'))
+            for s in ResourcesConfiguration.getInstance().neuro_features_cortical_structures:
+                shutil.move(os.path.join(self.output_path, 'Cortical-structures/' + s + '_mask_to_input.nii.gz'),
+                            os.path.join(self.output_path, s + '.nii.gz'))
+                # shutil.move(os.path.join(self.output_path, 'Cortical-structures/MNI_mask_to_input.nii.gz'),
+                #             os.path.join(self.output_path, 'MNI.nii.gz'))
+                # shutil.move(os.path.join(self.output_path, 'Cortical-structures/Schaefer7_mask_to_input.nii.gz'),
+                #             os.path.join(self.output_path, 'Schaefer7.nii.gz'))
+                # shutil.move(os.path.join(self.output_path, 'Cortical-structures/Schaefer17_mask_to_input.nii.gz'),
+                #             os.path.join(self.output_path, 'Schaefer17.nii.gz'))
+                # shutil.move(os.path.join(self.output_path, 'Cortical-structures/Harvard-Oxford_mask_to_input.nii.gz'),
+                #             os.path.join(self.output_path, 'Harvard-Oxford.nii.gz'))
+            for s in ResourcesConfiguration.getInstance().neuro_features_subcortical_structures:
+                shutil.move(os.path.join(self.output_path, 'Subcortical-structures/' + s + '_mask_to_input.nii.gz'),
+                            os.path.join(self.output_path, s + '.nii.gz'))
+                # shutil.move(os.path.join(self.output_path, 'Subcortical-structures/BCB_mask_to_input.nii.gz'),
+                #             os.path.join(self.output_path, 'BCB.nii.gz'))
             shutil.move(os.path.join(self.output_path, 'neuro_diagnosis_report.txt'),
                         os.path.join(self.output_path, 'Diagnosis.txt'))
             shutil.move(os.path.join(self.output_path, 'neuro_diagnosis_report.json'),
@@ -184,6 +188,7 @@ class NeuroDiagnostics:
                 and os.path.exists(ResourcesConfiguration.getInstance().runtime_tumor_mask_filepath):
             return ResourcesConfiguration.getInstance().runtime_tumor_mask_filepath
         else:
+            tumor_config_filename = ""
             try:
                 tumor_config = configparser.ConfigParser()
                 tumor_config.add_section('System')
@@ -210,9 +215,9 @@ class NeuroDiagnostics:
                 elif log_level == 40:
                     log_str = 'error'
 
-                subprocess.call(['raidionicsseg',
-                                 '{config}'.format(config=tumor_config_filename),
-                                 '--verbose', log_str])
+                subprocess.check_call(['raidionicsseg',
+                                       '{config}'.format(config=tumor_config_filename),
+                                       '--verbose', log_str])
             except Exception as e:
                 logging.error("Automatic tumor segmentation failed with: {}.\n".format(traceback.format_exc()))
                 if os.path.exists(tumor_config_filename):
@@ -239,22 +244,28 @@ class NeuroDiagnostics:
         patient_dump_folder = os.path.join(ResourcesConfiguration.getInstance().output_folder, 'patient',
                                            'Cortical-structures')
         os.makedirs(patient_dump_folder, exist_ok=True)
-        self.registration_runner.apply_registration_inverse_transform(moving=ResourcesConfiguration.getInstance().cortical_structures['MNI']['MNI']['Mask'],
-                                                                      fixed=self.input_filename,
-                                                                      interpolation='nearestNeighbor',
-                                                                      label='Cortical-structures/MNI')
-        self.registration_runner.apply_registration_inverse_transform(moving=ResourcesConfiguration.getInstance().cortical_structures['MNI']['Schaefer7']['Mask'],
-                                                                      fixed=self.input_filename,
-                                                                      interpolation='nearestNeighbor',
-                                                                      label='Cortical-structures/Schaefer7')
-        self.registration_runner.apply_registration_inverse_transform(moving=ResourcesConfiguration.getInstance().cortical_structures['MNI']['Schaefer17']['Mask'],
-                                                                      fixed=self.input_filename,
-                                                                      interpolation='nearestNeighbor',
-                                                                      label='Cortical-structures/Schaefer17')
-        self.registration_runner.apply_registration_inverse_transform(moving=ResourcesConfiguration.getInstance().cortical_structures['MNI']['Harvard-Oxford']['Mask'],
-                                                                      fixed=self.input_filename,
-                                                                      interpolation='nearestNeighbor',
-                                                                      label='Cortical-structures/Harvard-Oxford')
+        for s in ResourcesConfiguration.getInstance().neuro_features_cortical_structures:
+            self.registration_runner.apply_registration_inverse_transform(
+                moving=ResourcesConfiguration.getInstance().cortical_structures['MNI'][s]['Mask'],
+                fixed=self.input_filename,
+                interpolation='nearestNeighbor',
+                label='Cortical-structures/' + s)
+        # self.registration_runner.apply_registration_inverse_transform(moving=ResourcesConfiguration.getInstance().cortical_structures['MNI']['MNI']['Mask'],
+        #                                                               fixed=self.input_filename,
+        #                                                               interpolation='nearestNeighbor',
+        #                                                               label='Cortical-structures/MNI')
+        # self.registration_runner.apply_registration_inverse_transform(moving=ResourcesConfiguration.getInstance().cortical_structures['MNI']['Schaefer7']['Mask'],
+        #                                                               fixed=self.input_filename,
+        #                                                               interpolation='nearestNeighbor',
+        #                                                               label='Cortical-structures/Schaefer7')
+        # self.registration_runner.apply_registration_inverse_transform(moving=ResourcesConfiguration.getInstance().cortical_structures['MNI']['Schaefer17']['Mask'],
+        #                                                               fixed=self.input_filename,
+        #                                                               interpolation='nearestNeighbor',
+        #                                                               label='Cortical-structures/Schaefer17')
+        # self.registration_runner.apply_registration_inverse_transform(moving=ResourcesConfiguration.getInstance().cortical_structures['MNI']['Harvard-Oxford']['Mask'],
+        #                                                               fixed=self.input_filename,
+        #                                                               interpolation='nearestNeighbor',
+        #                                                               label='Cortical-structures/Harvard-Oxford')
 
     def __apply_registration_subcortical_structures(self):
         logging.info("Register subcortical structure atlas files to patient space.\n")
@@ -262,31 +273,31 @@ class NeuroDiagnostics:
         patient_dump_folder = os.path.join(ResourcesConfiguration.getInstance().output_folder, 'patient',
                                            'Subcortical-structures')
         os.makedirs(patient_dump_folder, exist_ok=True)
-        for i, elem in enumerate(tqdm(ResourcesConfiguration.getInstance().subcortical_structures['MNI']['BCB']['Singular'].keys())):
-            raw_filename = ResourcesConfiguration.getInstance().subcortical_structures['MNI']['BCB']['Singular'][elem]
-            raw_tract_ni = nib.load(raw_filename)
-            raw_tract = raw_tract_ni.get_data()[:]
-            raw_tract[raw_tract < bcb_tracts_cutoff] = 0
-            raw_tract[raw_tract >= bcb_tracts_cutoff] = 1
-            raw_tract = raw_tract.astype('uint8')
-            dump_filename = os.path.join(self.registration_runner.registration_folder, 'Subcortical-structures',
-                                         os.path.basename(raw_filename))
-            os.makedirs(os.path.dirname(dump_filename), exist_ok=True)
-            nib.save(nib.Nifti1Image(raw_tract, affine=raw_tract_ni.affine), dump_filename)
+        for s in ResourcesConfiguration.getInstance().neuro_features_subcortical_structures:
+            for i, elem in enumerate(tqdm(ResourcesConfiguration.getInstance().subcortical_structures['MNI'][s]['Singular'].keys())):
+                raw_filename = ResourcesConfiguration.getInstance().subcortical_structures['MNI'][s]['Singular'][elem]
+                raw_tract_ni = nib.load(raw_filename)
+                raw_tract = raw_tract_ni.get_data()[:]
+                raw_tract[raw_tract < bcb_tracts_cutoff] = 0
+                raw_tract[raw_tract >= bcb_tracts_cutoff] = 1
+                raw_tract = raw_tract.astype('uint8')
+                dump_filename = os.path.join(self.registration_runner.registration_folder, 'Subcortical-structures',
+                                             os.path.basename(raw_filename))
+                os.makedirs(os.path.dirname(dump_filename), exist_ok=True)
+                nib.save(nib.Nifti1Image(raw_tract, affine=raw_tract_ni.affine), dump_filename)
 
+                self.registration_runner.apply_registration_inverse_transform(
+                    moving=dump_filename,
+                    fixed=self.input_filename,
+                    interpolation='nearestNeighbor',
+                    label='Subcortical-structures/' + os.path.basename(raw_filename).split('.')[0].replace('_mni', ''))
+
+            overall_mask_filename = ResourcesConfiguration.getInstance().subcortical_structures['MNI'][s]['Mask']
             self.registration_runner.apply_registration_inverse_transform(
-                moving=dump_filename,
+                moving=overall_mask_filename,
                 fixed=self.input_filename,
                 interpolation='nearestNeighbor',
-                label='Subcortical-structures/' + os.path.basename(raw_filename).split('.')[0].replace('_mni', ''))
-
-        overall_mask_filename = ResourcesConfiguration.getInstance().subcortical_structures['MNI']['BCB']['Mask']
-        self.registration_runner.apply_registration_inverse_transform(
-            moving=overall_mask_filename,
-            fixed=self.input_filename,
-            interpolation='nearestNeighbor',
-            #label='Subcortical-structures/' + os.path.basename(overall_mask_filename).split('.')[0])
-            label='Subcortical-structures/BCB')
+                label='Subcortical-structures/' + s)
 
     def __compute_statistics(self):
         tumor_mask_registered_filename = os.path.join(self.registration_runner.registration_folder, 'input_segmentation_to_MNI.nii.gz')
@@ -334,15 +345,16 @@ class NeuroDiagnostics:
         if self.diagnosis_parameters.tumor_type == 'High-Grade Glioma':
             self.__compute_resectability_index(volume=refined_image, category='Main')
 
-        if True: #ResourcesConfiguration.getInstance().neuro_diagnosis_compute_cortical_structures:
-            self.__compute_cortical_structures_location(volume=refined_image, category='Main', reference='MNI')
-            self.__compute_cortical_structures_location(volume=refined_image, category='Main', reference='Harvard-Oxford')
-            self.__compute_cortical_structures_location(volume=refined_image, category='Main', reference='Schaefer7')
-            self.__compute_cortical_structures_location(volume=refined_image, category='Main', reference='Schaefer17')
-        if True: #ResourcesConfiguration.getInstance().neuro_diagnosis_compute_subcortical_structures:
+        for s in ResourcesConfiguration.getInstance().neuro_features_cortical_structures:
+            self.__compute_cortical_structures_location(volume=refined_image, category='Main', reference=s)
+            # self.__compute_cortical_structures_location(volume=refined_image, category='Main', reference='MNI')
+            # self.__compute_cortical_structures_location(volume=refined_image, category='Main', reference='Harvard-Oxford')
+            # self.__compute_cortical_structures_location(volume=refined_image, category='Main', reference='Schaefer7')
+            # self.__compute_cortical_structures_location(volume=refined_image, category='Main', reference='Schaefer17')
+        for s in ResourcesConfiguration.getInstance().neuro_features_subcortical_structures:
             self.__compute_subcortical_structures_location(volume=refined_image,
                                                            spacing=registered_tumor_ni.header.get_zooms(),
-                                                           category='Main', reference='BCB')
+                                                           category='Main', reference=s)
 
         # If the tumor is multifocal, we recompute everything for each satellite
         # if self.tumor_multifocal:
@@ -522,16 +534,16 @@ class NeuroDiagnostics:
             self.diagnosis_parameters.statistics[category]['Overall'].mni_space_subcortical_structures_distance[reference] = distances
 
     def __generate_cortical_structures_description_file_slicer(self):
-        atlases = ['MNI', 'Schaefer7', 'Schaefer17', 'Harvard-Oxford']
-        for a in atlases:
+        # atlases = ['MNI', 'Schaefer7', 'Schaefer17', 'Harvard-Oxford']
+        for a in ResourcesConfiguration.getInstance().neuro_features_cortical_structures:
             df = generate_cortical_structures_labels_for_slicer(atlas_name=a)
             # src_filename = ResourcesConfiguration.getInstance().cortical_structures['MNI'][a]['Description']
             output_filename = os.path.join(self.output_path, a + '_description.csv')
             df.to_csv(output_filename)
 
     def __generate_subcortical_structures_description_file_slicer(self):
-        atlases = ['BCB']  # 'BrainLab'
-        for a in atlases:
+        # atlases = ['BCB']  # 'BrainLab'
+        for a in ResourcesConfiguration.getInstance().neuro_features_subcortical_structures:
                 df = generate_subcortical_structures_labels_for_slicer(atlas_name=a)
                 output_filename = os.path.join(self.output_path, a + '_description.csv')
                 df.to_csv(output_filename)

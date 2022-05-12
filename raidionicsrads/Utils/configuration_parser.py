@@ -52,6 +52,9 @@ class ResourcesConfiguration:
         self.runtime_tumor_mask_filepath = ''
         self.runtime_lungs_mask_filepath = ''
 
+        self.neuro_features_cortical_structures = []
+        self.neuro_features_subcortical_structures = []
+
     def set_environment(self, config_path=None):
         self.home_path = ''
         if os.name == 'posix':  # Linux system
@@ -384,13 +387,12 @@ class ResourcesConfiguration:
                 self.neuro_diagnosis_preexisting_brain_filename = self.config['Neuro']['brain_segmentation_filename'].split('#')[0].strip()
 
         # @TODO. In the future, it should be possible to specify which features to compute and which to skip.
-        # if self.config.has_option('Neuro', 'compute_cortical_structures'):
-        #     if self.config['Neuro']['compute_cortical_structures'].split('#')[0].strip() != '':
-        #         self.neuro_diagnosis_compute_cortical_structures = True if self.config['Neuro']['compute_cortical_structures'].split('#')[0].strip().lower() == 'true' else False
-        #
-        # if self.config.has_option('Neuro', 'compute_subcortical_structures'):
-        #     if self.config['Neuro']['compute_subcortical_structures'].split('#')[0].strip() != '':
-        #         self.neuro_diagnosis_compute_subcortical_structures = True if self.config['Neuro']['compute_subcortical_structures'].split('#')[0].strip().lower() == 'true' else False
+        if self.config.has_option('Neuro', 'cortical_features'):
+            if self.config['Neuro']['cortical_features'].split('#')[0].strip() != '':
+                self.neuro_features_cortical_structures = [x.strip() for x in self.config['Neuro']['cortical_features'].split('#')[0].strip().split(',')]
+        if self.config.has_option('Neuro', 'subcortical_features'):
+            if self.config['Neuro']['subcortical_features'].split('#')[0].strip() != '':
+                self.neuro_features_subcortical_structures = [x.strip() for x in self.config['Neuro']['subcortical_features'].split('#')[0].strip().split(',')]
 
     def __parse_runtime_mediastinum_parameters(self):
         if self.config.has_option('Mediastinum', 'lungs_segmentation_filename'):

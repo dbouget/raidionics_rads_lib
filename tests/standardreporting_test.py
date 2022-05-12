@@ -60,6 +60,9 @@ def standardreporting_test():
         rads_config.add_section('Runtime')
         rads_config.set('Runtime', 'reconstruction_method', 'thresholding')
         rads_config.set('Runtime', 'reconstruction_order', 'resample_first')
+        rads_config.add_section('Neuro')
+        rads_config.set('Neuro', 'cortical_features', 'MNI')
+        rads_config.set('Neuro', 'subcortical_features', '')
         rads_config_filename = os.path.join(test_dir, 'rads_config.ini')
         with open(rads_config_filename, 'w') as outfile:
             rads_config.write(outfile)
