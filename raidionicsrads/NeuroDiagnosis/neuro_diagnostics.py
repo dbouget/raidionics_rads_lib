@@ -9,12 +9,12 @@ from tqdm import tqdm
 from skimage.morphology import ball
 from scipy.ndimage.measurements import center_of_mass
 from scipy.ndimage import binary_opening, measurements, binary_closing
-from raidionicsrads.Processing.brain_processing import *
-from raidionicsrads.NeuroDiagnosis.neuro_parameters import NeuroDiagnosisParameters
-from raidionicsrads.Utils.ants_registration import *
-from raidionicsrads.Utils.configuration_parser import ResourcesConfiguration
-from raidionicsrads.Utils.io import generate_cortical_structures_labels_for_slicer, generate_subcortical_structures_labels_for_slicer
-from raidionicsrads.NeuroDiagnosis.tumor_features_computation import *
+from ..Processing.brain_processing import *
+from .neuro_parameters import NeuroDiagnosisParameters
+from ..Utils.ants_registration import *
+from ..Utils.configuration_parser import ResourcesConfiguration
+from ..Utils.io import generate_cortical_structures_labels_for_slicer, generate_subcortical_structures_labels_for_slicer
+from .tumor_features_computation import *
 
 
 class NeuroDiagnostics:
@@ -215,9 +215,23 @@ class NeuroDiagnostics:
                 elif log_level == 40:
                     log_str = 'error'
 
-                subprocess.check_call(['raidionicsseg',
-                                       '{config}'.format(config=tumor_config_filename),
-                                       '--verbose', log_str])
+                if os.name == 'nt':
+                    script_path_parts = list(
+                        PurePath(os.path.realpath(__file__)).parts[:-3] + ('raidionics_seg_lib', 'main.py',))
+                    script_path = PurePath()
+                    for x in script_path_parts:
+                        script_path = script_path.joinpath(x)
+                    subprocess.check_call([sys.executable, '{script}'.format(script=script_path), '-c',
+                                           '{config}'.format(config=tumor_config_filename), '-v', log_str])
+                else:
+                    script_path = '/'.join(
+                        os.path.dirname(os.path.realpath(__file__)).split('/')[:-2]) + '/raidionics_seg_lib/main.py'
+                    subprocess.check_call(['python3', '{script}'.format(script=script_path), '-c',
+                                           '{config}'.format(config=tumor_config_filename), '-v', log_str])
+
+                # subprocess.check_call(['raidionicsseg',
+                #                        '{config}'.format(config=tumor_config_filename),
+                #                        '--verbose', log_str])
             except Exception as e:
                 logging.error("Automatic tumor segmentation failed with: {}.\n".format(traceback.format_exc()))
                 if os.path.exists(tumor_config_filename):

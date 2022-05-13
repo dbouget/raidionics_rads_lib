@@ -11,7 +11,7 @@ import shutil
 import zipfile
 import gzip
 # from dipy.align.reslice import reslice
-from raidionicsrads.Processing.brain_processing import *
+from ..Processing.brain_processing import *
 
 
 class ANTsRegistration:

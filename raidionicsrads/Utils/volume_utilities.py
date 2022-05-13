@@ -3,7 +3,7 @@ from copy import deepcopy
 from skimage.transform import resize
 from scipy.ndimage import binary_fill_holes
 from skimage.measure import regionprops
-from raidionicsrads.Utils.configuration_parser import *
+from .configuration_parser import *
 
 
 def crop_MR(volume, parameters):

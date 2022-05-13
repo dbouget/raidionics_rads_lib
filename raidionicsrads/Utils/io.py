@@ -3,7 +3,7 @@ import nibabel as nib
 import pandas as pd
 import numpy as np
 from nibabel import four_to_three
-from raidionicsrads.Utils.configuration_parser import ResourcesConfiguration
+from .configuration_parser import ResourcesConfiguration
 
 
 def load_nifti_volume(volume_path):

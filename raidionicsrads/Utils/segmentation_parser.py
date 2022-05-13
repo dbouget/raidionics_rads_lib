@@ -3,7 +3,7 @@ import os
 import sys
 import datetime
 import time
-from raidionicsrads.Utils.configuration_parser import ResourcesConfiguration
+from .configuration_parser import ResourcesConfiguration
 
 
 def collect_segmentation_model_parameters(model_name):

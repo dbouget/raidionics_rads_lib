@@ -1,7 +1,7 @@
 import configparser
 import logging
 import traceback
-
+from pathlib import PurePath
 import numpy as np
 import sys, os, shutil
 import scipy.ndimage.morphology as smo
@@ -9,9 +9,9 @@ import nibabel as nib
 import subprocess
 from scipy.ndimage.measurements import label, find_objects
 from skimage.measure import regionprops
-from raidionicsrads.Utils.io import load_nifti_volume
-from raidionicsrads.Utils.configuration_parser import ResourcesConfiguration
-from raidionicsrads.Utils.segmentation_parser import collect_segmentation_model_parameters
+from ..Utils.io import load_nifti_volume
+from ..Utils.configuration_parser import ResourcesConfiguration
+from ..Utils.segmentation_parser import collect_segmentation_model_parameters
 
 
 def perform_ants_skull_stripping(image_filepath):
@@ -135,9 +135,20 @@ def perform_custom_brain_extraction(image_filepath: str, folder: str) -> str:
         elif log_level == 40:
             log_str = 'error'
 
-        subprocess.check_call(['raidionicsseg',
-                               '{config}'.format(config=brain_config_filename),
-                               '--verbose', log_str])
+        if os.name == 'nt':
+            script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-3] + ('raidionics_seg_lib', 'main.py',))
+            script_path = PurePath()
+            for x in script_path_parts:
+                script_path = script_path.joinpath(x)
+            subprocess.check_call([sys.executable, '{script}'.format(script=script_path), '-c',
+                             '{config}'.format(config=brain_config_filename), '-v', log_str])
+        else:
+            script_path = '/'.join(os.path.dirname(os.path.realpath(__file__)).split('/')[:-2]) + '/raidionics_seg_lib/main.py'
+            subprocess.check_call(['python3', '{script}'.format(script=script_path), '-c',
+                             '{config}'.format(config=brain_config_filename), '-v', log_str])
+        # subprocess.check_call(['raidionicsseg',
+        #                        '{config}'.format(config=brain_config_filename),
+        #                        '--verbose', log_str])
     except Exception as e:
         logging.error("Automatic brain segmentation failed with: {}.\n".format(traceback.format_exc()))
         if os.path.exists(brain_config_filename):

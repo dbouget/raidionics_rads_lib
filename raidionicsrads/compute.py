@@ -1,6 +1,6 @@
-from raidionicsrads.Utils.configuration_parser import ResourcesConfiguration
-from raidionicsrads.NeuroDiagnosis.neuro_diagnostics import *
-from raidionicsrads.MediastinumDiagnosis.mediastinum_diagnostics import *
+from .Utils.configuration_parser import ResourcesConfiguration
+from .NeuroDiagnosis.neuro_diagnostics import *
+from .MediastinumDiagnosis.mediastinum_diagnostics import *
 import logging
 
 

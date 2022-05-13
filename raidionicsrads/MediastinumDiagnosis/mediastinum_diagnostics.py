@@ -4,11 +4,11 @@ from skimage.morphology import ball
 from skimage.measure import regionprops
 from scipy.ndimage.measurements import center_of_mass
 from scipy.ndimage import binary_opening, measurements, binary_closing
-from raidionicsrads.Processing.mediastinum_clipping import *
-from raidionicsrads.MediastinumDiagnosis.mediastinum_parameters import MediastinumDiagnosisParameters
-from raidionicsrads.Utils.ants_registration import *
-from raidionicsrads.Utils.configuration_parser import ResourcesConfiguration
-from raidionicsrads.Utils.segmentation_parser import collect_segmentation_model_parameters, update_segmentation_runtime_parameters
+from ..Processing.mediastinum_clipping import *
+from .mediastinum_parameters import MediastinumDiagnosisParameters
+from ..Utils.ants_registration import *
+from ..Utils.configuration_parser import ResourcesConfiguration
+from ..Utils.segmentation_parser import collect_segmentation_model_parameters, update_segmentation_runtime_parameters
 
 
 class MediastinumDiagnostics:

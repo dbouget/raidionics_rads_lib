@@ -14,11 +14,11 @@ def main(argv):
         logging.getLogger().setLevel(logging.WARNING)
         opts, args = getopt.getopt(argv, "h:c:v:", ["Config=", "Verbose="])
     except getopt.GetoptError:
-        print('usage: main.py --Config <configuration_filepath> (--Verbose <mode>)')
+        print('usage: main.py -c <configuration_filepath> (--Verbose <mode>)')
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print('main.py --Config <configuration_filepath> (--Verbose <mode>)')
+            print('main.py -c <configuration_filepath> (--Verbose <mode>)')
             sys.exit()
         elif opt in ("-c", "--Config"):
             config_filename = arg
@@ -33,7 +33,7 @@ def main(argv):
                 logging.getLogger().setLevel(logging.ERROR)
 
     if not config_filename or not os.path.exists(config_filename):
-        print('usage: main.py <config_filepath> (--Verbose <mode>)')
+        print('usage: main.py -c <config_filepath> (--Verbose <mode>)')
         sys.exit()
 
     try:
