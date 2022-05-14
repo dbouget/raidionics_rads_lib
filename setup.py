@@ -46,7 +46,7 @@ setup(
             'raidionicsrads = raidionicsrads.__main__:main'
         ]
     },
-    dependency_links=['http://github.com/dbouget/raidionics_seg_lib/tarball/master#egg=package-v0.1.2-alpha'],
+    #dependency_links=['http://github.com/dbouget/raidionics_seg_lib/tarball/master#egg=package-v0.1.2-alpha'],
     install_requires=required,
     include_package_data=True,
     python_requires=">=3.6, <3.8",
