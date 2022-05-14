@@ -135,20 +135,19 @@ def perform_custom_brain_extraction(image_filepath: str, folder: str) -> str:
         elif log_level == 40:
             log_str = 'error'
 
-        if os.name == 'nt':
-            script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-3] + ('raidionics_seg_lib', 'main.py',))
-            script_path = PurePath()
-            for x in script_path_parts:
-                script_path = script_path.joinpath(x)
-            subprocess.check_call([sys.executable, '{script}'.format(script=script_path), '-c',
-                             '{config}'.format(config=brain_config_filename), '-v', log_str])
-        else:
-            script_path = '/'.join(os.path.dirname(os.path.realpath(__file__)).split('/')[:-2]) + '/raidionics_seg_lib/main.py'
-            subprocess.check_call(['python3', '{script}'.format(script=script_path), '-c',
-                             '{config}'.format(config=brain_config_filename), '-v', log_str])
-        # subprocess.check_call(['raidionicsseg',
-        #                        '{config}'.format(config=brain_config_filename),
-        #                        '--verbose', log_str])
+        # if os.name == 'nt':
+        #     script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-3] + ('raidionics_seg_lib', 'main.py',))
+        #     script_path = PurePath()
+        #     for x in script_path_parts:
+        #         script_path = script_path.joinpath(x)
+        #     subprocess.check_call([sys.executable, '{script}'.format(script=script_path), '-c',
+        #                      '{config}'.format(config=brain_config_filename), '-v', log_str])
+        # else:
+        #     script_path = '/'.join(os.path.dirname(os.path.realpath(__file__)).split('/')[:-2]) + '/raidionics_seg_lib/main.py'
+        #     subprocess.check_call(['python3', '{script}'.format(script=script_path), '-c',
+        #                      '{config}'.format(config=brain_config_filename), '-v', log_str])
+        from raidionicsseg.fit import run_model
+        run_model(brain_config_filename)
     except Exception as e:
         logging.error("Automatic brain segmentation failed with: {}.\n".format(traceback.format_exc()))
         if os.path.exists(brain_config_filename):
@@ -171,7 +170,14 @@ def perform_custom_brain_extraction(image_filepath: str, folder: str) -> str:
 
         dump_brain_mask = brain_mask & brain_component
         dump_brain_mask_ni = nib.Nifti1Image(dump_brain_mask, affine=brain_mask_ni.affine)
-        dump_brain_mask_filepath = os.path.join('/'.join(folder.split('/')[:-1]), 'input_brain_mask.nii.gz')
+        if os.name == 'nt':
+            path_parts = list(PurePath(os.path.realpath(folder)).parts[:-1] + ('input_brain_mask.nii.gz',))
+            dump_brain_mask_filepath = PurePath()
+            for x in path_parts:
+                dump_brain_mask_filepath = dump_brain_mask_filepath.joinpath(x)
+            dump_brain_mask_filepath = str(dump_brain_mask_filepath)
+        else:
+            dump_brain_mask_filepath = os.path.join('/'.join(folder.split('/')[:-1]), 'input_brain_mask.nii.gz')
         nib.save(dump_brain_mask_ni, dump_brain_mask_filepath)
         os.remove(brain_config_filename)
     except Exception as e:

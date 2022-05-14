@@ -63,3 +63,12 @@ publisher = {arXiv},
 year = {2022},
 copyright = {Creative Commons Attribution 4.0 International}}
 ```
+
+## Note
+After git cloning with submodules, should install the submodule to make it know as a Python package.
+```
+pip install raidionics_seg_lib
+```
+
+After a modification to the submodule, both a git pull origin master and a pip install are necessary for updating
+the working virtualenv.

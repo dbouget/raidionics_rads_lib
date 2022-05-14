@@ -380,11 +380,11 @@ class ResourcesConfiguration:
     def __parse_runtime_neuro_parameters(self):
         if self.config.has_option('Neuro', 'tumor_segmentation_filename'):
             if self.config['Neuro']['tumor_segmentation_filename'].split('#')[0].strip() != '':
-                self.neuro_diagnosis_preexisting_tumor_filename = self.config['Neuro']['tumor_segmentation_filename'].split('#')[0].strip()
+                self.runtime_tumor_mask_filepath = self.config['Neuro']['tumor_segmentation_filename'].split('#')[0].strip()
 
         if self.config.has_option('Neuro', 'brain_segmentation_filename'):
             if self.config['Neuro']['brain_segmentation_filename'].split('#')[0].strip() != '':
-                self.neuro_diagnosis_preexisting_brain_filename = self.config['Neuro']['brain_segmentation_filename'].split('#')[0].strip()
+                self.runtime_brain_mask_filepath = self.config['Neuro']['brain_segmentation_filename'].split('#')[0].strip()
 
         # @TODO. In the future, it should be possible to specify which features to compute and which to skip.
         if self.config.has_option('Neuro', 'cortical_features'):
