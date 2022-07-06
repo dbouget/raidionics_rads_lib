@@ -47,6 +47,8 @@ def generate_cortical_structures_labels_for_slicer(atlas_name):
                 structure_name = '-'.join(row['Region'].strip().split(' '))
                 if row['Laterality'] != 'None':
                     structure_name = structure_name + '_' + row['Laterality'].strip()
+                if row['Matter type'] == 'wm' or row['Matter type'] == 'gm':
+                    structure_name = structure_name + '_' + row['Matter type'].strip()
             elif atlas_name == 'Harvard-Oxford':
                 structure_name = '-'.join(row['Region'].strip().split(' '))
             elif atlas_name == 'Schaefer7' or atlas_name == 'Schaefer17':
