@@ -45,7 +45,7 @@ class NeuroDiagnostics:
         self.atlas_brain_filepath = ResourcesConfiguration.getInstance().mni_atlas_filepath_T1
         self.from_slicer = True if ResourcesConfiguration.getInstance().caller == 'slicer' else False
         self.registration_runner = ANTsRegistration()
-        self.diagnosis_parameters = NeuroDiagnosisParameters().getInstance()
+        self.diagnosis_parameters = NeuroDiagnosisParameters.getInstance()
 
         self.output_report_filepath = os.path.join(self.output_path, 'neuro_standardized_report.txt')
         if os.path.exists(self.output_report_filepath):
