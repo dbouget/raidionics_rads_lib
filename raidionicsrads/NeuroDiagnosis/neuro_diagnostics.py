@@ -319,7 +319,9 @@ class NeuroDiagnostics:
         registered_tumor = registered_tumor_ni.get_data()[:]
 
         # @TODO. The tumor type is given by the user for now, no tumor classification yet!
-        tumor_type = self.selected_model.split('_')[-1]  # Info should be stored somewhere else properly.
+        tumor_type = self.selected_model.split('_')[1]  # @TODO. Info should be stored somewhere else properly.
+        if 'HGGlioma' in tumor_type:
+            tumor_type = 'High-Grade Glioma'
         # tumor_type = ResourcesConfiguration.getInstance().neuro_diagnosis_tumor_type
 
         if np.count_nonzero(registered_tumor) == 0:

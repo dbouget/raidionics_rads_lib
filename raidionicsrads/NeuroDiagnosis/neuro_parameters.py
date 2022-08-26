@@ -96,7 +96,7 @@ class NeuroDiagnosisParameters:
                 lobes_ordered = collections.OrderedDict(sorted(self.statistics['Main']['Overall'].mni_space_cortical_structures_overlap[t].items(), key=operator.itemgetter(1), reverse=True))
                 for r in lobes_ordered.keys():
                     if lobes_ordered[r] != 0:
-                        lobe_name = ' '.join(r.lower().replace('main', '').split('_')[1:])
+                        lobe_name = ' '.join(r.lower().replace('main', '').split('_')[:])
                         pfile.write('    - {}: {}%\n'.format(lobe_name, lobes_ordered[r]))
 
             pfile.write('\nSubcortical structures overlap or distance\n')
