@@ -140,7 +140,7 @@ class ANTsRegistration:
         """
         import ants
         try:
-            logging.info("starting python-based ANTs registration with method: {}.\n".format(registration_method))
+            logging.info("starting python-based ANTs registration with method: {}.".format(registration_method))
             moving_ants = ants.image_read(moving, dimension=3)
             fixed_ants = ants.image_read(fixed, dimension=3)
             if registration_method == 'antsRegistrationSyNQuick[s]' or registration_method == 'antsRegistrationSyN[s]':

@@ -58,47 +58,47 @@ class NeuroDiagnostics:
         start_time = time.time()
         intermediate_time = time.time()
 
-        logging.info('LOG: Reporting - 7 steps.\n')
+        logging.info('LOG: Reporting - 7 steps.')
         # Generating the brain mask for the input file
-        logging.info("LOG: Reporting - Brain extraction - Begin (1/7)\n")
+        logging.info("LOG: Reporting - Brain extraction - Begin (1/7)")
         if not ResourcesConfiguration.getInstance().runtime_brain_mask_filepath is None \
                 and os.path.exists(ResourcesConfiguration.getInstance().runtime_brain_mask_filepath):
             brain_mask_filepath = ResourcesConfiguration.getInstance().runtime_brain_mask_filepath
         else:
             brain_mask_filepath = perform_brain_extraction(image_filepath=self.input_filename, method='deep_learning')
         ResourcesConfiguration.getInstance().runtime_brain_mask_filepath = brain_mask_filepath
-        logging.info('LOG: Reporting - Runtime: {} seconds.\n'.format(round(time.time() - intermediate_time, 3)))
-        logging.info("LOG: Reporting - Brain extraction - End (1/7)\n")
+        logging.info('LOG: Reporting - Runtime: {} seconds.'.format(round(time.time() - intermediate_time, 3)))
+        logging.info("LOG: Reporting - Brain extraction - End (1/7)")
         intermediate_time = time.time()
 
         # Generating brain-masked fixed and moving images to serve as input for the registration
-        logging.info("LOG: Reporting - Registration preparation - Begin (2/7)\n")
+        logging.info("LOG: Reporting - Registration preparation - Begin (2/7)")
         input_masked_filepath = perform_brain_masking(image_filepath=self.input_filename,
                                                       mask_filepath=brain_mask_filepath)
         atlas_masked_filepath = perform_brain_masking(image_filepath=self.atlas_brain_filepath,
                                                       mask_filepath=ResourcesConfiguration.getInstance().mni_atlas_brain_mask_filepath)
-        logging.info('LOG: Reporting - Runtime: {} seconds.\n'.format(round(time.time() - intermediate_time, 3)))
-        logging.info("LOG: Reporting - Registration preparation - End (2/7)\n")
+        logging.info('LOG: Reporting - Runtime: {} seconds.'.format(round(time.time() - intermediate_time, 3)))
+        logging.info("LOG: Reporting - Registration preparation - End (2/7)")
         intermediate_time = time.time()
 
         # Performing registration
-        logging.info("LOG: Reporting - Registration to MNI space - Begin (3/7)\n")
+        logging.info("LOG: Reporting - Registration to MNI space - Begin (3/7)")
         self.registration_runner.compute_registration(fixed=atlas_masked_filepath, moving=input_masked_filepath,
                                                       registration_method='SyN')
-        logging.info('LOG: Reporting - Runtime: {} seconds.\n'.format(round(time.time() - intermediate_time, 3)))
-        logging.info("LOG: Reporting - Registration to MNI space - End (3/7)\n")
+        logging.info('LOG: Reporting - Runtime: {} seconds.'.format(round(time.time() - intermediate_time, 3)))
+        logging.info("LOG: Reporting - Registration to MNI space - End (3/7)")
         intermediate_time = time.time()
 
         # Performing tumor segmentation
-        logging.info('LOG: Reporting - Tumor segmentation - Begin (4/7)\n')
+        logging.info('LOG: Reporting - Tumor segmentation - Begin (4/7)')
         seg_fn = self.__perform_tumor_segmentation()
         ResourcesConfiguration.getInstance().runtime_tumor_mask_filepath = seg_fn
         logging.info('LOG: Reporting - Runtime: {} seconds.'.format(round(time.time() - intermediate_time, 3)))
-        logging.info('LOG: Reporting - Tumor segmentation - End (4/7)\n')
+        logging.info('LOG: Reporting - Tumor segmentation - End (4/7)')
         intermediate_time = time.time()
 
         # Registering the tumor to the atlas
-        logging.info("LOG: Reporting - Inverse registration to patient space - Begin (5/7)\n")
+        logging.info("LOG: Reporting - Inverse registration to patient space - Begin (5/7)")
         self.registration_runner.apply_registration_transform(moving=seg_fn,
                                                               fixed=self.atlas_brain_filepath,
                                                               interpolation='nearestNeighbor')
@@ -107,21 +107,21 @@ class NeuroDiagnostics:
         # if ResourcesConfiguration.getInstance().neuro_diagnosis_compute_subcortical_structures:
         self.__apply_registration_subcortical_structures()
         logging.info('LOG: Reporting - Runtime: {} seconds.'.format(round(time.time() - intermediate_time, 3)))
-        logging.info("LOG: Reporting - Inverse registration to patient space - End (5/7)\n")
+        logging.info("LOG: Reporting - Inverse registration to patient space - End (5/7)")
         intermediate_time = time.time()
 
         # Computing tumor location and statistics
-        logging.info("LOG: Reporting - Parameters computation and report generation - Begin (6/7)\n")
+        logging.info("LOG: Reporting - Parameters computation and report generation - Begin (6/7)")
         self.__compute_statistics()
         self.diagnosis_parameters.to_txt(self.output_report_filepath)
         self.diagnosis_parameters.to_csv(self.output_report_filepath[:-4] + '.csv')
         self.diagnosis_parameters.to_json(self.output_report_filepath[:-4] + '.json')
         logging.info('LOG: Reporting - Runtime: {} seconds.'.format(round(time.time() - intermediate_time, 3)))
-        logging.info("LOG: Reporting - Parameters computation and report generation - End (6/7)\n")
+        logging.info("LOG: Reporting - Parameters computation and report generation - End (6/7)")
         intermediate_time = time.time()
 
         # Cleaning the temporary files
-        logging.info("LOG: Reporting - Disk dump and cleanup - Begin (7/7)\n")
+        logging.info("LOG: Reporting - Disk dump and cleanup - Begin (7/7)")
         self.registration_runner.dump_and_clean()
         if not ResourcesConfiguration.getInstance().diagnosis_full_trace:
             tmp_folder = os.path.join(self.output_path, 'tmp')
@@ -177,8 +177,8 @@ class NeuroDiagnostics:
                         dst=os.path.join(self.output_path, 'patient', 'input_brain_mask.nii.gz'))
 
         logging.info('LOG: Reporting - Runtime: {} seconds.'.format(round(time.time() - intermediate_time, 3)))
-        logging.info("LOG: Reporting - Disk dump and cleanup - End (7/7)\n")
-        logging.info('Total runtime: {} seconds.\n'.format(round(time.time() - start_time, 3)))
+        logging.info("LOG: Reporting - Disk dump and cleanup - End (7/7)")
+        logging.info('Total runtime: {} seconds.'.format(round(time.time() - start_time, 3)))
 
     def __perform_tumor_segmentation(self):
         """
@@ -233,10 +233,10 @@ class NeuroDiagnostics:
                 from raidionicsseg.fit import run_model
                 run_model(tumor_config_filename)
             except Exception as e:
-                logging.error("Automatic tumor segmentation failed with: {}.\n".format(traceback.format_exc()))
+                logging.error("Automatic tumor segmentation failed with: {}.".format(traceback.format_exc()))
                 if os.path.exists(tumor_config_filename):
                     os.remove(tumor_config_filename)
-                raise ValueError("Impossible to perform automatic tumor segmentation.\n")
+                raise ValueError("Impossible to perform automatic tumor segmentation.")
 
             tumor_mask_filename = os.path.join(ResourcesConfiguration.getInstance().output_folder,
                                                'labels_Tumor.nii.gz')
@@ -254,7 +254,7 @@ class NeuroDiagnostics:
             return final_tumor_mask_filename
 
     def __apply_registration_cortical_structures(self):
-        logging.info("Register cortical structure atlas files to patient space.\n")
+        logging.info("Register cortical structure atlas files to patient space.")
         patient_dump_folder = os.path.join(ResourcesConfiguration.getInstance().output_folder, 'patient',
                                            'Cortical-structures')
         os.makedirs(patient_dump_folder, exist_ok=True)
@@ -282,7 +282,7 @@ class NeuroDiagnostics:
         #                                                               label='Cortical-structures/Harvard-Oxford')
 
     def __apply_registration_subcortical_structures(self):
-        logging.info("Register subcortical structure atlas files to patient space.\n")
+        logging.info("Register subcortical structure atlas files to patient space.")
         bcb_tracts_cutoff = 0.5
         patient_dump_folder = os.path.join(ResourcesConfiguration.getInstance().output_folder, 'patient',
                                            'Subcortical-structures')
@@ -470,7 +470,7 @@ class NeuroDiagnostics:
         self.diagnosis_parameters.statistics[category]['Overall'].mni_space_resectability_index = average
 
     def __compute_cortical_structures_location(self, volume, category=None, reference='MNI'):
-        logging.debug("Computing cortical structures location with {}.\n".format(reference))
+        logging.debug("Computing cortical structures location with {}.".format(reference))
         regions_data = ResourcesConfiguration.getInstance().cortical_structures['MNI'][reference]
         region_mask_ni = nib.load(regions_data['Mask'])
         region_mask = region_mask_ni.get_data()
@@ -512,7 +512,7 @@ class NeuroDiagnostics:
             self.diagnosis_parameters.statistics[category]['Overall'].mni_space_cortical_structures_overlap[reference] = ordered_l
 
     def __compute_subcortical_structures_location(self, volume, spacing, category=None, reference='BCB'):
-        logging.debug("Computing subcortical structures location with {}.\n".format(reference))
+        logging.debug("Computing subcortical structures location with {}.".format(reference))
         distances = {}
         overlaps = {}
         distances_columns = []

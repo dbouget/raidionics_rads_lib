@@ -65,7 +65,7 @@ class NeuroDiagnosisParameters:
         None
         """
         try:
-            logging.info("Exporting neuro-parameters to text in {}.\n".format(filename))
+            logging.info("Exporting neuro-parameters to text in {}.".format(filename))
             pfile = open(filename, 'a')
             pfile.write('########### Raidionics clinical report ###########\n')
             pfile.write('Tumor found: {}\n'.format(self.tumor_presence_state))
@@ -129,7 +129,7 @@ class NeuroDiagnosisParameters:
     def to_json(self, filename: str) -> None:
         # @TODO. to modify
         try:
-            logging.info("Exporting neuro-parameters to json in {}.\n".format(filename))
+            logging.info("Exporting neuro-parameters to json in {}.".format(filename))
             param_json = {}
             param_json['Overall'] = {}
             param_json['Overall']['Presence'] = self.tumor_presence_state
@@ -223,7 +223,7 @@ class NeuroDiagnosisParameters:
 
     def to_csv(self, filename: str) -> None:
         try:
-            logging.info("Exporting neuro-parameters to csv in {}.\n".format(filename))
+            logging.info("Exporting neuro-parameters to csv in {}.".format(filename))
 
             if not self.tumor_presence_state:
                 return

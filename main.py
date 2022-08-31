@@ -10,7 +10,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 def main(argv):
     config_filename = None
     try:
-        logging.basicConfig()
+        logging.basicConfig(format="%(asctime)s ; %(name)s ; %(levelname)s ; %(message)s", datefmt='%d/%m/%Y %H.%M')
         logging.getLogger().setLevel(logging.WARNING)
         opts, args = getopt.getopt(argv, "h:c:v:", ["Config=", "Verbose="])
     except getopt.GetoptError:

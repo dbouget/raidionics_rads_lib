@@ -24,7 +24,7 @@ def compute_volume(volume: np.ndarray, spacing: tuple) -> float:
     """
     result = 0.
     try:
-        logging.debug("Computing tumor volume.\n")
+        logging.debug("Computing tumor volume.")
         voxel_size = np.prod(spacing[0:3])
         volume_pixels = np.count_nonzero(volume)
         volume_mmcube = voxel_size * volume_pixels
@@ -65,7 +65,7 @@ def compute_multifocality(volume: np.ndarray, spacing: tuple,
     multifocal_largest_minimum_distance = -1.
 
     try:
-        logging.debug("Computing tumor multifocality.\n")
+        logging.debug("Computing tumor multifocality.")
         tumor_clusters = measurements.label(volume)[0]
         tumor_clusters_labels = regionprops(tumor_clusters)
 
@@ -132,7 +132,7 @@ def compute_lateralisation(volume: np.ndarray, brain_mask: np.ndarray,
     midline_crossing = False
 
     try:
-        logging.debug("Computing tumor lateralization.\n")
+        logging.debug("Computing tumor lateralization.")
         # Computing the lateralisation for the center of mass
         if target == 'com':
             com_lateralisation = None
@@ -194,7 +194,7 @@ def compute_resectability_index(volume: np.ndarray, resectability_map: np.ndarra
     avg_resectability = 0.
 
     try:
-        logging.debug("Computing tumor resectability index.\n")
+        logging.debug("Computing tumor resectability index.")
         resectability_map = np.nan_to_num(resectability_map)
         tumor_voxels_count = np.count_nonzero(volume)
         total_resectability = np.sum(resectability_map[volume != 0])
