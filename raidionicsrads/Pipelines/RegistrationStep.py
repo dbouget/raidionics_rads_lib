@@ -1,0 +1,117 @@
+import os
+import shutil
+import numpy as np
+import nibabel as nib
+import logging
+import configparser
+import traceback
+from ..Utils.configuration_parser import ResourcesConfiguration
+from ..Utils.io import load_nifti_volume
+from ..Utils.ants_registration import *
+from ..Processing.brain_processing import *
+from .AbstractPipelineStep import AbstractPipelineStep
+from ..Utils.DataStructures.AnnotationStructure import AnnotationClassType
+from ..Utils.DataStructures.RegistrationStructure import Registration
+
+
+class RegistrationStep(AbstractPipelineStep):
+    _patient_parameters = None
+    _moving_volume_uid = None
+    _fixed_volume_uid = None
+    _registration_method = None
+    _moving_volume_filepath = None
+    _fixed_volume_filepath = None
+    _moving_mask_filepath = None
+    _fixed_mask_filepath = None
+    _registration_runner = None
+
+    def __init__(self, step_json: dict):
+        super(RegistrationStep, self).__init__(step_json=step_json)
+        self.__reset()
+        self._registration_runner = ANTsRegistration()
+
+    def __reset(self):
+        self._patient_parameters = None
+        self._moving_volume_uid = None
+        self._fixed_volume_uid = None
+        self._registration_method = None
+        self._moving_volume_filepath = None
+        self._fixed_volume_filepath = None
+        self._registration_runner = None
+        self._moving_mask_filepath = None
+        self._fixed_mask_filepath = None
+
+    def setup(self, patient_parameters):
+        """
+        @TODO. Have to improve the different use-cases, and properly deal with potentially more than one atlas.
+        """
+        self._patient_parameters = patient_parameters
+        moving_volume_uid = self._patient_parameters.get_radiological_volume_uid(timestamp=self._step_json["moving"]["timestamp"],
+                                                                                 sequence=self._step_json["moving"]["sequence"])
+        if moving_volume_uid != "-1":
+            self._moving_volume_uid = moving_volume_uid
+            self._moving_volume_filepath = self._patient_parameters._radiological_volumes[self._moving_volume_uid]._usable_input_filepath
+        elif self._step_json["moving"]["timestamp"] == -1:  # Atlas file
+            self._moving_volume_filepath = ResourcesConfiguration.getInstance().mni_atlas_filepath_T1
+
+        fixed_volume_uid = self._patient_parameters.get_radiological_volume_uid(timestamp=self._step_json["fixed"]["timestamp"],
+                                                                                sequence=self._step_json["fixed"]["sequence"])
+        if fixed_volume_uid != "-1":
+            self._fixed_volume_uid = fixed_volume_uid
+            self._fixed_volume_filepath = self._patient_parameters._radiological_volumes[self._fixed_volume_uid]._usable_input_filepath
+        elif self._step_json["fixed"]["timestamp"] == -1:  # Atlas file
+            self._fixed_volume_filepath = ResourcesConfiguration.getInstance().mni_atlas_filepath_T1
+
+    def execute(self):
+        fmf, mmf = self.__registration_preprocessing()
+        self.__registration(fmf, mmf)
+
+        return self._patient_parameters
+
+    def __registration_preprocessing(self):
+        fixed_masked_filepath = None
+        moving_masked_filepath = None
+        if ResourcesConfiguration.getInstance().diagnosis_task == 'neuro_diagnosis':
+            if self._fixed_volume_uid:
+                brain_anno = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(self._fixed_volume_uid, AnnotationClassType.Brain)
+                if len(brain_anno) != 0:
+                    self._fixed_mask_filepath = self._patient_parameters._annotation_volumes[brain_anno[0]]._usable_input_filepath
+            else:
+                self._fixed_mask_filepath = ResourcesConfiguration.getInstance().mni_atlas_brain_mask_filepath
+
+            if self._moving_volume_uid:
+                brain_anno = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(self._moving_volume_uid, AnnotationClassType.Brain)
+                if len(brain_anno) != 0:
+                    self._moving_mask_filepath = self._patient_parameters._annotation_volumes[brain_anno[0]]._usable_input_filepath
+            else:
+                self._moving_mask_filepath = ResourcesConfiguration.getInstance().mni_atlas_brain_mask_filepath
+
+            moving_masked_filepath = perform_brain_masking(image_filepath=self._moving_volume_filepath,
+                                                           mask_filepath=self._moving_mask_filepath,
+                                                           output_folder=self._registration_runner.registration_folder)
+            fixed_masked_filepath = perform_brain_masking(image_filepath=self._fixed_volume_filepath,
+                                                          mask_filepath=self._fixed_mask_filepath,
+                                                          output_folder=self._registration_runner.registration_folder)
+            return fixed_masked_filepath, moving_masked_filepath
+
+    def __registration(self, fixed_filepath, moving_filepath):
+        self._registration_runner.compute_registration(fixed=fixed_filepath, moving=moving_filepath,
+                                                       registration_method='SyN')
+        non_available_uid = True
+        reg_uid = None
+        while non_available_uid:
+            reg_uid = 'R' + str(np.random.randint(0, 10000))
+            if reg_uid not in self._patient_parameters.get_all_annotations_uids():
+                non_available_uid = False
+
+        if self._fixed_volume_uid is None:
+            self._fixed_volume_uid = 'MNI'
+        if self._moving_volume_uid is None:
+            self._moving_volume_uid = 'MNI'
+
+        registration = Registration(uid=reg_uid, fixed_uid=self._fixed_volume_uid, moving_uid=self._moving_volume_uid,
+                                    fwd_paths=self._registration_runner.reg_transform['fwdtransforms'],
+                                    inv_paths=self._registration_runner.reg_transform['invtransforms'],
+                                    output_folder=ResourcesConfiguration.getInstance().output_folder)
+        self._patient_parameters.include_registration(reg_uid, registration)
+        self._registration_runner.clear_cache()

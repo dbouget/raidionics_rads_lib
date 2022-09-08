@@ -14,7 +14,7 @@ def run_rads(config_filename: str, logging_filename: str = None) -> None:
                             format="%(asctime)s ; %(name)s ; %(levelname)s ; %(message)s", datefmt='%d/%m/%Y %H.%M')
         logging.getLogger().setLevel(logging.DEBUG)
 
-    input_filename = ResourcesConfiguration.getInstance().input_volume_filename
+    input_filename = "" #ResourcesConfiguration.getInstance().input_volume_filename
     logging.info("Starting diagnosis for file: {}.".format(input_filename))
     start = time.time()
     diagnosis_task = ResourcesConfiguration.getInstance().diagnosis_task

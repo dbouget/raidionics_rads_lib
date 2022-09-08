@@ -34,15 +34,17 @@ class ResourcesConfiguration:
         self.config_filename = None
         self.config = None
         self.system_ants_backend = 'python'
+        self.accepted_image_format = ['nii', 'nii.gz', 'mhd', 'mha', 'nrrd']
 
         self.diagnosis_task = None
         self.diagnosis_full_trace = False
         self.caller = None
 
         self.gpu_id = "-1"
-        self.input_volume_filename = None
+        self.input_folder = None
         self.output_folder = None
         self.model_folder = None
+        self.pipeline_filename = None
 
         self.predictions_non_overlapping = True
         self.predictions_reconstruction_method = None
@@ -344,13 +346,17 @@ class ResourcesConfiguration:
             if self.config['System']['output_folder'].split('#')[0].strip() != '':
                 self.output_folder = self.config['System']['output_folder'].split('#')[0].strip()
 
-        if self.config.has_option('System', 'input_filename'):
-            if self.config['System']['input_filename'].split('#')[0].strip() != '':
-                self.input_volume_filename = self.config['System']['input_filename'].split('#')[0].strip()
+        if self.config.has_option('System', 'input_folder'):
+            if self.config['System']['input_folder'].split('#')[0].strip() != '':
+                self.input_folder = self.config['System']['input_folder'].split('#')[0].strip()
 
         if self.config.has_option('System', 'model_folder'):
             if self.config['System']['model_folder'].split('#')[0].strip() != '':
                 self.model_folder = self.config['System']['model_folder'].split('#')[0].strip()
+
+        if self.config.has_option('System', 'pipeline_filename'):
+            if self.config['System']['pipeline_filename'].split('#')[0].strip() != '':
+                self.pipeline_filename = self.config['System']['pipeline_filename'].split('#')[0].strip()
 
     def __parse_runtime_parameters(self):
         if self.config.has_option('Runtime', 'non_overlapping'):
@@ -395,3 +401,6 @@ class ResourcesConfiguration:
         # if self.config.has_option('Mediastinum', 'lymphnodes_segmentation_filename'):
         #     if self.config['Mediastinum']['lymphnodes_segmentation_filename'].split('#')[0].strip() != '':
         #         self.runtime_lymphnodes_mask_filepath = self.config['Mediastinum']['lymphnodes_segmentation_filename'].split('#')[0].strip()
+
+    def get_accepted_image_formats(self) -> list:
+        return self.accepted_image_format

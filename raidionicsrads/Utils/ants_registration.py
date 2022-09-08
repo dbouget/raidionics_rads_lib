@@ -19,6 +19,9 @@ class ANTsRegistration:
     Class for all registration-based processes, using ANTs as a backend.
     By default the python implementation is used because easily deployable.The c++ implementation can be used if a
     locally compiled/installed ANTs is available (must be manually specified).
+
+    @TODO. The c++ usage is deprected and should be fixed, also the self.reg_transform could be used whichever the backend
+    as all files will ultimately be saved on disk.
     """
     def __init__(self):
         self.ants_reg_dir = ResourcesConfiguration.getInstance().ants_reg_dir
@@ -30,6 +33,16 @@ class ANTsRegistration:
         self.inverse_transform_names = []
         self.registration_computed = False
         self.backend = ResourcesConfiguration.getInstance().system_ants_backend
+
+    def clear_cache(self):
+        if self.backend == 'python':
+            for elem in self.reg_transform['fwdtransforms']:
+                if os.path.exists(elem):
+                    os.remove(elem)
+            for elem in self.reg_transform['invtransforms']:
+                if os.path.exists(elem):
+                    os.remove(elem)
+        shutil.rmtree(self.registration_folder)
 
     def dump_and_clean(self):
         """
@@ -155,8 +168,8 @@ class ANTsRegistration:
             warped_input_filename = os.path.join(self.registration_folder, 'input_volume_to_MNI.nii.gz')
             ants.image_write(warped_input, warped_input_filename)
         except Exception as e:
-            logging.error('Pyton-based ANTs registration failed with: {}.\n'.format(traceback.format_exc()))
-            raise ValueError('Pyton-based ANTs registration failed.\n')
+            logging.error('Python-based ANTs registration failed with: {}.\n'.format(traceback.format_exc()))
+            raise ValueError('Python-based ANTs registration failed.\n')
 
     def apply_registration_transform(self, moving, fixed, interpolation='nearestNeighbor'):
         if self.backend == 'python':

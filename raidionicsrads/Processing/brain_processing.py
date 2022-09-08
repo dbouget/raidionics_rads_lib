@@ -189,7 +189,7 @@ def perform_custom_brain_extraction(image_filepath: str, folder: str) -> str:
     return dump_brain_mask_filepath
 
 
-def perform_brain_masking(image_filepath, mask_filepath):
+def perform_brain_masking(image_filepath, mask_filepath, output_folder):
     """
     Set to 0 any voxel that does not belong to the brain mask.
     :param image_filepath:
@@ -203,9 +203,7 @@ def perform_brain_masking(image_filepath, mask_filepath):
     brain_mask = brain_mask_ni.get_data()[:]
     image[brain_mask == 0] = 0
 
-    tmp_folder = os.path.join(ResourcesConfiguration.getInstance().output_folder, 'tmp')
-    os.makedirs(tmp_folder, exist_ok=True)
-    masked_input_filepath = os.path.join(tmp_folder, os.path.basename(image_filepath).split('.')[0] + '_masked.nii.gz')
+    masked_input_filepath = os.path.join(output_folder, os.path.basename(image_filepath).split('.')[0] + '_masked.nii.gz')
     nib.save(nib.Nifti1Image(image, affine=image_ni.affine), masked_input_filepath)
     return masked_input_filepath
 
