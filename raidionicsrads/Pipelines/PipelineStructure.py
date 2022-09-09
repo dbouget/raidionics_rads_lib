@@ -6,6 +6,7 @@ from ..Utils.utilities import get_type_from_string
 from .ClassificationStep import ClassificationStep
 from .SegmentationStep import SegmentationStep
 from .RegistrationStep import RegistrationStep
+from .RegistrationDeployerStep import RegistrationDeployerStep
 
 
 @unique
@@ -60,6 +61,8 @@ class Pipeline:
                 step = SegmentationStep(self._pipeline_json[s])
             elif task == TaskType.Reg:
                 step = RegistrationStep(self._pipeline_json[s])
+            elif task == TaskType.AReg:
+                step = RegistrationDeployerStep(self._pipeline_json[s])
 
             if step:
                 self._steps[str(i)] = step

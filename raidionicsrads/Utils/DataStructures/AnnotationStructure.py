@@ -31,6 +31,7 @@ class Annotation:
     _output_folder = None  #
     _radiological_volume_uid = None
     _annotation_type = None
+    _registered_volumes = {}
 
     def __init__(self, uid: str, input_filename: str, output_folder: str, radiological_volume_uid: str,
                  annotation_class: str) -> None:
@@ -53,6 +54,7 @@ class Annotation:
         self._output_folder = None
         self._radiological_volume_uid = None
         self._annotation_type = None
+        self._registered_volumes = {}
 
     def get_annotation_type_enum(self) -> Enum:
         return self._annotation_type
@@ -75,6 +77,9 @@ class Annotation:
                 self._sequence_type = ctype
         elif isinstance(type, AnnotationClassType):
             self._sequence_type = type
+
+    def include_registered_volume(self, filepath: str, registration_uid: str, destination_space_uid: str) -> None:
+        self._registered_volumes[destination_space_uid] = {"filepath": filepath, "registration_uid": registration_uid}
 
     def __init_from_scratch(self):
         """

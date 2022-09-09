@@ -113,6 +113,34 @@ class PatientParameters:
                 res.append(v)
         return res
 
+    def get_registration_by_uids(self, fixed_uid: str, moving_uid: str) -> Registration:
+        registration = None
+        for r in list(self._registrations.keys()):
+            if self._registrations[r]._fixed_uid == fixed_uid and self._registrations[r]._moving_uid == moving_uid:
+                return self._registrations[r]
+        return registration
+
+    def get_registration_by_json(self, fixed: dict, moving: dict) -> Registration:
+        fixed_ts = fixed["timestamp"]
+        fixed_seq = fixed["sequence"]
+
+        moving_ts = moving["timestamp"]
+        moving_seq = moving["sequence"]
+
+        fixed_uid = None
+        moving_uid = None
+        if fixed_ts == -1:
+            fixed_uid = 'MNI'
+        else:
+            fixed_uid = self.get_radiological_volume_uid(fixed_ts, fixed_seq)
+
+        if moving_ts == -1:
+            moving_uid = 'MNI'
+        else:
+            moving_uid = self.get_radiological_volume_uid(moving_ts, moving_seq)
+
+        return self.get_registration_by_uids(fixed_uid=fixed_uid, moving_uid=moving_uid)
+
 
 class TimestampParameters:
     _unique_id = None  # Internal unique identifier for the patient

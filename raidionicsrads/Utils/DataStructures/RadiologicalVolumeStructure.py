@@ -57,7 +57,8 @@ class RadiologicalVolume:
     _radiological_type = None
     _sequence_type = None
     _timestamp_id = None  # Internal identifier for the corresponding timestamp
-    # @TODO. Include also the registered version in a dict, matching the unique id of the target space.
+    _registered_volumes = {}
+    # @TODO. Do we have a similar dict for the registered atlas files?
 
     def __init__(self, uid: str, input_filename: str, timestamp_uid: str) -> None:
         self.__reset()
@@ -78,6 +79,7 @@ class RadiologicalVolume:
         self._radiological_type = None
         self._sequence_type = None
         self._timestamp_id = None
+        self._registered_volumes = {}
 
     def get_sequence_type_enum(self) -> Enum:
         return self._sequence_type
@@ -104,6 +106,9 @@ class RadiologicalVolume:
                 self._sequence_type = ctype
         elif isinstance(type, radiological_type):
             self._sequence_type = type
+
+    def include_registered_volume(self, filepath: str, registration_uid: str, destination_space_uid: str) -> None:
+        self._registered_volumes[destination_space_uid] = {"filepath": filepath, "registration_uid": registration_uid}
 
     def __init_from_scratch(self):
         self._output_folder = os.path.join(ResourcesConfiguration.getInstance().output_folder, self._timestamp_id)

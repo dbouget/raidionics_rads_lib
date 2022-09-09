@@ -134,7 +134,7 @@ class NeuroDiagnostics:
 
         # Computing tumor location and statistics
         logging.info("LOG: Reporting - Parameters computation and report generation - Begin (6/7)")
-        self.__compute_statistics()
+        self.compute_statistics()
         self.diagnosis_parameters.to_txt(self.output_report_filepath)
         self.diagnosis_parameters.to_csv(self.output_report_filepath[:-4] + '.csv')
         self.diagnosis_parameters.to_json(self.output_report_filepath[:-4] + '.json')
@@ -335,7 +335,7 @@ class NeuroDiagnostics:
                 interpolation='nearestNeighbor',
                 label='Subcortical-structures/' + s)
 
-    def __compute_statistics(self):
+    def compute_statistics(self):
         tumor_mask_registered_filename = os.path.join(self.registration_runner.registration_folder, 'input_segmentation_to_MNI.nii.gz')
         registered_tumor_ni = load_nifti_volume(tumor_mask_registered_filename)
         registered_tumor = registered_tumor_ni.get_data()[:]

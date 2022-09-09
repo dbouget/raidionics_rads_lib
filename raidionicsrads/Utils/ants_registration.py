@@ -28,7 +28,7 @@ class ANTsRegistration:
         self.ants_apply_dir = ResourcesConfiguration.getInstance().ants_apply_dir
         self.registration_folder = os.path.join(ResourcesConfiguration.getInstance().output_folder, 'registration/')
         os.makedirs(self.registration_folder, exist_ok=True)
-        self.reg_transform = []
+        self.reg_transform = {}
         self.transform_names = []
         self.inverse_transform_names = []
         self.registration_computed = False
@@ -42,6 +42,9 @@ class ANTsRegistration:
             for elem in self.reg_transform['invtransforms']:
                 if os.path.exists(elem):
                     os.remove(elem)
+        shutil.rmtree(self.registration_folder)
+
+    def clear_output_folder(self):
         shutil.rmtree(self.registration_folder)
 
     def dump_and_clean(self):
@@ -107,6 +110,7 @@ class ANTsRegistration:
         """
         if len(self.transform_names) != 0 and len(self.inverse_transform_names) != 0:
             return
+        os.makedirs(self.registration_folder, exist_ok=True)
         if self.backend == 'python':
             self.compute_registration_python(moving, fixed, registration_method)
         elif self.backend == 'cpp':
@@ -172,10 +176,11 @@ class ANTsRegistration:
             raise ValueError('Python-based ANTs registration failed.\n')
 
     def apply_registration_transform(self, moving, fixed, interpolation='nearestNeighbor'):
+        os.makedirs(self.registration_folder, exist_ok=True)
         if self.backend == 'python':
-            self.apply_registration_transform_python(moving, fixed, interpolation)
+            return self.apply_registration_transform_python(moving, fixed, interpolation)
         elif self.backend == 'cpp':
-            self.apply_registration_transform_cpp(moving, fixed, interpolation)
+            return self.apply_registration_transform_cpp(moving, fixed, interpolation)
 
     def apply_registration_transform_cpp(self, moving, fixed, interpolation='NearestNeighbor'):
         """
@@ -229,7 +234,7 @@ class ANTsRegistration:
         except Exception as e:
             print('Failed to apply transforms on input image with {}'.format(e))
 
-    def apply_registration_transform_python(self, moving, fixed, interpolation='nearestNeighbor'):
+    def apply_registration_transform_python(self, moving: str, fixed: str, interpolation: str = 'nearestNeighbor') -> str:
         import ants
         try:
             moving_ants = ants.image_read(moving, dimension=3)
@@ -239,8 +244,9 @@ class ANTsRegistration:
                                                  transformlist=self.reg_transform['fwdtransforms'],
                                                  interpolator=interpolation,
                                                  whichtoinvert=[False, False])
-            warped_input_filename = os.path.join(self.registration_folder, 'input_segmentation_to_MNI.nii.gz')
+            warped_input_filename = os.path.join(self.registration_folder, 'warped_input_to_output_space.nii.gz')
             ants.image_write(warped_input, warped_input_filename)
+            return warped_input_filename
         except Exception as e:
             logging.error('Pyton-based ANTs apply registration failed with: {}.\n'.format(traceback.format_exc()))
             raise ValueError('Pyton-based ANTs apply registration failed.\n')
@@ -298,10 +304,11 @@ class ANTsRegistration:
             print('Failed to apply transforms on input image with {}'.format(e))
 
     def apply_registration_inverse_transform(self, moving, fixed, interpolation='nearestNeighbor', label=''):
+        os.makedirs(self.registration_folder, exist_ok=True)
         if self.backend == 'python':
-            self.apply_registration_inverse_transform_python(moving, fixed, interpolation, label)
+            return self.apply_registration_inverse_transform_python(moving, fixed, interpolation, label)
         elif self.backend == 'cpp':
-            self.apply_registration_inverse_transform_cpp(moving, fixed, interpolation, label)
+            return self.apply_registration_inverse_transform_cpp(moving, fixed, interpolation, label)
 
     def apply_registration_inverse_transform_cpp(self, moving, fixed, interpolation='NearestNeighbor', label=''):
         """
@@ -366,10 +373,11 @@ class ANTsRegistration:
                                                  transformlist=self.reg_transform['invtransforms'],
                                                  interpolator=interpolation,
                                                  whichtoinvert=[True, False])
-            # warped_input_filename = os.path.join(ResourcesConfiguration.getInstance().output_folder,
-            #                                      'input_cortical_structures_mask' + label + '.nii.gz')
-            warped_input_filename = os.path.join(ResourcesConfiguration.getInstance().output_folder, 'patient',
-                                                      label + '_mask.nii.gz')
+            warped_input_filename = os.path.join(self.registration_folder, label + '_mask.nii.gz')
+            # warped_input_filename = os.path.join(ResourcesConfiguration.getInstance().output_folder, 'patient',
+            #                                           label + '_mask.nii.gz')
+            os.makedirs(os.path.dirname(warped_input_filename), exist_ok=True)
             ants.image_write(warped_input, warped_input_filename)
+            return warped_input_filename
         except Exception as e:
             print('Exception caught during applying registration inverse transform. Error message: {}'.format(e))
