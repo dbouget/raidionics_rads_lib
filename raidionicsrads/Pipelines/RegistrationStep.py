@@ -15,10 +15,10 @@ from ..Utils.DataStructures.RegistrationStructure import Registration
 
 
 class RegistrationStep(AbstractPipelineStep):
-    _patient_parameters = None
-    _moving_volume_uid = None
-    _fixed_volume_uid = None
-    _registration_method = None
+    _patient_parameters = None  # Placeholder for all patient related data
+    _moving_volume_uid = None  # Internal unique identifier for the radiological volume to register
+    _fixed_volume_uid = None  # Internal unique identifier for the radiological volume to use as registration target
+    _registration_method = None  # Unused for now, might be more than just SyN in the future?
     _moving_volume_filepath = None
     _fixed_volume_filepath = None
     _moving_mask_filepath = None
@@ -46,21 +46,33 @@ class RegistrationStep(AbstractPipelineStep):
         @TODO. Have to improve the different use-cases, and properly deal with potentially more than one atlas.
         """
         self._patient_parameters = patient_parameters
-        moving_volume_uid = self._patient_parameters.get_radiological_volume_uid(timestamp=self._step_json["moving"]["timestamp"],
-                                                                                 sequence=self._step_json["moving"]["sequence"])
-        if moving_volume_uid != "-1":
-            self._moving_volume_uid = moving_volume_uid
-            self._moving_volume_filepath = self._patient_parameters._radiological_volumes[self._moving_volume_uid]._usable_input_filepath
-        elif self._step_json["moving"]["timestamp"] == -1:  # Atlas file
-            self._moving_volume_filepath = ResourcesConfiguration.getInstance().mni_atlas_filepath_T1
+        try:
+            moving_volume_uid = self._patient_parameters.get_radiological_volume_uid(timestamp=self._step_json["moving"]["timestamp"],
+                                                                                     sequence=self._step_json["moving"]["sequence"])
+            if moving_volume_uid != "-1":
+                self._moving_volume_uid = moving_volume_uid
+                self._moving_volume_filepath = self._patient_parameters._radiological_volumes[self._moving_volume_uid]._usable_input_filepath
+            elif self._step_json["moving"]["timestamp"] == -1:  # Atlas file
+                self._moving_volume_filepath = ResourcesConfiguration.getInstance().mni_atlas_filepath_T1
+            else:
+                raise ValueError("[RegistrationStep] Requested registration moving input cannot be found for: {}".format(self._step_json["moving"]))
+            if not os.path.exists(self._moving_volume_filepath):
+                raise ValueError("[RegistrationStep] Registration moving input cannot be found on disk with: {}".format(self._moving_volume_filepath))
 
-        fixed_volume_uid = self._patient_parameters.get_radiological_volume_uid(timestamp=self._step_json["fixed"]["timestamp"],
-                                                                                sequence=self._step_json["fixed"]["sequence"])
-        if fixed_volume_uid != "-1":
-            self._fixed_volume_uid = fixed_volume_uid
-            self._fixed_volume_filepath = self._patient_parameters._radiological_volumes[self._fixed_volume_uid]._usable_input_filepath
-        elif self._step_json["fixed"]["timestamp"] == -1:  # Atlas file
-            self._fixed_volume_filepath = ResourcesConfiguration.getInstance().mni_atlas_filepath_T1
+            fixed_volume_uid = self._patient_parameters.get_radiological_volume_uid(timestamp=self._step_json["fixed"]["timestamp"],
+                                                                                    sequence=self._step_json["fixed"]["sequence"])
+            if fixed_volume_uid != "-1":
+                self._fixed_volume_uid = fixed_volume_uid
+                self._fixed_volume_filepath = self._patient_parameters._radiological_volumes[self._fixed_volume_uid]._usable_input_filepath
+            elif self._step_json["fixed"]["timestamp"] == -1:  # Atlas file
+                self._fixed_volume_filepath = ResourcesConfiguration.getInstance().mni_atlas_filepath_T1
+            else:
+                raise ValueError("[RegistrationStep] Requested registration fixed input cannot be found for: {}".format(self._step_json["fixed"]))
+            if not os.path.exists(self._fixed_volume_filepath):
+                raise ValueError("[RegistrationStep] Registration fixed input cannot be found on disk with: {}".format(self._fixed_volume_filepath))
+        except Exception as e:
+            logging.error("[RegistrationStep] Setting up process failed with {}".format(traceback.format_exc()))
+            raise ValueError("[RegistrationStep] Setting up process failed.")
 
     def execute(self):
         fmf, mmf = self.__registration_preprocessing()
@@ -69,6 +81,10 @@ class RegistrationStep(AbstractPipelineStep):
         return self._patient_parameters
 
     def __registration_preprocessing(self):
+        """
+        Generating masked version of both the fixed and moving inputs, for occluding irrelevant structures.
+        For example the region outside the brain/lungs, or areas exhibiting cancer expressions.
+        """
         fixed_masked_filepath = None
         moving_masked_filepath = None
         if ResourcesConfiguration.getInstance().diagnosis_task == 'neuro_diagnosis':

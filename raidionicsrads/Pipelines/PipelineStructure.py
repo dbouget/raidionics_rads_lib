@@ -7,6 +7,7 @@ from .ClassificationStep import ClassificationStep
 from .SegmentationStep import SegmentationStep
 from .RegistrationStep import RegistrationStep
 from .RegistrationDeployerStep import RegistrationDeployerStep
+from .FeaturesComputationStep import FeaturesComputationStep
 
 
 @unique
@@ -30,9 +31,9 @@ class Pipeline:
     """
     Class defining how an MRI volume should be handled.
     """
-    _input_filepath = ""
-    _pipeline_json = {}
-    _steps = {}
+    _input_filepath = ""  # Full filepath to the current pipeline, stored in a json file
+    _pipeline_json = {}  # Loaded pipeline from the aforementioned json file, stored as a dictionary
+    _steps = {}  # Internal pipeline steps, inherited from AbstractPipelineStep, matching the steps inside the json dict.
 
     def __init__(self, input_filename: str) -> None:
         self.__reset()
@@ -63,7 +64,8 @@ class Pipeline:
                 step = RegistrationStep(self._pipeline_json[s])
             elif task == TaskType.AReg:
                 step = RegistrationDeployerStep(self._pipeline_json[s])
-
+            elif task == TaskType.FComp:
+                step = FeaturesComputationStep(self._pipeline_json[s])
             if step:
                 self._steps[str(i)] = step
             else:
@@ -72,9 +74,13 @@ class Pipeline:
     def execute(self, patient_parameters):
         logging.info('LOG: Reporting - {} steps.'.format(len(self._steps)))
         for s in list(self._steps.keys()):
-            logging.info("LOG: Reporting - {desc} - Begin ({curr}/{tot})".format(desc=self._pipeline_json[str(int(s)+1)]['description'], curr=s, tot=len(self._steps)))
+            logging.info("LOG: Reporting - {desc} - Begin ({curr}/{tot})".format(desc=self._pipeline_json[str(int(s) + 1)]['description'],
+                                                                                 curr=str(int(s) + 1),
+                                                                                 tot=len(self._steps)))
             self._steps[s].setup(patient_parameters)
             patient_parameters = self._steps[s].execute()
-            logging.info("LOG: Reporting - {desc} - End ({curr}/{tot})".format(desc=self._pipeline_json[str(int(s) + 1)]['description'], curr=s, tot=len(self._steps)))
+            logging.info("LOG: Reporting - {desc} - End ({curr}/{tot})".format(desc=self._pipeline_json[str(int(s) + 1)]['description'],
+                                                                               curr=str(int(s) + 1),
+                                                                               tot=len(self._steps)))
 
         return patient_parameters

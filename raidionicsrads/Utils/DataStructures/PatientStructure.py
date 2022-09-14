@@ -16,6 +16,7 @@ class PatientParameters:
     _annotation_volumes = {}  # All Annotation instances loaded for the current patient.
     _atlas_volumes = {}  # All Atlas instances loaded for the current patient.
     _registrations = {}  # All registration transforms.
+    _reportings = {}  # All clinical reports (if applicable).
 
     def __init__(self, id: str, patient_filepath: str):
         """
@@ -42,6 +43,7 @@ class PatientParameters:
         self._annotation_volumes = {}
         self._atlas_volumes = {}
         self._registrations = {}
+        self._reportings = {}
 
     def __init_from_scratch(self):
         timestamp_folders = []
@@ -87,6 +89,9 @@ class PatientParameters:
 
     def include_registration(self, reg_uid, registration):
         self._registrations[reg_uid] = registration
+
+    def include_reporting(self, report_uid, report):
+        self._reportings[report_uid] = report
 
     def get_radiological_volume_uid(self, timestamp: int, sequence: str) -> str:
         for v in self._radiological_volumes.keys():
@@ -140,6 +145,9 @@ class PatientParameters:
             moving_uid = self.get_radiological_volume_uid(moving_ts, moving_seq)
 
         return self.get_registration_by_uids(fixed_uid=fixed_uid, moving_uid=moving_uid)
+
+    def get_all_reportings_uids(self) -> List[str]:
+        return list(self._reportings.keys())
 
 
 class TimestampParameters:

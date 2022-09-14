@@ -61,19 +61,7 @@ class NeuroDiagnostics:
         start_time = time.time()
         intermediate_time = time.time()
 
-        # # @TODO. Sould this be deported somewhere else, so that it could be ran, then the user could go and manually
-        # # check if stuff is correct before running the actual pipeline (only if direct use, stuff will be assumed
-        # # correct if coming from Raidionics, or can be called from there and inspect in the GUI?)
-        # patient_parameters = PatientParameters(id="Patient", patient_filepath=ResourcesConfiguration.getInstance().input_folder)
-        # class_json = {}
-        # class_json["task"] = "classification"
-        # class_json["input"] = {}  # Empty input means running it on all existing data for the patient
-        # class_json["target"] = "MRI_Sequence_Classifier"
-        # class_json["description"] = "Classification of the MRI sequence type"
-        #
-        # classification = ClassificationStep(class_json)
-        # classification.setup(patient_parameters)
-        # patient_parameters = classification.execute()
+
 
         pip = Pipeline(ResourcesConfiguration.getInstance().pipeline_filename)
         patient_parameters = PatientParameters(id="Patient",

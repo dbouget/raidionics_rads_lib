@@ -1,7 +1,9 @@
 from .Utils.configuration_parser import ResourcesConfiguration
-from .NeuroDiagnosis.neuro_diagnostics import *
-from .MediastinumDiagnosis.mediastinum_diagnostics import *
+import time
 import logging
+from .Utils.DataStructures.PatientStructure import PatientParameters
+from .Pipelines.PipelineStructure import Pipeline
+from .Pipelines.ClassificationStep import ClassificationStep
 
 
 def run_rads(config_filename: str, logging_filename: str = None) -> None:
@@ -14,17 +16,42 @@ def run_rads(config_filename: str, logging_filename: str = None) -> None:
                             format="%(asctime)s ; %(name)s ; %(levelname)s ; %(message)s", datefmt='%d/%m/%Y %H.%M')
         logging.getLogger().setLevel(logging.DEBUG)
 
-    input_filename = "" #ResourcesConfiguration.getInstance().input_volume_filename
-    logging.info("Starting diagnosis for file: {}.".format(input_filename))
+    logging.info("Starting pipeline for file: {}.".format(ResourcesConfiguration.getInstance().pipeline_filename))
     start = time.time()
-    diagnosis_task = ResourcesConfiguration.getInstance().diagnosis_task
+    pip = Pipeline(ResourcesConfiguration.getInstance().pipeline_filename)
+    patient_parameters = PatientParameters(id="Patient",
+                                           patient_filepath=ResourcesConfiguration.getInstance().input_folder)
+    patient_parameters = pip.execute(patient_parameters=patient_parameters)
+    # @TODO. Should dump it differently, or arrange filenames for re-use in Raidionics?
+    logging.info('Total elapsed time for executing the pipeline: {} seconds.'.format(time.time() - start))
 
-    if diagnosis_task == 'neuro_diagnosis':
-        runner = NeuroDiagnostics(input_filename=input_filename)
-        runner.run()
-    elif diagnosis_task == 'mediastinum_diagnosis':
-        runner = MediastinumDiagnostics(input_filename=input_filename)
-        runner.run()
-    else:
-        raise AttributeError('The provided diagnosis task {} is not supported yet.'.format(diagnosis_task))
-    logging.info('Total time for generating the standardized report: {} seconds.'.format(time.time() - start))
+
+def run_folder_inspection(config_filename: str, logging_filename: str = None) -> None:
+    # The user could go and manually check if stuff is correct before running the actual pipeline
+    # Only if direct use, stuff will be assumed correct if coming from Raidionics,
+    # or can be called from there and inspect in the GUI?
+    # @TODO. Should be also a proper pipeline.json file?
+    # @TODO2. Might need two entry methods, one for internal and one for external use.
+    ResourcesConfiguration.getInstance().set_environment(config_path=config_filename)
+    if logging_filename:
+        logging.basicConfig(filename=logging_filename, filemode='a',
+                            format="%(asctime)s ; %(name)s ; %(levelname)s ; %(message)s", datefmt='%d/%m/%Y %H.%M')
+        logging.getLogger().setLevel(logging.DEBUG)
+
+    patient_parameters = PatientParameters(id="Patient",
+                                           patient_filepath=ResourcesConfiguration.getInstance().input_folder)
+    class_json = {}
+    class_json["task"] = "classification"
+    class_json["inputs"] = {}  # Empty input means running it on all existing data for the patient
+    class_json["model"] = "MRI_Sequence_Classifier"
+    class_json["description"] = "Classification of the MRI sequence type for all input scans."
+
+    logging.info("Starting sequence classification pipeline.")
+    start = time.time()
+
+    classification = ClassificationStep(class_json)
+    classification.setup(patient_parameters)
+    patient_parameters = classification.execute()
+    # @TODO. Should dump it differently, or arrange filenames for re-use in Raidionics, or return the updated
+    # patient_parameters if running another real pipeline straight after.
+    logging.info('Total elapsed time for executing the pipeline: {} seconds.'.format(time.time() - start))

@@ -81,6 +81,9 @@ class Annotation:
     def include_registered_volume(self, filepath: str, registration_uid: str, destination_space_uid: str) -> None:
         self._registered_volumes[destination_space_uid] = {"filepath": filepath, "registration_uid": registration_uid}
 
+    def get_registered_volume_info(self, destination_space_uid: str):
+        return self._registered_volumes[destination_space_uid]
+
     def __init_from_scratch(self):
         """
         Mostly in case the annotation was provided by the user in a non-nifti format.
