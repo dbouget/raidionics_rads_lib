@@ -53,7 +53,7 @@ class FeaturesComputationStep(AbstractPipelineStep):
         if len(anno_uid) == 0:
             return None
         anno_uid = anno_uid[0]
-        reg_data = self._patient_parameters._annotation_volumes[anno_uid].get_registered_volume_info(destination_space_uid="MNI")
+        reg_data = self._patient_parameters.get_annotation(annotation_uid=anno_uid).get_registered_volume_info(destination_space_uid="MNI")
 
         non_available_uid = True
         report_uid = None

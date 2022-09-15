@@ -1,4 +1,5 @@
 import os
+from typing import List
 from aenum import Enum, unique
 from ..utilities import get_type_from_string, input_file_type_conversion
 from ..configuration_parser import ResourcesConfiguration
@@ -81,6 +82,18 @@ class RadiologicalVolume:
         self._timestamp_id = None
         self._registered_volumes = {}
 
+    def get_unique_id(self) -> str:
+        return self._unique_id
+
+    def get_output_folder(self) -> str:
+        return self._output_folder
+
+    def get_raw_input_filepath(self) -> str:
+        return self._raw_input_filepath
+
+    def get_usable_input_filepath(self) -> str:
+        return self._usable_input_filepath
+
     def get_sequence_type_enum(self) -> Enum:
         return self._sequence_type
 
@@ -109,6 +122,12 @@ class RadiologicalVolume:
 
     def include_registered_volume(self, filepath: str, registration_uid: str, destination_space_uid: str) -> None:
         self._registered_volumes[destination_space_uid] = {"filepath": filepath, "registration_uid": registration_uid}
+
+    def get_registered_volume_info(self, destination_space_uid: str):
+        return self._registered_volumes[destination_space_uid]
+
+    def get_registered_volume_destination_uids(self) -> List[str]:
+        return list(self._registered_volumes.keys())
 
     def __init_from_scratch(self):
         self._output_folder = os.path.join(ResourcesConfiguration.getInstance().output_folder, self._timestamp_id)

@@ -43,12 +43,18 @@ class ClassificationStep(AbstractPipelineStep):
 
     def execute(self):
         if len(self._step_json["inputs"].keys()) == 0:
-            for volume in self._patient_parameters._radiological_volumes.keys():
-                self._input_volume_uid = volume
-                self._input_volume_filepath = self._patient_parameters._radiological_volumes[volume]._usable_input_filepath
+            for volume_uid in self._patient_parameters.get_all_radiological_volume_uids():
+                self._input_volume_uid = volume_uid
+                self._input_volume_filepath = self._patient_parameters.get_radiological_volume(volume_uid=volume_uid).get_usable_input_filepath()
+                new_fp = os.path.join(self._working_folder, 'inputs', 'input0.nii.gz')
+                shutil.copyfile(self._input_volume_filepath, new_fp)
                 self.__perform_classification()
         else:  # Not a use-case for the moment.
             pass
+
+        if os.path.exists(self._working_folder):
+            shutil.rmtree(self._working_folder)
+
         return self._patient_parameters
 
     def __perform_classification(self) -> None:
@@ -63,13 +69,15 @@ class ClassificationStep(AbstractPipelineStep):
             classification_config.set('System', 'gpu_id', ResourcesConfiguration.getInstance().gpu_id)
             classification_config.set('System', 'inputs_folder', os.path.join(self._working_folder, 'inputs'))
             classification_config.set('System', 'output_folder', os.path.join(self._working_folder, 'outputs'))
-            classification_config.set('System', 'model_folder', os.path.join(ResourcesConfiguration.getInstance().model_folder, self._model_name))
+            classification_config.set('System', 'model_folder',
+                                      os.path.join(ResourcesConfiguration.getInstance().model_folder, self._model_name))
             classification_config.add_section('Runtime')
             classification_config.set('Runtime', 'reconstruction_method', 'thresholding')
             classification_config.set('Runtime', 'reconstruction_order', 'resample_first')
             classification_config.add_section('Neuro')
             classification_config.set('Neuro', 'brain_segmentation_filename', '')
-            classification_config_filename = os.path.join(os.path.join(self._working_folder, 'inputs'), 'classification_config.ini')
+            classification_config_filename = os.path.join(os.path.join(self._working_folder, 'inputs'),
+                                                          'classification_config.ini')
             with open(classification_config_filename, 'w') as outfile:
                 classification_config.write(outfile)
 
@@ -86,23 +94,16 @@ class ClassificationStep(AbstractPipelineStep):
             run_model(classification_config_filename)
         except Exception as e:
             logging.error("[ClassificationStep] Automatic classification failed with: {}".format(traceback.format_exc()))
-            if os.path.exists(self._working_folder):
-                shutil.rmtree(self._working_folder)
             raise ValueError("[ClassificationStep] Automatic classification failed.")
 
         try:
-            # @TODO. Must read the classification results and populate the patient parameters.
-            classification_results_filename = os.path.join(os.path.join(self._working_folder, 'outputs'), 'classification-results.csv')
+            classification_results_filename = os.path.join(os.path.join(self._working_folder, 'outputs'),
+                                                           'classification-results.csv')
             classification_results_df = pd.read_csv(classification_results_filename)
             final_class = classification_results_df.values[classification_results_df[classification_results_df.columns[1]].idxmax(), 0]
-            self._patient_parameters._radiological_volumes[self._input_volume_uid].set_sequence_type(final_class)
+            self._patient_parameters.get_radiological_volume(volume_uid=self._input_volume_uid).set_sequence_type(final_class)
         except Exception as e:
             logging.error("[ClassificationStep] Classification results parsing failed with: {}".format(traceback.format_exc()))
-            if os.path.exists(self._working_folder):
-                shutil.rmtree(self._working_folder)
             raise ValueError("[ClassificationStep] Classification results parsing failed.")
-
-        if os.path.exists(self._working_folder):
-            shutil.rmtree(self._working_folder)
 
         return

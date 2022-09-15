@@ -30,8 +30,8 @@ def run_folder_inspection(config_filename: str, logging_filename: str = None) ->
     # The user could go and manually check if stuff is correct before running the actual pipeline
     # Only if direct use, stuff will be assumed correct if coming from Raidionics,
     # or can be called from there and inspect in the GUI?
-    # @TODO. Should be also a proper pipeline.json file?
-    # @TODO2. Might need two entry methods, one for internal and one for external use.
+    # @TODO. I think it should not be a stand-alone method, rather a stand-alone pipeline.json or a step inside another
+    # But there's need for a way to dump/communicate the info to Raidionics.
     ResourcesConfiguration.getInstance().set_environment(config_path=config_filename)
     if logging_filename:
         logging.basicConfig(filename=logging_filename, filemode='a',

@@ -1,16 +1,11 @@
-import os
-import logging
 import pandas as pd
 from copy import deepcopy
 import operator
-from medpy.metric.binary import hd95
 import collections
-from tqdm import tqdm
 import nibabel as nib
 from skimage.morphology import ball
-from scipy.ndimage.measurements import center_of_mass
-from scipy.ndimage import binary_opening, measurements, binary_closing
-from ..NeuroDiagnosis.tumor_features_computation import *
+from scipy.ndimage import binary_closing
+from ..Processing.tumor_features_computation import *
 from ..Utils.io import load_nifti_volume
 from ..Utils.configuration_parser import ResourcesConfiguration
 from ..Utils.ReportingStructures.NeuroReportingStructure import NeuroReportingStructure

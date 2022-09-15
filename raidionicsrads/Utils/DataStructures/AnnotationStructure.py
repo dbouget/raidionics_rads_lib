@@ -1,4 +1,5 @@
 import os
+from typing import List
 from aenum import Enum, unique
 from ..utilities import get_type_from_string, input_file_type_conversion
 from ..configuration_parser import ResourcesConfiguration
@@ -56,6 +57,18 @@ class Annotation:
         self._annotation_type = None
         self._registered_volumes = {}
 
+    def get_unique_id(self) -> str:
+        return self._unique_id
+
+    def get_output_folder(self) -> str:
+        return self._output_folder
+
+    def get_usable_input_filepath(self) -> str:
+        return self._usable_input_filepath
+
+    def get_parent_radiological_volume_uid(self) -> str:
+        return self._radiological_volume_uid
+
     def get_annotation_type_enum(self) -> Enum:
         return self._annotation_type
 
@@ -64,12 +77,13 @@ class Annotation:
 
     def set_annotation_type(self, type: str) -> None:
         """
-        Update the annotation class type.
+        Update the annotation class type by providing its string version, which will be matched to the proper
+        element inside AnnotationClassType.
 
         Parameters
         ----------
         type: str
-            New annotation type to associate with the current vinstance.
+            New annotation type to associate with the current instance.
         """
         if isinstance(type, str):
             ctype = get_type_from_string(AnnotationClassType, type)
@@ -79,10 +93,16 @@ class Annotation:
             self._sequence_type = type
 
     def include_registered_volume(self, filepath: str, registration_uid: str, destination_space_uid: str) -> None:
+        if destination_space_uid in list(self._registered_volumes.keys()):
+            raise ValueError("[AnnotationStructure] Trying to insert a registered volume with an already existing "
+                             "destination space key: {}.".format(destination_space_uid))
         self._registered_volumes[destination_space_uid] = {"filepath": filepath, "registration_uid": registration_uid}
 
     def get_registered_volume_info(self, destination_space_uid: str):
         return self._registered_volumes[destination_space_uid]
+
+    def get_registered_volume_destination_uids(self) -> List[str]:
+        return list(self._registered_volumes.keys())
 
     def __init_from_scratch(self):
         """

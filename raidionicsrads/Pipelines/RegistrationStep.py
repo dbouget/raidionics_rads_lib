@@ -51,7 +51,7 @@ class RegistrationStep(AbstractPipelineStep):
                                                                                      sequence=self._step_json["moving"]["sequence"])
             if moving_volume_uid != "-1":
                 self._moving_volume_uid = moving_volume_uid
-                self._moving_volume_filepath = self._patient_parameters._radiological_volumes[self._moving_volume_uid]._usable_input_filepath
+                self._moving_volume_filepath = self._patient_parameters.get_radiological_volume(volume_uid=self._moving_volume_uid).get_usable_input_filepath()
             elif self._step_json["moving"]["timestamp"] == -1:  # Atlas file
                 self._moving_volume_filepath = ResourcesConfiguration.getInstance().mni_atlas_filepath_T1
             else:
@@ -63,7 +63,7 @@ class RegistrationStep(AbstractPipelineStep):
                                                                                     sequence=self._step_json["fixed"]["sequence"])
             if fixed_volume_uid != "-1":
                 self._fixed_volume_uid = fixed_volume_uid
-                self._fixed_volume_filepath = self._patient_parameters._radiological_volumes[self._fixed_volume_uid]._usable_input_filepath
+                self._fixed_volume_filepath = self._patient_parameters.get_radiological_volume(volume_uid=self._fixed_volume_uid).get_usable_input_filepath()
             elif self._step_json["fixed"]["timestamp"] == -1:  # Atlas file
                 self._fixed_volume_filepath = ResourcesConfiguration.getInstance().mni_atlas_filepath_T1
             else:
@@ -91,14 +91,14 @@ class RegistrationStep(AbstractPipelineStep):
             if self._fixed_volume_uid:
                 brain_anno = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(self._fixed_volume_uid, AnnotationClassType.Brain)
                 if len(brain_anno) != 0:
-                    self._fixed_mask_filepath = self._patient_parameters._annotation_volumes[brain_anno[0]]._usable_input_filepath
+                    self._fixed_mask_filepath = self._patient_parameters.get_annotation(annotation_uid=brain_anno[0]).get_usable_input_filepath()
             else:
                 self._fixed_mask_filepath = ResourcesConfiguration.getInstance().mni_atlas_brain_mask_filepath
 
             if self._moving_volume_uid:
                 brain_anno = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(self._moving_volume_uid, AnnotationClassType.Brain)
                 if len(brain_anno) != 0:
-                    self._moving_mask_filepath = self._patient_parameters._annotation_volumes[brain_anno[0]]._usable_input_filepath
+                    self._moving_mask_filepath = self._patient_parameters.get_annotation(annotation_uid=brain_anno[0]).get_usable_input_filepath()
             else:
                 self._moving_mask_filepath = ResourcesConfiguration.getInstance().mni_atlas_brain_mask_filepath
 
@@ -111,23 +111,28 @@ class RegistrationStep(AbstractPipelineStep):
             return fixed_masked_filepath, moving_masked_filepath
 
     def __registration(self, fixed_filepath, moving_filepath):
-        self._registration_runner.compute_registration(fixed=fixed_filepath, moving=moving_filepath,
-                                                       registration_method='SyN')
-        non_available_uid = True
-        reg_uid = None
-        while non_available_uid:
-            reg_uid = 'R' + str(np.random.randint(0, 10000))
-            if reg_uid not in self._patient_parameters.get_all_annotations_uids():
-                non_available_uid = False
+        try:
+            self._registration_runner.compute_registration(fixed=fixed_filepath, moving=moving_filepath,
+                                                           registration_method='SyN')
+            non_available_uid = True
+            reg_uid = None
+            while non_available_uid:
+                reg_uid = 'R' + str(np.random.randint(0, 10000))
+                if reg_uid not in self._patient_parameters.get_all_annotations_uids():
+                    non_available_uid = False
 
-        if self._fixed_volume_uid is None:
-            self._fixed_volume_uid = 'MNI'
-        if self._moving_volume_uid is None:
-            self._moving_volume_uid = 'MNI'
+            if self._fixed_volume_uid is None:
+                self._fixed_volume_uid = 'MNI'
+            if self._moving_volume_uid is None:
+                self._moving_volume_uid = 'MNI'
 
-        registration = Registration(uid=reg_uid, fixed_uid=self._fixed_volume_uid, moving_uid=self._moving_volume_uid,
-                                    fwd_paths=self._registration_runner.reg_transform['fwdtransforms'],
-                                    inv_paths=self._registration_runner.reg_transform['invtransforms'],
-                                    output_folder=ResourcesConfiguration.getInstance().output_folder)
-        self._patient_parameters.include_registration(reg_uid, registration)
-        self._registration_runner.clear_cache()
+            registration = Registration(uid=reg_uid, fixed_uid=self._fixed_volume_uid, moving_uid=self._moving_volume_uid,
+                                        fwd_paths=self._registration_runner.reg_transform['fwdtransforms'],
+                                        inv_paths=self._registration_runner.reg_transform['invtransforms'],
+                                        output_folder=ResourcesConfiguration.getInstance().output_folder)
+            self._patient_parameters.include_registration(reg_uid, registration)
+            self._registration_runner.clear_cache()
+        except Exception as e:
+            logging.error("[RegistrationStep] Registration failed with: {}.".format(traceback.format_exc()))
+            self._registration_runner.clear_cache()
+            raise ValueError("[RegistrationStep] Registration failed.")

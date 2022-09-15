@@ -46,3 +46,6 @@ class Registration:
         self._output_folder = None
         self._fixed_uid = None
         self._moving_uid = None
+
+    def get_unique_id(self) -> str:
+        return self._unique_id

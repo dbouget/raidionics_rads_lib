@@ -66,18 +66,19 @@ class SegmentationStep(AbstractPipelineStep):
                     # Use-case where the input is actually an annotation and not a raw radiological volume
                     if input_json["labels"]:
                         annotation_type = get_type_from_string(AnnotationClassType, input_json["labels"])
-                        anno_uids = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(volume_uid=volume_uid, annotation_class=annotation_type)
+                        anno_uids = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(volume_uid=volume_uid,
+                                                                                                                annotation_class=annotation_type)
                         if len(anno_uids) == 0:
                             raise ValueError("No annotation for {}.".format(input_json))
                         anno_uid = anno_uids[0]
-                        input_fp = self._patient_parameters._annotation_volumes[anno_uid]._usable_input_filepath
+                        input_fp = self._patient_parameters.get_annotation(annotation_uid=anno_uid).get_usable_input_filepath()
                         if not os.path.exists(input_fp):
                             raise ValueError("No annotation file on disk for {}.".format(input_fp))
                         new_fp = os.path.join(self._working_folder, 'inputs', 'input' + str(k) + '.nii.gz')
                         shutil.copyfile(input_fp, new_fp)
                     else:
                         if volume_uid != "-1":
-                            input_fp = self._patient_parameters._radiological_volumes[volume_uid]._usable_input_filepath
+                            input_fp = self._patient_parameters.get_radiological_volume(volume_uid=volume_uid).get_usable_input_filepath()
                             if not os.path.exists(input_fp):
                                 raise ValueError("No radiological volume file on disk for {}.".format(input_fp))
                             new_fp = os.path.join(self._working_folder, 'inputs', 'input' + str(k) + '.nii.gz')
@@ -105,17 +106,18 @@ class SegmentationStep(AbstractPipelineStep):
                         if annotation_type == -1:
                             raise ValueError("No AnnotationClassType matching {}.".format(input_json["labels"]))
 
-                        anno_uids = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(volume_uid=volume_uid, annotation_class=annotation_type)
+                        anno_uids = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(volume_uid=volume_uid,
+                                                                                                                annotation_class=annotation_type)
                         if len(anno_uids) == 0:
                             raise ValueError("No annotation for {}.".format(input_json))
                         anno_uid = anno_uids[0]
-                        input_fp = self._patient_parameters._annotation_volumes[anno_uid].get_registered_volume_info(ref_space_uid)["filepath"]
+                        input_fp = self._patient_parameters.get_annotation(annotation_uid=anno_uid).get_registered_volume_info(ref_space_uid)["filepath"]
                         if not os.path.exists(input_fp):
                             raise ValueError("No registered annotation file on disk for {}.".format(input_fp))
                         new_fp = os.path.join(self._working_folder, 'inputs', 'input' + str(k) + '.nii.gz')
                         shutil.copyfile(input_fp, new_fp)
                     else:
-                        reg_fp = self._patient_parameters._radiological_volumes[volume_uid]._registered_volumes[ref_space_uid]["filepath"]
+                        reg_fp = self._patient_parameters.get_radiological_volume(volume_uid=volume_uid).get_registered_volume_info(ref_space_uid)["filepath"]
                         if not os.path.exists(reg_fp):
                             raise ValueError("No registered radiological file on disk for {}.".format(reg_fp))
                         new_fp = os.path.join(self._working_folder, 'inputs', 'input' + str(k) + '.nii.gz')
@@ -146,89 +148,93 @@ class SegmentationStep(AbstractPipelineStep):
         """
 
         """
-        # @TODO. Not necessary anymore?
-        if not ResourcesConfiguration.getInstance().runtime_tumor_mask_filepath is None \
-                and os.path.exists(ResourcesConfiguration.getInstance().runtime_tumor_mask_filepath):
-            return ResourcesConfiguration.getInstance().runtime_tumor_mask_filepath
-        else:
-            seg_config_filename = ""
-            try:
-                seg_config = configparser.ConfigParser()
-                seg_config.add_section('System')
-                seg_config.set('System', 'gpu_id', ResourcesConfiguration.getInstance().gpu_id)
-                # seg_config.set('System', 'input_filename', self._input_volume_filepath)
-                seg_config.set('System', 'inputs_folder', os.path.join(self._working_folder, 'inputs'))
-                seg_config.set('System', 'output_folder', os.path.join(self._working_folder, 'outputs'))
-                seg_config.set('System', 'model_folder', os.path.join(ResourcesConfiguration.getInstance().model_folder,
-                                                                      self._model_name))
-                seg_config.add_section('Runtime')
-                seg_config.set('Runtime', 'reconstruction_method', 'thresholding')
-                seg_config.set('Runtime', 'reconstruction_order', 'resample_first')
-
-                # @TODO. Have to be slightly improved, but should be working for our use-cases for now.
-                existing_brain_annotations = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(volume_uid=self._input_volume_uid,
-                                                                                                                         annotation_class=AnnotationClassType.Brain)
-                if len(existing_brain_annotations) != 0:
-                    seg_config.add_section('Neuro')
-                    seg_config.set('Neuro', 'brain_segmentation_filename',
-                                   self._patient_parameters._annotation_volumes[existing_brain_annotations[0]]._usable_input_filepath)
-                seg_config_filename = os.path.join(os.path.join(self._working_folder, 'inputs'), 'seg_config.ini')
-                with open(seg_config_filename, 'w') as outfile:
-                    seg_config.write(outfile)
-
-                log_level = logging.getLogger().level
-                log_str = 'warning'
-                if log_level == 10:
-                    log_str = 'debug'
-                elif log_level == 20:
-                    log_str = 'info'
-                elif log_level == 40:
-                    log_str = 'error'
-
-                from raidionicsseg.fit import run_model
-                run_model(seg_config_filename)
-            except Exception as e:
-                logging.error("[SegmentationStep] Automatic segmentation failed with: {}.".format(traceback.format_exc()))
+        try:
+            existing_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
+                volume_uid=self._input_volume_uid,
+                annotation_class=get_type_from_string(AnnotationClassType, self._segmentation_targets[0]))
+            if len(existing_uid) != 0:
+                # An annotation object matching the request already exists, hence skipping the step.
+                logging.info("[SegmentationStep] Automatic segmentation skipped, results already existing.")
                 if os.path.exists(self._working_folder):
                     shutil.rmtree(self._working_folder)
-                raise ValueError("[SegmentationStep] Automatic segmentation failed.")
+                return
 
-            try:
-                # Collecting the results and associating them with the parent radiological volume.
-                generated_segmentations = []
-                for _, _, files in os.walk(os.path.join(self._working_folder, 'outputs')):
-                    for f in files:
-                        if 'nii.gz' in f:
-                            generated_segmentations.append(f)
-                    break
+            seg_config = configparser.ConfigParser()
+            seg_config.add_section('System')
+            seg_config.set('System', 'gpu_id', ResourcesConfiguration.getInstance().gpu_id)
+            # seg_config.set('System', 'input_filename', self._input_volume_filepath)
+            seg_config.set('System', 'inputs_folder', os.path.join(self._working_folder, 'inputs'))
+            seg_config.set('System', 'output_folder', os.path.join(self._working_folder, 'outputs'))
+            seg_config.set('System', 'model_folder', os.path.join(ResourcesConfiguration.getInstance().model_folder,
+                                                                  self._model_name))
+            seg_config.add_section('Runtime')
+            seg_config.set('Runtime', 'reconstruction_method', 'thresholding')
+            seg_config.set('Runtime', 'reconstruction_order', 'resample_first')
 
-                for s in generated_segmentations:
-                    label_name = s.split('_')[1].split('.')[0]
-                    if label_name in self._segmentation_targets:
-                        seg_filename = os.path.join(os.path.join(self._working_folder, 'outputs'), s)
-                        final_seg_filename = os.path.join(self._patient_parameters._radiological_volumes[self._input_volume_uid]._output_folder,
-                                                          os.path.basename(self._patient_parameters._radiological_volumes[self._input_volume_uid]._raw_input_filepath).split('.')[0] + '_annotation-' + label_name + '.nii.gz')
-                        if not os.path.exists(seg_filename):
-                            raise ValueError("Segmentation results file could not be found on disk at {}".format(seg_filename))
-                        shutil.move(seg_filename, final_seg_filename)
-                        non_available_uid = True
-                        anno_uid = None
-                        while non_available_uid:
-                            anno_uid = 'A' + str(np.random.randint(0, 10000))
-                            if anno_uid not in self._patient_parameters.get_all_annotations_uids():
-                                non_available_uid = False
-                        annotation = Annotation(uid=anno_uid, input_filename=final_seg_filename,
-                                                output_folder=self._patient_parameters._radiological_volumes[self._input_volume_uid]._output_folder,
-                                                radiological_volume_uid=self._input_volume_uid, annotation_class=label_name)
-                        self._patient_parameters.include_annotation(anno_uid, annotation)
-            except Exception as e:
-                logging.error("[SegmentationStep] Segmentation results parsing failed with: {}.".format(traceback.format_exc()))
-                if os.path.exists(self._working_folder):
-                    shutil.rmtree(self._working_folder)
-                raise ValueError("[SegmentationStep] Segmentation results parsing failed.")
+            # @TODO. Have to be slightly improved, but should be working for our use-cases for now.
+            existing_brain_annotations = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(volume_uid=self._input_volume_uid,
+                                                                                                                     annotation_class=AnnotationClassType.Brain)
+            if len(existing_brain_annotations) != 0:
+                seg_config.add_section('Neuro')
+                seg_config.set('Neuro', 'brain_segmentation_filename',
+                               self._patient_parameters.get_annotation(annotation_uid=existing_brain_annotations[0]).get_usable_input_filepath())
+            seg_config_filename = os.path.join(os.path.join(self._working_folder, 'inputs'), 'seg_config.ini')
+            with open(seg_config_filename, 'w') as outfile:
+                seg_config.write(outfile)
 
+            log_level = logging.getLogger().level
+            log_str = 'warning'
+            if log_level == 10:
+                log_str = 'debug'
+            elif log_level == 20:
+                log_str = 'info'
+            elif log_level == 40:
+                log_str = 'error'
+
+            from raidionicsseg.fit import run_model
+            run_model(seg_config_filename)
+        except Exception as e:
+            logging.error("[SegmentationStep] Automatic segmentation failed with: {}.".format(traceback.format_exc()))
             if os.path.exists(self._working_folder):
                 shutil.rmtree(self._working_folder)
+            raise ValueError("[SegmentationStep] Automatic segmentation failed.")
+
+        try:
+            # Collecting the results and associating them with the parent radiological volume.
+            generated_segmentations = []
+            for _, _, files in os.walk(os.path.join(self._working_folder, 'outputs')):
+                for f in files:
+                    if 'nii.gz' in f:
+                        generated_segmentations.append(f)
+                break
+
+            for s in generated_segmentations:
+                label_name = s.split('_')[1].split('.')[0]
+                if label_name in self._segmentation_targets:
+                    seg_filename = os.path.join(os.path.join(self._working_folder, 'outputs'), s)
+                    final_seg_filename = os.path.join(self._patient_parameters.get_radiological_volume(volume_uid=self._input_volume_uid).get_output_folder(),
+                                                      os.path.basename(self._patient_parameters.get_radiological_volume(volume_uid=self._input_volume_uid).get_raw_input_filepath()).split('.')[0] + '_annotation-' + label_name + '.nii.gz')
+                    if not os.path.exists(seg_filename):
+                        raise ValueError("Segmentation results file could not be found on disk at {}".format(seg_filename))
+                    shutil.move(seg_filename, final_seg_filename)
+                    non_available_uid = True
+                    anno_uid = None
+                    while non_available_uid:
+                        anno_uid = 'A' + str(np.random.randint(0, 10000))
+                        if anno_uid not in self._patient_parameters.get_all_annotations_uids():
+                            non_available_uid = False
+                    annotation = Annotation(uid=anno_uid, input_filename=final_seg_filename,
+                                            output_folder=self._patient_parameters.get_radiological_volume(volume_uid=self._input_volume_uid).get_output_folder(),
+                                            radiological_volume_uid=self._input_volume_uid, annotation_class=label_name)
+                    self._patient_parameters.include_annotation(anno_uid, annotation)
+        except Exception as e:
+            logging.error("[SegmentationStep] Segmentation results parsing failed with: {}.".format(traceback.format_exc()))
+            if os.path.exists(self._working_folder):
+                shutil.rmtree(self._working_folder)
+            raise ValueError("[SegmentationStep] Segmentation results parsing failed.")
+
+        if os.path.exists(self._working_folder):
+            shutil.rmtree(self._working_folder)
 
     def __perform_mediastinum_segmentation(self):
         pass

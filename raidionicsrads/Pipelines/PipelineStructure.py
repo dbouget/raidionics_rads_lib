@@ -82,5 +82,4 @@ class Pipeline:
             logging.info("LOG: Reporting - {desc} - End ({curr}/{tot})".format(desc=self._pipeline_json[str(int(s) + 1)]['description'],
                                                                                curr=str(int(s) + 1),
                                                                                tot=len(self._steps)))
-
         return patient_parameters
