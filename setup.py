@@ -19,7 +19,7 @@ elif platform.system() == 'Darwin':
     required.append('statsmodels==0.12.2')
 else:
     required.append('antspyx')
-required.append('-e git+https://github.com/dbouget/raidionics_seg_lib.git@postop#egg=raidionicsseg')
+required.append('raidionicsseg@git+https://github.com/dbouget/raidionics_seg_lib.git@postop#egg=raidionicsseg')
 
 setup(
     name='raidionicsrads',
