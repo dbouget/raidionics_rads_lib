@@ -10,7 +10,7 @@ from ..Utils.configuration_parser import ResourcesConfiguration
 from ..Utils.io import load_nifti_volume
 from .AbstractPipelineStep import AbstractPipelineStep
 from ..Utils.DataStructures.PatientStructure import PatientParameters
-from ..Utils.DataStructures.AnnotationStructure import Annotation, AnnotationClassType
+from ..Utils.DataStructures.AnnotationStructure import Annotation, AnnotationClassType, BrainTumorType
 
 
 class SegmentationStep(AbstractPipelineStep):
@@ -226,6 +226,15 @@ class SegmentationStep(AbstractPipelineStep):
                     annotation = Annotation(uid=anno_uid, input_filename=final_seg_filename,
                                             output_folder=self._patient_parameters.get_radiological_volume(volume_uid=self._input_volume_uid).get_output_folder(),
                                             radiological_volume_uid=self._input_volume_uid, annotation_class=label_name)
+                    if label_name == 'Tumor':
+                        subtype = "Glioblastoma"
+                        if 'Meningioma' in self._model_name:
+                            subtype = "Meningioma"
+                        elif 'LGGlioma' in self._model_name:
+                            subtype = "Lower-grade glioma"
+                        elif 'Metastasis' in self._model_name:
+                            subtype = "Metastasis"
+                        annotation.set_annotation_subtype(type=BrainTumorType, value=subtype)
                     self._patient_parameters.include_annotation(anno_uid, annotation)
         except Exception as e:
             logging.error("[SegmentationStep] Segmentation results parsing failed with: {}.".format(traceback.format_exc()))

@@ -8,7 +8,7 @@ from ..configuration_parser import ResourcesConfiguration
 @unique
 class AnnotationClassType(Enum):
     """
-
+    Generic enumeration type for describing the type of annotation.
     """
     _init_ = 'value string'
 
@@ -17,6 +17,22 @@ class AnnotationClassType(Enum):
 
     Lungs = 100, 'Lungs'
     Airways = 101, 'Airways'
+
+    def __str__(self):
+        return self.string
+
+
+@unique
+class BrainTumorType(Enum):
+    """
+    Specific enumeration type for brain tumor sub-types
+    """
+    _init_ = 'value string'
+
+    GBM = 0, 'Glioblastoma'
+    LGG = 1, 'Lower-grade glioma'
+    Meningioma = 2, 'Meningioma'
+    Metastasis = 3, 'Metastasis'
 
     def __str__(self):
         return self.string
@@ -32,6 +48,7 @@ class Annotation:
     _output_folder = None  #
     _radiological_volume_uid = None
     _annotation_type = None
+    _annotation_subtype = None
     _registered_volumes = {}
 
     def __init__(self, uid: str, input_filename: str, output_folder: str, radiological_volume_uid: str,
@@ -55,6 +72,7 @@ class Annotation:
         self._output_folder = None
         self._radiological_volume_uid = None
         self._annotation_type = None
+        self._annotation_subtype = None
         self._registered_volumes = {}
 
     def get_unique_id(self) -> str:
@@ -88,9 +106,30 @@ class Annotation:
         if isinstance(type, str):
             ctype = get_type_from_string(AnnotationClassType, type)
             if ctype != -1:
-                self._sequence_type = ctype
+                self._annotation_type = ctype
         elif isinstance(type, AnnotationClassType):
-            self._sequence_type = type
+            self._annotation_type = type
+
+    def get_annotation_subtype_enum(self) -> Enum:
+        return self._annotation_subtype
+
+    def get_annotation_subtype_str(self) -> str:
+        return str(self._annotation_subtype)
+
+    def set_annotation_subtype(self, type: Enum, value: str) -> None:
+        """
+
+
+        Parameters
+        ----------
+        type: Enum
+            Specific Enum class where the subtype belongs.
+        value: str
+            String version of the requested subtype.
+        """
+        ctype = get_type_from_string(type, value)
+        if ctype != -1:
+            self._annotation_subtype = ctype
 
     def include_registered_volume(self, filepath: str, registration_uid: str, destination_space_uid: str) -> None:
         if destination_space_uid in list(self._registered_volumes.keys()):

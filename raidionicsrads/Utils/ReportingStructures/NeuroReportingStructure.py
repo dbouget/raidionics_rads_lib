@@ -79,20 +79,23 @@ class NeuroReportingStructure:
             logging.info("Exporting neuro-parameters to text in {}.".format(filename))
             pfile = open(filename, 'a')
             pfile.write('########### Raidionics clinical report ###########\n')
+            pfile.write('Tumor type: {}\n'.format(self._tumor_type))
             pfile.write('Tumor multifocality: {}\n'.format(self._tumor_multifocal))
             pfile.write('  * Number tumor parts: {}\n'.format(self._tumor_parts))
             pfile.write('  * Largest distance between components: {} (mm)\n'.format(np.round(self._tumor_multifocal_distance, 2)))
 
             pfile.write('\nVolumes\n')
-            pfile.write('  * Original space: {} (ml)\n'.format(np.round(self._statistics['Main']['Overall'].original_space_tumor_volume, 2)))
-            pfile.write('  * MNI space: {} (ml)\n'.format(self._statistics['Main']['Overall'].mni_space_tumor_volume))
+            if self._statistics['Main']['Overall'].original_space_tumor_volume:
+                pfile.write('  * Original space: {} (ml)\n'.format(np.round(self._statistics['Main']['Overall'].original_space_tumor_volume, 2)))
+            if self._statistics['Main']['Overall'].mni_space_tumor_volume:
+                pfile.write('  * MNI space: {} (ml)\n'.format(self._statistics['Main']['Overall'].mni_space_tumor_volume))
 
             pfile.write('\nLaterality\n')
             pfile.write('  * Left hemisphere: {}%\n'.format(self._statistics['Main']['Overall'].left_laterality_percentage))
             pfile.write('  * Right hemisphere: {}%\n'.format(self._statistics['Main']['Overall'].right_laterality_percentage))
             pfile.write('  * Midline crossing: {}\n'.format(self._statistics['Main']['Overall'].laterality_midline_crossing))
 
-            if self._tumor_type == 'High-Grade Glioma':
+            if self._tumor_type == 'Glioblastoma':
                 pfile.write('\nResectability\n')
                 pfile.write('  * Expected residual volume: {} (ml)\n'.format(np.round(self._statistics['Main']['Overall'].mni_space_expected_residual_tumor_volume, 2)))
                 pfile.write('  * Resection index: {}\n'.format(np.round(self._statistics['Main']['Overall'].mni_space_resectability_index, 3)))
@@ -166,7 +169,7 @@ class NeuroReportingStructure:
             param_json['Main']['Total']['Right laterality (%)'] = self._statistics['Main']['Overall'].right_laterality_percentage
             param_json['Main']['Total']['Midline crossing'] = self._statistics['Main']['Overall'].laterality_midline_crossing
 
-            if self._tumor_type == 'High-Grade Glioma':
+            if self._tumor_type == 'Glioblastoma':
                 param_json['Main']['Total']['ExpectedResidualVolume (ml)'] = np.round(self._statistics['Main']['Overall'].mni_space_expected_residual_tumor_volume, 2)
                 param_json['Main']['Total']['ResectionIndex'] = np.round(self._statistics['Main']['Overall'].mni_space_resectability_index, 3)
 
@@ -247,7 +250,7 @@ class NeuroReportingStructure:
                            self._statistics['Main']['Overall'].laterality_midline_crossing])
             column_names.extend(['Left laterality (%)', 'Right laterality (%)', 'Midline crossing'])
 
-            if self._tumor_type == 'High-Grade Glioma':
+            if self._tumor_type == 'Glioblastoma':
                 values.extend([np.round(self._statistics['Main']['Overall'].mni_space_expected_residual_tumor_volume, 2),
                                np.round(self._statistics['Main']['Overall'].mni_space_resectability_index, 3)])
                 column_names.extend(['ExpectedResidualVolume (ml)', 'ResectionIndex'])

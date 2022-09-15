@@ -18,11 +18,7 @@ def compute_neuro_report(input_filename: str, report: NeuroReportingStructure) -
     registered_tumor_ni = load_nifti_volume(input_filename)
     registered_tumor = registered_tumor_ni.get_data()[:]
 
-    # @TODO. The tumor type is given by the user for now, no tumor classification yet!
-    tumor_type = report._tumor_type  # @TODO. Info should be stored somewhere else properly.
-    if 'HGGlioma' in tumor_type:
-        tumor_type = 'High-Grade Glioma'
-
+    tumor_type = report._tumor_type
     if np.count_nonzero(registered_tumor) == 0:
         report.setup(tumor_type=tumor_type, tumor_elements=0)
         return report
@@ -42,16 +38,16 @@ def compute_neuro_report(input_filename: str, report: NeuroReportingStructure) -
         report.setup(tumor_type=tumor_type, tumor_elements=0)
         return report
 
-    # Assessing if the tumor is multifocal or monofocal
-    tumor_clusters = measurements.label(refined_image)[0]
-    tumor_clusters_labels = regionprops(tumor_clusters)
-    report.setup(tumor_type=tumor_type, tumor_elements=len(tumor_clusters_labels))
-
-    # Computing localisation and lateralisation for the whole tumor extent
+    # Computing the tumor volume in original patient space
     # segmentation_ni = nib.load(ResourcesConfiguration.getInstance().runtime_tumor_mask_filepath)
     # segmentation_mask = segmentation_ni.get_data()[:]
     # volume = compute_volume(volume=segmentation_mask, spacing=segmentation_ni.header.get_zooms())
     # self.diagnosis_parameters.statistics['Main']['Overall'].original_space_tumor_volume = volume
+
+    # Assessing if the tumor is multifocal or monofocal
+    tumor_clusters = measurements.label(refined_image)[0]
+    tumor_clusters_labels = regionprops(tumor_clusters)
+    report.setup(tumor_type=tumor_type, tumor_elements=len(tumor_clusters_labels))
     volume_reg_space = compute_volume(volume=refined_image, spacing=registered_tumor_ni.header.get_zooms())
     report._statistics['Main']['Overall'].mni_space_tumor_volume = volume_reg_space
 
@@ -61,6 +57,7 @@ def compute_neuro_report(input_filename: str, report: NeuroReportingStructure) -
     report._tumor_parts = nb
     report._tumor_multifocal_distance = dist
 
+    # Computing localisation and lateralisation for the whole tumor extent
     brain_lateralisation_mask_ni = load_nifti_volume(
         ResourcesConfiguration.getInstance().mni_atlas_lateralisation_mask_filepath)
     brain_lateralisation_mask = brain_lateralisation_mask_ni.get_data()[:]
@@ -69,7 +66,7 @@ def compute_neuro_report(input_filename: str, report: NeuroReportingStructure) -
     report._statistics['Main']['Overall'].right_laterality_percentage = right
     report._statistics['Main']['Overall'].laterality_midline_crossing = mid
 
-    if report._tumor_type == 'High-Grade Glioma':
+    if report._tumor_type == 'Glioblastoma':
         if report._statistics['Main']['Overall'].left_laterality_percentage >= 0.5:
             map_filepath = ResourcesConfiguration.getInstance().mni_resection_maps['Probability']['Left']
         else:
