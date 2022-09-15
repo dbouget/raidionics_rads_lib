@@ -27,6 +27,8 @@ setup(
         include=[
             'raidionicsrads',
             'raidionicsrads.Utils',
+            'raidionicsrads.Utils.DataStructures',
+            'raidionicsrads.Utils.ReportingStructures',
             'raidionicsrads.Processing',
             'raidionicsrads.Pipelines',
             'raidionicsrads.NeuroDiagnosis',
