@@ -55,10 +55,11 @@ class RadiologicalVolume:
     _raw_input_filepath = None  # Original volume filepath on the user's machine
     _usable_input_filepath = None  #
     _output_folder = None  #
-    _radiological_type = None
-    _sequence_type = None
+    _radiological_type = None  # Disambiguation between CT/MRI, to select from RadiologicalType
+    _sequence_type = None  # Specific sequence type within the radiological type
     _timestamp_id = None  # Internal identifier for the corresponding timestamp
-    _registered_volumes = {}
+    _registered_volumes = {}  # Each element is a dict with the 'filepath' of the registered volume and
+    # the 'registration_uid' of the registration applied. The keys are the destination space uid ('MNI' if atlas).
     # @TODO. Do we have a similar dict for the registered atlas files?
 
     def __init__(self, uid: str, input_filename: str, timestamp_uid: str) -> None:

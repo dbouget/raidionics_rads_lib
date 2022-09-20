@@ -49,3 +49,12 @@ class Registration:
 
     def get_unique_id(self) -> str:
         return self._unique_id
+
+    def get_fixed_uid(self) -> str:
+        return self._fixed_uid
+
+    def get_moving_uid(self) -> str:
+        return self._moving_uid
+
+    def get_output_folder(self) -> str:
+        return self._output_folder

@@ -11,7 +11,7 @@ from .RegistrationStructure import Registration
 
 class PatientParameters:
     _unique_id = None  # Internal unique identifier for the patient
-    _input_filepath = None  #
+    _input_filepath = None  # Folder path containing all the data for the current patient.
     _timestamps = {}  # All timestamps for the current patient.
     _radiological_volumes = {}  # All radiological volume instances loaded for the current patient.
     _annotation_volumes = {}  # All Annotation instances loaded for the current patient.
@@ -58,12 +58,15 @@ class PatientParameters:
 
         ts_folders_dict = {}
         for i in timestamp_folders:
-            ts_folders_dict[int(re.search(r'\d+', i).group())] = i
+            if re.search(r'\d+', i):  # Skipping folders without an integer inside, otherwise assuming timestamps from 0 onwards
+                ts_folders_dict[int(re.search(r'\d+', i).group())] = i
 
         ordered_ts_folders = dict(sorted(ts_folders_dict.items(), key=lambda item: item[0], reverse=False))
 
         for i, ts in enumerate(list(ordered_ts_folders.keys())):
             ts_folder = os.path.join(self._input_filepath, ordered_ts_folders[ts])
+            if ResourcesConfiguration.getInstance().caller == 'raidionics':  # Specifics to cater to Raidionics
+                ts_folder = os.path.join(ts_folder, 'raw')
             patient_files = []
 
             timestamp_uid = "T" + str(i)
