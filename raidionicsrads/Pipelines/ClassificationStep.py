@@ -59,7 +59,7 @@ class ClassificationStep(AbstractPipelineStep):
 
     def __perform_classification(self) -> None:
         """
-
+        @TODO. Should hold the sequence class for each input, and dump a report/summary for Raidionics/the user.
         """
         try:
             tmp_dir = os.path.join(ResourcesConfiguration.getInstance().output_folder, "classification_tmp")

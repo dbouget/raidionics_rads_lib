@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 
 from aenum import Enum, unique
 from ..Utils.utilities import get_type_from_string
@@ -72,14 +73,17 @@ class Pipeline:
                 logging.warning("Step dismissed because task could not be matched.")
 
     def execute(self, patient_parameters):
-        logging.info('LOG: Reporting - {} steps.'.format(len(self._steps)))
+        logging.info('LOG: Pipeline - {} steps.'.format(len(self._steps)))
         for s in list(self._steps.keys()):
-            logging.info("LOG: Reporting - {desc} - Begin ({curr}/{tot})".format(desc=self._pipeline_json[str(int(s) + 1)]['description'],
-                                                                                 curr=str(int(s) + 1),
-                                                                                 tot=len(self._steps)))
+            start = time.time()
+            logging.info("LOG: Pipeline - {desc} - Begin ({curr}/{tot})".format(desc=self._pipeline_json[str(int(s) + 1)]['description'],
+                                                                                curr=str(int(s) + 1),
+                                                                                tot=len(self._steps)))
             self._steps[s].setup(patient_parameters)
             patient_parameters = self._steps[s].execute()
-            logging.info("LOG: Reporting - {desc} - End ({curr}/{tot})".format(desc=self._pipeline_json[str(int(s) + 1)]['description'],
-                                                                               curr=str(int(s) + 1),
-                                                                               tot=len(self._steps)))
+            logging.info('LOG: Pipeline - {desc} - Runtime: {time} seconds.'.format(desc=self._pipeline_json[str(int(s) + 1)]['description'],
+                                                                                    time=time.time() - start))
+            logging.info("LOG: Pipeline - {desc} - End ({curr}/{tot})".format(desc=self._pipeline_json[str(int(s) + 1)]['description'],
+                                                                              curr=str(int(s) + 1),
+                                                                              tot=len(self._steps)))
         return patient_parameters
