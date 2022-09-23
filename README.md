@@ -18,6 +18,9 @@ For developers:
 git clone https://github.com/dbouget/raidionics_rads_lib.git --recurse-submodules
 ```
 
+For running inference on GPU through the raidionics_seg_lib backend, your machine must be properly configured
+(cf. [here](https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html))  
+
 # Usage
 ## CLI
 ```
@@ -61,18 +64,4 @@ year={2022},
 url={https://www.frontiersin.org/articles/10.3389/fneur.2022.932219},
 doi={10.3389/fneur.2022.932219},
 issn={1664-2295}}
-```
-
-## Note
-After git cloning with submodules, should install the submodule to make it know as a Python package.
-```
-pip install raidionics_seg_lib
-```
-
-After a modification to the submodule in its original repo, the current project and virtualenv should be updated:
-```
-cd raidioncs_seg_lib
-git clone origin master
-cd ..
-pip install raidionics_seg_lib
 ```
