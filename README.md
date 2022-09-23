@@ -13,6 +13,11 @@ The module can either be used as a Python library, as CLI, or as Docker containe
 pip install git+https://github.com/dbouget/raidionics-rads-lib.git
 ```
 
+For developers:  
+```
+git clone https://github.com/dbouget/raidionics_rads_lib.git --recurse-submodules
+```
+
 # Usage
 ## CLI
 ```
@@ -61,18 +66,4 @@ year={2022},
 url={https://www.frontiersin.org/articles/10.3389/fneur.2022.932219},
 doi={10.3389/fneur.2022.932219},
 issn={1664-2295}}
-```
-
-## Note
-After git cloning with submodules, should install the submodule to make it know as a Python package.
-```
-pip install raidionics_seg_lib
-```
-
-After a modification to the submodule in its original repo, the current project and virtualenv should be updated:
-```
-cd raidioncs_seg_lib
-git clone origin master
-cd ..
-pip install raidionics_seg_lib
 ```
