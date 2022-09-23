@@ -19,7 +19,7 @@ elif platform.system() == 'Darwin':
     required.append('statsmodels==0.12.2')
 else:
     required.append('antspyx')
-required.append('raidionicsseg@git+https://github.com/dbouget/raidionics_seg_lib.git@postop#egg=raidionicsseg')
+required.append('raidionicsseg@git+https://github.com/dbouget/raidionics_seg_lib.git@master#egg=raidionicsseg')
 
 setup(
     name='raidionicsrads',
@@ -48,7 +48,7 @@ setup(
     version='1.1.0',
     author='David Bouget (david.bouget@sintef.no)',
     license='BSD 2-Clause',
-    description='Raidionics reporting and data system (RADS)',
+    description='Raidionics reporting and data system backend (RADS)',
     long_description=long_description,
     long_description_content_type="text/markdown",
 )

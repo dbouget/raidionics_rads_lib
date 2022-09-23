@@ -5,7 +5,7 @@ on:
     branches:
       - '*'
   pull_request:
-    branches: [ master ]
+    branches: [master, release]
 
 jobs:
   build:
@@ -15,7 +15,7 @@ jobs:
         include:
           - os: macos-10.15
             TARGET: macos
-            CMD_BUILD: python setup.py bdist_wheel --plat-name macosx_10_13_x86_64
+            CMD_BUILD: python setup.py bdist_wheel --plat-name macosx_10_15_x86_64
 
     steps:
       - uses: actions/checkout@v1

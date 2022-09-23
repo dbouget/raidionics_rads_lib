@@ -33,8 +33,8 @@ def standardreporting_test():
 
     try:
         test_image_url = 'https://drive.google.com/uc?id=1GIQUku7hTl9EmjJ9r32kIh9SmCxdTR_u'  # MNI T1 atlas
-        brain_model_url = 'https://drive.google.com/uc?id=1d6FeuQsLWliW_0-rqN8VL82l6AlD3kRs'  # Brain model
-        test_model_url = 'https://drive.google.com/uc?id=1PfM7RAi5JGEPFqLcYOlZY1JJ85QmNYkU'  # Meningioma model
+        brain_model_url = 'https://drive.google.com/uc?id=1FLsBz5_-w8yt6K-QmgXDMGD-v85Fl1QT'  # Brain model
+        test_model_url = 'https://drive.google.com/uc?id=1-uUgFQDQxDDrSrkNljrw2hD4DO6q7p-b'  # HGGlioma model
 
         archive_dl_dest = os.path.join(test_dir, 'inference_volume.zip')
         gdown.cached_download(url=test_image_url, path=archive_dl_dest)
@@ -62,7 +62,7 @@ def standardreporting_test():
         rads_config.set('System', 'gpu_id', "-1")
         rads_config.set('System', 'input_folder', patient_dir)
         rads_config.set('System', 'output_folder', output_dir)
-        rads_config.set('System', 'model_folder', os.path.join(test_dir, 'MRI_Meningioma'))
+        rads_config.set('System', 'model_folder', os.path.join(test_dir, 'MRI_HGGlioma_P2'))
         rads_config.set('System', 'pipeline_filename', os.path.join(test_dir, 'test_pipeline.json'))
         rads_config.add_section('Runtime')
         rads_config.set('Runtime', 'reconstruction_method', 'thresholding')

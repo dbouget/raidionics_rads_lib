@@ -13,6 +13,11 @@ The module can either be used as a Python library, as CLI, or as Docker containe
 pip install git+https://github.com/dbouget/raidionics-rads-lib.git
 ```
 
+For developers:  
+```
+git clone https://github.com/dbouget/raidionics_rads_lib.git --recurse-submodules
+```
+
 # Usage
 ## CLI
 ```
@@ -29,6 +34,7 @@ run_rads(config_filename="/path/to/main_config.ini")
 ```
 
 ## Docker
+:warning: DEPRECATED (Image associated with rads_lib v1.0.0)
 ```
 docker pull dbouget/raidionics-rads:v1
 docker run --entrypoint /bin/bash -v /home/ubuntu:/home/ubuntu -t -i --runtime=nvidia --network=host --ipc=host dbouget/raidionics-rads:v1
@@ -40,12 +46,6 @@ The `/home/ubuntu` before the column sign has to be changed to match your local 
 The trained models are automatically downloaded when running Raidionics or Raidionics-Slicer.
 
 # For developers
-A manual installation of CUDA and of the following Python package is necessary to benefit from the GPU.
-
-```
-pip install tensorflow-gpu==1.14.0
-```
-
 The ANTs library can be manually installed (from source) and be used as a cpp backend rather than Python.
 Visit https://github.com/ANTsX/ANTs.
 
