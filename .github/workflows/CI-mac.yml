@@ -71,8 +71,8 @@ jobs:
           raidionicsrads --help
           raidionicsseg --help
 
-#      - name: Clone repo
-#        uses: actions/checkout@v1
-#
-#      - name: Singular unit test
-#        run: cd ${{github.workspace}}/tests && python standardreporting_test.py
+      - name: Clone repo
+        uses: actions/checkout@v1
+
+      - name: Segmentation pipeline unit test
+        run: cd ${{github.workspace}}/tests && python segmentation_pipeline_test.py
