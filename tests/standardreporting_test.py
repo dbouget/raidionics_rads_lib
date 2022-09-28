@@ -33,12 +33,17 @@ def standardreporting_test():
 
     try:
         test_image_url = 'https://drive.google.com/uc?id=1GIQUku7hTl9EmjJ9r32kIh9SmCxdTR_u'  # MNI T1 atlas
+        seq_model_url = 'https://drive.google.com/uc?id=1DJc41omBVMM48HD4FKur8fVRFwvEa2t7'  # MRI sequence model
         brain_model_url = 'https://drive.google.com/uc?id=1FLsBz5_-w8yt6K-QmgXDMGD-v85Fl1QT'  # Brain model
         test_model_url = 'https://drive.google.com/uc?id=1-uUgFQDQxDDrSrkNljrw2hD4DO6q7p-b'  # HGGlioma model
 
         archive_dl_dest = os.path.join(test_dir, 'inference_volume.zip')
         gdown.cached_download(url=test_image_url, path=archive_dl_dest)
         gdown.extractall(path=archive_dl_dest, to=os.path.join(patient_dir, 'T0'))
+
+        archive_dl_dest = os.path.join(test_dir, 'seq-model.zip')
+        gdown.cached_download(url=seq_model_url, path=archive_dl_dest)
+        gdown.extractall(path=archive_dl_dest, to=test_dir)
 
         archive_dl_dest = os.path.join(test_dir, 'brain-model.zip')
         gdown.cached_download(url=brain_model_url, path=archive_dl_dest)
