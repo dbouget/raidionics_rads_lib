@@ -12,9 +12,15 @@ def run_rads(config_filename: str, logging_filename: str = None) -> None:
     """
     ResourcesConfiguration.getInstance().set_environment(config_path=config_filename)
     if logging_filename:
-        logging.basicConfig(filename=logging_filename, filemode='a',
-                            format="%(asctime)s ; %(name)s ; %(levelname)s ; %(message)s", datefmt='%d/%m/%Y %H.%M')
-        logging.getLogger().setLevel(logging.DEBUG)
+        # logging.basicConfig(filename=logging_filename, filemode='a',
+        #                     format="%(asctime)s ; %(name)s ; %(levelname)s ; %(message)s", datefmt='%d/%m/%Y %H.%M')
+        # logging.getLogger().setLevel(logging.DEBUG)
+        logger = logging.getLogger()
+        handler = logging.FileHandler(filename=logging_filename, mode='a', encoding='utf-8')
+        handler.setFormatter(logging.Formatter(fmt="%(asctime)s ; %(name)s ; %(levelname)s ; %(message)s",
+                                               datefmt='%d/%m/%Y %H.%M'))
+        logger.setLevel(logging.DEBUG)
+        logger.addHandler(handler)
 
     logging.info("Starting pipeline for file: {}.".format(ResourcesConfiguration.getInstance().pipeline_filename))
     start = time.time()
