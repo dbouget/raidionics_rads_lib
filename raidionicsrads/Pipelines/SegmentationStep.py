@@ -236,6 +236,7 @@ class SegmentationStep(AbstractPipelineStep):
                             subtype = "Metastasis"
                         annotation.set_annotation_subtype(type=BrainTumorType, value=subtype)
                     self._patient_parameters.include_annotation(anno_uid, annotation)
+                    logging.info("Saved segmentation results in {}".format(final_seg_filename))
         except Exception as e:
             logging.error("[SegmentationStep] Segmentation results parsing failed with: {}.".format(traceback.format_exc()))
             if os.path.exists(self._working_folder):

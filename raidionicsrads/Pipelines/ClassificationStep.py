@@ -55,6 +55,15 @@ class ClassificationStep(AbstractPipelineStep):
         if os.path.exists(self._working_folder):
             shutil.rmtree(self._working_folder)
 
+        # Dumping the classification results for reloading afterwards
+        # Only/current use-case for now: MRI sequence classification.
+        classification_results_filename = os.path.join(ResourcesConfiguration.getInstance().input_folder, "mri_sequences.csv")
+        classes = []
+        for volume_uid in self._patient_parameters.get_all_radiological_volume_uids():
+            classes.append([os.path.basename(self._patient_parameters.get_radiological_volume(volume_uid).get_raw_input_filepath()),
+                            self._patient_parameters.get_radiological_volume(volume_uid).get_sequence_type_str()])
+        df = pd.DataFrame(classes, columns=['File', 'MRI sequence'])
+        df.to_csv(classification_results_filename, index=False)
         return self._patient_parameters
 
     def __perform_classification(self) -> None:
