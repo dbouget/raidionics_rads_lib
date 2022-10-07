@@ -42,28 +42,34 @@ class ClassificationStep(AbstractPipelineStep):
         os.makedirs(os.path.join(self._working_folder, 'outputs'), exist_ok=True)
 
     def execute(self):
-        if len(self._step_json["inputs"].keys()) == 0:
+        try:
+            if len(self._step_json["inputs"].keys()) == 0:
+                for volume_uid in self._patient_parameters.get_all_radiological_volume_uids():
+                    self._input_volume_uid = volume_uid
+                    self._input_volume_filepath = self._patient_parameters.get_radiological_volume(volume_uid=volume_uid).get_usable_input_filepath()
+                    new_fp = os.path.join(self._working_folder, 'inputs', 'input0.nii.gz')
+                    shutil.copyfile(self._input_volume_filepath, new_fp)
+                    self.__perform_classification()
+            else:  # Not a use-case for the moment.
+                pass
+
+            if os.path.exists(self._working_folder):
+                shutil.rmtree(self._working_folder)
+
+            # Dumping the classification results for reloading afterwards
+            # Only/current use-case for now: MRI sequence classification.
+            classification_results_filename = os.path.join(ResourcesConfiguration.getInstance().output_folder, "mri_sequences.csv")
+            classes = []
             for volume_uid in self._patient_parameters.get_all_radiological_volume_uids():
-                self._input_volume_uid = volume_uid
-                self._input_volume_filepath = self._patient_parameters.get_radiological_volume(volume_uid=volume_uid).get_usable_input_filepath()
-                new_fp = os.path.join(self._working_folder, 'inputs', 'input0.nii.gz')
-                shutil.copyfile(self._input_volume_filepath, new_fp)
-                self.__perform_classification()
-        else:  # Not a use-case for the moment.
-            pass
+                classes.append([os.path.basename(self._patient_parameters.get_radiological_volume(volume_uid).get_raw_input_filepath()),
+                                self._patient_parameters.get_radiological_volume(volume_uid).get_sequence_type_str()])
+            df = pd.DataFrame(classes, columns=['File', 'MRI sequence'])
+            df.to_csv(classification_results_filename, index=False)
+            logging.info("Classification results written to {}".format(classification_results_filename))
+        except Exception as e:
+            logging.error("[ClassificationStep] Automatic classification failed with: {}".format(traceback.format_exc()))
+            raise ValueError("[ClassificationStep] Automatic classification failed.")
 
-        if os.path.exists(self._working_folder):
-            shutil.rmtree(self._working_folder)
-
-        # Dumping the classification results for reloading afterwards
-        # Only/current use-case for now: MRI sequence classification.
-        classification_results_filename = os.path.join(ResourcesConfiguration.getInstance().input_folder, "mri_sequences.csv")
-        classes = []
-        for volume_uid in self._patient_parameters.get_all_radiological_volume_uids():
-            classes.append([os.path.basename(self._patient_parameters.get_radiological_volume(volume_uid).get_raw_input_filepath()),
-                            self._patient_parameters.get_radiological_volume(volume_uid).get_sequence_type_str()])
-        df = pd.DataFrame(classes, columns=['File', 'MRI sequence'])
-        df.to_csv(classification_results_filename, index=False)
         return self._patient_parameters
 
     def __perform_classification(self) -> None:
