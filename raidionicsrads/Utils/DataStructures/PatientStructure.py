@@ -1,6 +1,8 @@
 import os
 import numpy as np
 import re
+import pandas as pd
+import logging
 from typing import List
 from ..configuration_parser import ResourcesConfiguration
 from ..utilities import input_file_category_disambiguation
@@ -117,6 +119,16 @@ class PatientParameters:
                 else:
                     # Case where the annotation does not match any radiological volume, has to be left aside
                     pass
+        sequences_filename = os.path.join(self._input_filepath, 'mri_sequences.csv')
+        if os.path.exists(sequences_filename):
+            df = pd.read_csv(sequences_filename)
+            volume_basenames = list(df['File'].values)
+            for vn in volume_basenames:
+                volume_object = self.get_radiological_volume_by_base_filename(vn)
+                if volume_object:
+                    volume_object.set_sequence_type(df.loc[df['File'] == vn]['MRI sequence'].values[0])
+                else:
+                    logging.warning("[PatientStructure] Filename {} not matching any radiological volume volume.".format(vn))
 
     def include_annotation(self, anno_uid, annotation):
         self._annotation_volumes[anno_uid] = annotation
@@ -138,6 +150,13 @@ class PatientParameters:
 
     def get_radiological_volume(self, volume_uid: str) -> RadiologicalVolume:
         return self._radiological_volumes[volume_uid]
+
+    def get_radiological_volume_by_base_filename(self, base_fn: str):
+        result = None
+        for im in self._radiological_volumes:
+            if os.path.basename(self._radiological_volumes[im].get_usable_input_filepath()) == base_fn:
+                return self._radiological_volumes[im]
+        return result
 
     def get_all_annotations_uids(self) -> List[str]:
         return list(self._annotation_volumes.keys())
