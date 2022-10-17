@@ -347,7 +347,6 @@ class ResourcesConfiguration:
             self.system_ants_backend = 'cpp'
         else:
             self.system_ants_backend = 'python'
-        logging.info("Using {} ANTs backend.".format(self.system_ants_backend))
 
         if self.config.has_option('System', 'output_folder'):
             if self.config['System']['output_folder'].split('#')[0].strip() != '':
