@@ -23,6 +23,7 @@ class TaskType(Enum):
     Reg = 2, 'Registration'
     AReg = 3, "Apply registration"
     FComp = 4, "Features computation"
+    SRep = 5, "Surgical reporting"
 
     def __str__(self):
         return self.string

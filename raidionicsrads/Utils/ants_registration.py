@@ -17,11 +17,8 @@ from ..Processing.brain_processing import *
 class ANTsRegistration:
     """
     Class for all registration-based processes, using ANTs as a backend.
-    By default the python implementation is used because easily deployable.The c++ implementation can be used if a
+    By default the python implementation is used because easily deployable. The c++ implementation can be used if a
     locally compiled/installed ANTs is available (must be manually specified).
-
-    @TODO. The c++ usage is deprected and should be fixed, also the self.reg_transform could be used whichever the backend
-    as all files will ultimately be saved on disk.
     """
     def __init__(self):
         self.ants_reg_dir = ResourcesConfiguration.getInstance().ants_reg_dir
@@ -35,6 +32,7 @@ class ANTsRegistration:
         self.backend = ResourcesConfiguration.getInstance().system_ants_backend
 
     def clear_cache(self):
+        # In Python, registration files are stored in the temporary folder and must be removed.
         if self.backend == 'python':
             for elem in self.reg_transform['fwdtransforms']:
                 if os.path.exists(elem):
@@ -144,7 +142,10 @@ class ANTsRegistration:
                              ])
 
             if registration_method == 's':
-                #self.transform_names = ['0GenericAffine.mat', '1Warp.nii.gz']
+                self.reg_transform['fwdtransforms'] = [os.path.join(self.registration_folder, '1Warp.nii.gz'),
+                                                       os.path.join(self.registration_folder, '0GenericAffine.mat')]
+                self.reg_transform['invtransforms'] = [os.path.join(self.registration_folder, '1InverseWarp.nii.gz'),
+                                                       os.path.join(self.registration_folder, '0GenericAffine.mat')]
                 self.transform_names = ['1Warp.nii.gz', '0GenericAffine.mat']
                 self.inverse_transform_names = ['1InverseWarp.nii.gz', '0GenericAffine.mat']
         except Exception as e:
@@ -190,7 +191,8 @@ class ANTsRegistration:
         print("Apply registration transform to input volume.")
         script_path = os.path.join(self.ants_apply_dir, 'antsApplyTransforms')
 
-        transform_filenames = [os.path.join(self.registration_folder, x) for x in self.transform_names]
+        # transform_filenames = [os.path.join(self.registration_folder, x) for x in self.transform_names]
+        transform_filenames = self.reg_transform['fwdtransforms']
         moving_registered_filename = os.path.join(self.registration_folder,
                                                   os.path.basename(moving).split('.')[0] + '_reg_atlas.nii.gz')
 
@@ -231,8 +233,10 @@ class ANTsRegistration:
             popen = subprocess.Popen(args, stdout=subprocess.PIPE)
             popen.wait()
             output = popen.stdout.read()
+            return moving_registered_filename
         except Exception as e:
-            print('Failed to apply transforms on input image with {}'.format(e))
+            logging.error('Cpp-based ANTs apply registration failed with: {}.\n'.format(traceback.format_exc()))
+            raise ValueError('Cpp-based ANTs apply registration failed.\n')
 
     def apply_registration_transform_python(self, moving: str, fixed: str, interpolation: str = 'nearestNeighbor') -> str:
         import ants
@@ -248,8 +252,8 @@ class ANTsRegistration:
             ants.image_write(warped_input, warped_input_filename)
             return warped_input_filename
         except Exception as e:
-            logging.error('Pyton-based ANTs apply registration failed with: {}.\n'.format(traceback.format_exc()))
-            raise ValueError('Pyton-based ANTs apply registration failed.\n')
+            logging.error('Python-based ANTs apply registration failed with: {}.\n'.format(traceback.format_exc()))
+            raise ValueError('Python-based ANTs apply registration failed.\n')
 
     def apply_registration_transform_labels(self, moving, fixed):
         """

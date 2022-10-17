@@ -170,3 +170,12 @@ def compute_subcortical_structures_location(volume, category=None, reference='BC
             overlaps[tfn] = 0.
 
     return overlaps, distances
+
+
+def compute_surgical_report(patient_parameters, report):
+    """
+    Update the report in-place with the computed values.
+    """
+    preop_t1ce_uid = patient_parameters.get_radiological_volume_uid(timestamp=0, sequence="T1-CE")
+    # anno_uid = patient_parameters.get_all_annotations_uids_class_radiological_volume(
+    #     volume_uid=preop_t1ce_uid, annotation_class=AnnotationClassType.Tumor)
