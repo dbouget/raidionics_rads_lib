@@ -113,7 +113,7 @@ class RegistrationStep(AbstractPipelineStep):
     def __registration(self, fixed_filepath, moving_filepath):
         try:
             self._registration_runner.compute_registration(fixed=fixed_filepath, moving=moving_filepath,
-                                                           registration_method='SyN')
+                                                           registration_method='sq') #registration_method='SyN'
             non_available_uid = True
             reg_uid = None
             while non_available_uid:

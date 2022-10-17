@@ -12,7 +12,7 @@ from ..io import generate_cortical_structures_labels_for_slicer, generate_subcor
 
 class NeuroReportingStructure:
     """
-
+    Reporting at a single timestamp with characteristics/features for the tumor.
     """
     _unique_id = None  # Internal unique identifier for the report
     _radiological_volume_uid = None  # Parent CT/MRI volume to which the report is attached
