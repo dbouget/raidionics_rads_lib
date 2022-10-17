@@ -172,10 +172,16 @@ def compute_subcortical_structures_location(volume, category=None, reference='BC
     return overlaps, distances
 
 
-def compute_surgical_report(patient_parameters, report):
+def compute_surgical_report(preop_filename, postop_filename, report):
     """
     Update the report in-place with the computed values.
     """
-    preop_t1ce_uid = patient_parameters.get_radiological_volume_uid(timestamp=0, sequence="T1-CE")
-    # anno_uid = patient_parameters.get_all_annotations_uids_class_radiological_volume(
-    #     volume_uid=preop_t1ce_uid, annotation_class=AnnotationClassType.Tumor)
+    preop_annotation_ni = nib.load(preop_filename)
+    postop_annotation_ni = nib.load(postop_filename)
+    preop_volume = compute_volume(preop_annotation_ni.get_data()[:], preop_annotation_ni.header.get_zooms())
+    postop_volume = compute_volume(postop_annotation_ni.get_data()[:], postop_annotation_ni.header.get_zooms())
+
+    eor = (preop_volume - postop_volume) / preop_volume
+    report._statistics.preop_volume = preop_volume
+    report._statistics.postop_volume = postop_volume
+    report._statistics.extent_of_resection = eor

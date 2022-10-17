@@ -6,6 +6,7 @@ from .AbstractPipelineStep import AbstractPipelineStep
 from ..Utils.configuration_parser import ResourcesConfiguration
 from ..Utils.ReportingStructures.NeuroSurgicalReportingStructure import NeuroSurgicalReportingStructure
 from ..Processing.neuro_report_computing import compute_surgical_report
+from ..Utils.DataStructures.AnnotationStructure import AnnotationClassType
 
 
 class SurgicalReportingStep(AbstractPipelineStep):
@@ -51,7 +52,14 @@ class SurgicalReportingStep(AbstractPipelineStep):
                     non_available_uid = False
             report = NeuroSurgicalReportingStructure(id=report_uid,
                                                      output_folder=ResourcesConfiguration.getInstance().output_folder)
-            compute_surgical_report(self._patient_parameters, report)
+            preop_t1ce_uid = self._patient_parameters.get_radiological_volume_uid(timestamp=0, sequence="T1-CE")
+            postop_t1ce_uid = self._patient_parameters.get_radiological_volume_uid(timestamp=1, sequence="T1-CE")
+            preop_tumor_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
+                volume_uid=preop_t1ce_uid, annotation_class=AnnotationClassType.Tumor)
+            postop_tumor_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
+                volume_uid=postop_t1ce_uid, annotation_class=AnnotationClassType.Tumor)
+            compute_surgical_report(self._patient_parameters.get_annotation(preop_tumor_uid).get_usable_input_filepath(),
+                                    self._patient_parameters.get_annotation(postop_tumor_uid).get_usable_input_filepath(), report)
             self._patient_parameters.include_reporting(report_uid, report)
         except Exception as e:
             logging.error("[SurgicalReportingStep] Neuro surgical reporting failed with: {}.".format(traceback.format_exc()))
