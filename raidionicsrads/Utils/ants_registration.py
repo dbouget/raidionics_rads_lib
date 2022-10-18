@@ -255,58 +255,6 @@ class ANTsRegistration:
             logging.error('Python-based ANTs apply registration failed with: {}.\n'.format(traceback.format_exc()))
             raise ValueError('Python-based ANTs apply registration failed.\n')
 
-    def apply_registration_transform_labels(self, moving, fixed):
-        """
-        Apply a registration transform onto the corresponding moving labels.
-        """
-        optimization_method = 'NearestNeighbor'
-        print("Apply registration transform to input volume annotation.")
-        script_path = os.path.join(self.ants_apply_dir, 'antsApplyTransforms')
-
-        transform_filenames = [os.path.join(self.registration_folder, x) for x in self.transform_names]
-        moving_registered_filename = os.path.join(self.registration_folder,
-                                                  os.path.basename(moving).split('.')[0] + '_reg_atlas.nii.gz')
-
-        if len(transform_filenames) == 4:
-            args = ("{script}".format(script=script_path),
-                    "-d", "3",
-                    '-r', '{fixed}'.format(fixed=fixed),
-                    '-i', '{moving}'.format(moving=moving),
-                    '-t', '{transform}'.format(transform=transform_filenames[0]),
-                    '-t', '{transform}'.format(transform=transform_filenames[1]),
-                    '-t', '{transform}'.format(transform=transform_filenames[2]),
-                    '-t', '{transform}'.format(transform=transform_filenames[3]),
-                    '-o', '{output}'.format(output=moving_registered_filename),
-                    '-n', '{type}'.format(type=optimization_method))
-        elif len(transform_filenames) == 2:
-            args = ("{script}".format(script=script_path),
-                    "-d", "3",
-                    '-r', '{fixed}'.format(fixed=fixed),
-                    '-i', '{moving}'.format(moving=moving),
-                    '-t', '{transform}'.format(transform=transform_filenames[0]),
-                    '-t', '{transform}'.format(transform=transform_filenames[1]),
-                    '-o', '{output}'.format(output=moving_registered_filename),
-                    '-n', '{type}'.format(type=optimization_method))
-        elif len(transform_filenames) == 1:
-            args = ("{script}".format(script=script_path),
-                    "-d", "3",
-                    '-r', '{fixed}'.format(fixed=fixed),
-                    '-i', '{moving}'.format(moving=moving),
-                    '-t', '{transform}'.format(transform=transform_filenames[0]),
-                    '-o', '{output}'.format(output=moving_registered_filename),
-                    '-n', '{type}'.format(type=optimization_method))
-        elif len(transform_filenames) == 0:
-            raise ValueError('List of transforms is empty.')
-
-        # Or just:
-        # args = "bin/bar -c somefile.xml -d text.txt -r aString -f anotherString".split()
-        try:
-            popen = subprocess.Popen(args, stdout=subprocess.PIPE)
-            popen.wait()
-            output = popen.stdout.read()
-        except Exception as e:
-            print('Failed to apply transforms on input image with {}'.format(e))
-
     def apply_registration_inverse_transform(self, moving, fixed, interpolation='nearestNeighbor', label=''):
         os.makedirs(self.registration_folder, exist_ok=True)
         if self.backend == 'python':
@@ -322,10 +270,9 @@ class ANTsRegistration:
         print("Apply registration transform to input volume annotation.")
         script_path = os.path.join(self.ants_apply_dir, 'antsApplyTransforms')
 
-        transform_filenames = [os.path.join(self.registration_folder, x) for x in self.inverse_transform_names]
-        # moving_registered_filename = os.path.join(ResourcesConfiguration.getInstance().output_folder,
-        #                                           'input_cortical_structures_mask' + label + '.nii.gz')
-        moving_registered_filename = os.path.join(ResourcesConfiguration.getInstance().output_folder, label + '_mask_to_input.nii.gz')
+        # transform_filenames = [os.path.join(self.registration_folder, x) for x in self.inverse_transform_names]
+        transform_filenames = self.reg_transform['invtransforms']
+        moving_registered_filename = os.path.join(self.registration_folder, label + '_mask_to_input.nii.gz')
 
         if len(transform_filenames) == 4:  # Combined case?
             args = ("{script}".format(script=script_path),
@@ -364,6 +311,7 @@ class ANTsRegistration:
             popen = subprocess.Popen(args, stdout=subprocess.PIPE)
             popen.wait()
             output = popen.stdout.read()
+            return moving_registered_filename
         except Exception as e:
             print('Failed to apply inverse transforms on input image with {}'.format(e))
 
