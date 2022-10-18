@@ -112,6 +112,8 @@ class RegistrationStep(AbstractPipelineStep):
 
     def __registration(self, fixed_filepath, moving_filepath):
         try:
+            logging.info("[RegistrationStep] Using {} ANTs backend.".format(ResourcesConfiguration.getInstance().system_ants_backend))
+            logging.info("[RegistrationStep] ANTs root located in {}.".format(ResourcesConfiguration.getInstance().ants_root))
             self._registration_runner.compute_registration(fixed=fixed_filepath, moving=moving_filepath,
                                                            registration_method='sq') #registration_method='SyN'
             non_available_uid = True
