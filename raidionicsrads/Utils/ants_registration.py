@@ -273,6 +273,7 @@ class ANTsRegistration:
         # transform_filenames = [os.path.join(self.registration_folder, x) for x in self.inverse_transform_names]
         transform_filenames = self.reg_transform['invtransforms']
         moving_registered_filename = os.path.join(self.registration_folder, label + '_mask_to_input.nii.gz')
+        os.makedirs(os.path.dirname(moving_registered_filename), exist_ok=True)
 
         if len(transform_filenames) == 4:  # Combined case?
             args = ("{script}".format(script=script_path),
