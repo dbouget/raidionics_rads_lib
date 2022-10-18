@@ -19,7 +19,6 @@ class SurgicalReportingStep(AbstractPipelineStep):
     def __init__(self, step_json: dict) -> None:
         super(SurgicalReportingStep, self).__init__(step_json=step_json)
         self.__reset()
-        self._report_space = self._step_json["space"]
 
     def __reset(self):
         """
@@ -58,9 +57,11 @@ class SurgicalReportingStep(AbstractPipelineStep):
                 volume_uid=preop_t1ce_uid, annotation_class=AnnotationClassType.Tumor)
             postop_tumor_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
                 volume_uid=postop_t1ce_uid, annotation_class=AnnotationClassType.Tumor)
-            compute_surgical_report(self._patient_parameters.get_annotation(preop_tumor_uid).get_usable_input_filepath(),
-                                    self._patient_parameters.get_annotation(postop_tumor_uid).get_usable_input_filepath(), report)
+            if len(preop_tumor_uid) > 0 and len(postop_tumor_uid) > 0:
+                compute_surgical_report(self._patient_parameters.get_annotation(preop_tumor_uid[0]).get_usable_input_filepath(),
+                                        self._patient_parameters.get_annotation(postop_tumor_uid[0]).get_usable_input_filepath(), report)
             self._patient_parameters.include_reporting(report_uid, report)
+            report.to_json()
         except Exception as e:
             logging.error("[SurgicalReportingStep] Neuro surgical reporting failed with: {}.".format(traceback.format_exc()))
             raise ValueError("[SurgicalReportingStep] Neuro surgical reporting failed.")

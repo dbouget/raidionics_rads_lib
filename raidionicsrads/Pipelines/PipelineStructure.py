@@ -9,6 +9,7 @@ from .SegmentationStep import SegmentationStep
 from .RegistrationStep import RegistrationStep
 from .RegistrationDeployerStep import RegistrationDeployerStep
 from .FeaturesComputationStep import FeaturesComputationStep
+from .SurgicalReportingStep import SurgicalReportingStep
 
 
 @unique
@@ -68,6 +69,8 @@ class Pipeline:
                 step = RegistrationDeployerStep(self._pipeline_json[s])
             elif task == TaskType.FComp:
                 step = FeaturesComputationStep(self._pipeline_json[s])
+            elif task == TaskType.SRep:
+                step = SurgicalReportingStep(self._pipeline_json[s])
             if step:
                 self._steps[str(i)] = step
             else:

@@ -1,3 +1,4 @@
+from aenum import Enum, unique
 import logging
 import traceback
 import os
@@ -8,6 +9,23 @@ import pandas as pd
 import collections
 from ..configuration_parser import ResourcesConfiguration
 from ..io import generate_cortical_structures_labels_for_slicer, generate_subcortical_structures_labels_for_slicer
+
+
+@unique
+class ResectionCategoryType(Enum):
+    """
+
+    """
+    _init_ = 'value string'
+
+    SupR = 0, 'Supramaximal resection of CE tumor'
+    ComR = 1, 'Complete resection of CE tumor'
+    NeaR = 2, 'Near total resection of CE tumor'
+    SubR = 3, 'Subtotal resection of CE tumor'
+    ParR = 4, 'Partial resection of CE tumor'
+
+    def __str__(self):
+        return self.string
 
 
 class NeuroSurgicalReportingStructure:
@@ -51,7 +69,7 @@ class NeuroSurgicalReportingStructure:
         None
         """
         try:
-            filename = os.path.join(self._output_folder, "neuro_clinical_report.txt")
+            filename = os.path.join(self._output_folder, "neuro_surgical_report.txt")
             logging.info("Exporting neuro-parameters to text in {}.".format(filename))
             pfile = open(filename, 'a')
             pfile.close()
@@ -62,7 +80,12 @@ class NeuroSurgicalReportingStructure:
     def to_json(self) -> None:
         try:
             param_json = {}
-            filename = os.path.join(self._output_folder, "neuro_clinical_report.json")
+            filename = os.path.join(self._output_folder, "neuro_surgical_report.json")
+            logging.info("Exporting neuro surgical parameters to json in {}.".format(filename))
+            param_json["preop_volume"] = self._statistics.preop_volume
+            param_json["postop_volume"] = self._statistics.postop_volume
+            param_json["eor"] = self._statistics.extent_of_resection
+            param_json["resection_category"] = str(self._statistics.resection_category)
             with open(filename, 'w', newline='\n') as outfile:
                 json.dump(param_json, outfile, indent=4, sort_keys=True)
         except Exception as e:
@@ -72,7 +95,7 @@ class NeuroSurgicalReportingStructure:
 
     def to_csv(self) -> None:
         try:
-            filename = os.path.join(self._output_folder, "neuro_clinical_report.csv")
+            filename = os.path.join(self._output_folder, "neuro_surgical_report.csv")
             logging.info("Exporting neuro-parameters to csv in {}.".format(filename))
         except Exception as e:
             logging.error("Neuro-parameters export to csv failed with {}".format(traceback.format_exc()))
@@ -87,3 +110,4 @@ class SurgicalStatistics:
         self.postop_volume = None
         self.extent_of_resection = None
         self.classification = None
+        self.resection_category = None

@@ -9,6 +9,7 @@ from ..Processing.tumor_features_computation import *
 from ..Utils.io import load_nifti_volume
 from ..Utils.configuration_parser import ResourcesConfiguration
 from ..Utils.ReportingStructures.NeuroReportingStructure import NeuroReportingStructure
+from ..Utils.ReportingStructures.NeuroSurgicalReportingStructure import ResectionCategoryType
 
 
 def compute_neuro_report(input_filename: str, report: NeuroReportingStructure) -> NeuroReportingStructure:
@@ -181,7 +182,16 @@ def compute_surgical_report(preop_filename, postop_filename, report):
     preop_volume = compute_volume(preop_annotation_ni.get_data()[:], preop_annotation_ni.header.get_zooms())
     postop_volume = compute_volume(postop_annotation_ni.get_data()[:], postop_annotation_ni.header.get_zooms())
 
-    eor = (preop_volume - postop_volume) / preop_volume
+    eor = ((preop_volume - postop_volume) / preop_volume) * 100.
     report._statistics.preop_volume = preop_volume
     report._statistics.postop_volume = postop_volume
     report._statistics.extent_of_resection = eor
+
+    if eor > 99.9:
+        report._statistics.resection_category = ResectionCategoryType.ComR
+    elif eor >= 95.0 and postop_volume <= 1.0:
+        report._statistics.resection_category = ResectionCategoryType.NeaR
+    elif eor >= 80.0 and postop_volume <= 5.0:
+        report._statistics.resection_category = ResectionCategoryType.SubR
+    else:
+        report._statistics.resection_category = ResectionCategoryType.ParR

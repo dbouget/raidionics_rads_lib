@@ -120,6 +120,9 @@ class ANTsRegistration:
     def compute_registration_cpp(self, moving, fixed, registration_method):
         print("STARTING REGISTRATION FOR PATIENT.")
 
+        if registration_method == 'SyN':
+            registration_method = 'sq'
+
         if registration_method == 'sq':
             script_path = os.path.join(self.ants_reg_dir, 'antsRegistrationSyNQuick.sh')
             registration_method = 's'
