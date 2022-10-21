@@ -100,8 +100,10 @@ class PatientParameters:
 
             # Iterating over the annotation files in a second time, when all the parent objects have been created
             for f in annotation_files:
-                # Collecting the base name of the radiological volume, often before a -label or _label tag
+                # Collecting the base name of the radiological volume, often before a label or annotation tag
                 base_name = os.path.basename(f).strip().split('.')[0].split('label')[0][:-1]
+                if ResourcesConfiguration.getInstance().caller == 'raidionics':
+                    base_name = os.path.basename(f).strip().split('.')[0].split('annotation')[0][:-1]
                 parent_link = [base_name in x for x in list(self._radiological_volumes.keys())]
                 if True in parent_link:
                     parent_uid = list(self._radiological_volumes.keys())[parent_link.index(True)]
@@ -110,7 +112,10 @@ class PatientParameters:
                         data_uid = 'A' + str(np.random.randint(0, 10000)) + '_' + base_name
                         if data_uid not in list(self._annotation_volumes.keys()):
                             non_available_uid = False
-                    class_name = os.path.basename(f).strip().split('.')[0].split('label')[1][1:]
+                    if ResourcesConfiguration.getInstance().caller == 'raidionics':
+                        class_name = os.path.basename(f).strip().split('.')[0].split('annotation')[1][1:]
+                    else:
+                        class_name = os.path.basename(f).strip().split('.')[0].split('label')[1][1:]
                     self._annotation_volumes[data_uid] = Annotation(uid=data_uid,
                                                                     input_filename=os.path.join(ts_folder, f),
                                                                     output_folder=self._radiological_volumes[parent_uid].get_output_folder(),
