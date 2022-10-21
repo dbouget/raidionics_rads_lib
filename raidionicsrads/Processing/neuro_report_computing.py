@@ -68,7 +68,7 @@ def compute_neuro_report(input_filename: str, report: NeuroReportingStructure) -
     report._statistics['Main']['Overall'].laterality_midline_crossing = mid
 
     if report._tumor_type == 'Glioblastoma':
-        if report._statistics['Main']['Overall'].left_laterality_percentage >= 0.5:
+        if report._statistics['Main']['Overall'].left_laterality_percentage >= 50.0:
             map_filepath = ResourcesConfiguration.getInstance().mni_resection_maps['Probability']['Left']
         else:
             map_filepath = ResourcesConfiguration.getInstance().mni_resection_maps['Probability']['Right']
