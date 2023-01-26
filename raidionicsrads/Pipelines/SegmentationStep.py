@@ -247,4 +247,102 @@ class SegmentationStep(AbstractPipelineStep):
             shutil.rmtree(self._working_folder)
 
     def __perform_mediastinum_segmentation(self):
-        pass
+        """
+
+        """
+        try:
+            existing_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
+                volume_uid=self._input_volume_uid,
+                annotation_class=get_type_from_string(AnnotationClassType, self._segmentation_targets[0]))
+            if len(existing_uid) != 0:
+                # An annotation object matching the request already exists, hence skipping the step.
+                logging.info("[SegmentationStep] Automatic segmentation skipped, results already existing.")
+                if os.path.exists(self._working_folder):
+                    shutil.rmtree(self._working_folder)
+                return
+
+            seg_config = configparser.ConfigParser()
+            seg_config.add_section('System')
+            seg_config.set('System', 'gpu_id', ResourcesConfiguration.getInstance().gpu_id)
+            # seg_config.set('System', 'input_filename', self._input_volume_filepath)
+            seg_config.set('System', 'inputs_folder', os.path.join(self._working_folder, 'inputs'))
+            seg_config.set('System', 'output_folder', os.path.join(self._working_folder, 'outputs'))
+            seg_config.set('System', 'model_folder', os.path.join(ResourcesConfiguration.getInstance().model_folder,
+                                                                  self._model_name))
+            seg_config.add_section('Runtime')
+            seg_config.set('Runtime', 'reconstruction_method', 'thresholding')
+            seg_config.set('Runtime', 'reconstruction_order', 'resample_first')
+
+            # @TODO. Have to be slightly improved, but should be working for our use-cases for now.
+            existing_lungs_annotations = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
+                volume_uid=self._input_volume_uid,
+                annotation_class=AnnotationClassType.Lungs)
+            if len(existing_lungs_annotations) != 0:
+                seg_config.add_section('Mediastinum')
+                seg_config.set('Mediastinum', 'lungs_segmentation_filename',
+                               self._patient_parameters.get_annotation(
+                                   annotation_uid=existing_lungs_annotations[0]).get_usable_input_filepath())
+            seg_config_filename = os.path.join(os.path.join(self._working_folder, 'inputs'), 'seg_config.ini')
+            with open(seg_config_filename, 'w') as outfile:
+                seg_config.write(outfile)
+
+            log_level = logging.getLogger().level
+            log_str = 'warning'
+            if log_level == 10:
+                log_str = 'debug'
+            elif log_level == 20:
+                log_str = 'info'
+            elif log_level == 40:
+                log_str = 'error'
+
+            from raidionicsseg.fit import run_model
+            run_model(seg_config_filename)
+        except Exception as e:
+            logging.error("[SegmentationStep] Automatic segmentation failed with: {}.".format(traceback.format_exc()))
+            if os.path.exists(self._working_folder):
+                shutil.rmtree(self._working_folder)
+            raise ValueError("[SegmentationStep] Automatic segmentation failed.")
+
+        try:
+            # Collecting the results and associating them with the parent radiological volume.
+            generated_segmentations = []
+            for _, _, files in os.walk(os.path.join(self._working_folder, 'outputs')):
+                for f in files:
+                    if 'nii.gz' in f:
+                        generated_segmentations.append(f)
+                break
+
+            for s in generated_segmentations:
+                label_name = s.split('_')[1].split('.')[0]
+                if label_name in self._segmentation_targets:
+                    seg_filename = os.path.join(os.path.join(self._working_folder, 'outputs'), s)
+                    final_seg_filename = os.path.join(self._patient_parameters.get_radiological_volume(
+                        volume_uid=self._input_volume_uid).get_output_folder(),
+                                                      os.path.basename(self._patient_parameters.get_radiological_volume(
+                                                          volume_uid=self._input_volume_uid).get_raw_input_filepath()).split(
+                                                          '.')[0] + '_annotation-' + label_name + '.nii.gz')
+                    if not os.path.exists(seg_filename):
+                        raise ValueError(
+                            "Segmentation results file could not be found on disk at {}".format(seg_filename))
+                    shutil.move(seg_filename, final_seg_filename)
+                    non_available_uid = True
+                    anno_uid = None
+                    while non_available_uid:
+                        anno_uid = 'A' + str(np.random.randint(0, 10000))
+                        if anno_uid not in self._patient_parameters.get_all_annotations_uids():
+                            non_available_uid = False
+                    annotation = Annotation(uid=anno_uid, input_filename=final_seg_filename,
+                                            output_folder=self._patient_parameters.get_radiological_volume(
+                                                volume_uid=self._input_volume_uid).get_output_folder(),
+                                            radiological_volume_uid=self._input_volume_uid, annotation_class=label_name)
+                    self._patient_parameters.include_annotation(anno_uid, annotation)
+                    logging.info("Saved segmentation results in {}".format(final_seg_filename))
+        except Exception as e:
+            logging.error(
+                "[SegmentationStep] Segmentation results parsing failed with: {}.".format(traceback.format_exc()))
+            if os.path.exists(self._working_folder):
+                shutil.rmtree(self._working_folder)
+            raise ValueError("[SegmentationStep] Segmentation results parsing failed.")
+
+        if os.path.exists(self._working_folder):
+            shutil.rmtree(self._working_folder)
