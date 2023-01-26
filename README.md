@@ -37,13 +37,30 @@ run_rads(config_filename="/path/to/main_config.ini")
 ```
 
 ## Docker
-:warning: DEPRECATED (Image associated with rads_lib v1.0.0)
+:warning: The Docker image can only perform inference using the CPU, there is no GPU support at this stage.
 ```
-docker pull dbouget/raidionics-rads:v1
-docker run --entrypoint /bin/bash -v /home/ubuntu:/home/ubuntu -t -i --runtime=nvidia --network=host --ipc=host dbouget/raidionics-rads:v1
+docker pull dbouget/raidionics-rads:v1.1
 ```
 
-The `/home/ubuntu` before the column sign has to be changed to match your local machine.
+For opening the Docker image and interacting with it, run:  
+```
+docker run --entrypoint /bin/bash -v /home/<username>/<resources_path>:/home/ubuntu/resources -t -i --runtime=nvidia --network=host --ipc=host dbouget/raidionics-rads:v1.1
+```
+
+The `/home/<username>/<resources_path>` before the column sign has to be changed to match a directory on your local 
+machine containing the data to expose to the docker image. Namely, it must contain folder(s) with images you want to 
+run inference on, as long as a folder with the trained models to use, and a destination folder where the results will 
+be placed.
+
+For launching the Docker image as a CLI, run:  
+```
+docker run -v /home/<username>/<resources_path>:/home/ubuntu/resources -t -i --runtime=nvidia --network=host --ipc=host dbouget/raidionics-rads:v1.1 -c /home/ubuntu/resources/<path>/<to>/main_config.ini -v <verbose>
+```
+
+The `<path>/<to>/main_config.ini` must point to a valid configuration file on your machine, as a relative path to the `/home/<username>/<resources_path>` described above.
+For example, if the file is located on my machine under `/home/myuser/Data/RADS/main_config.ini`, 
+and that `/home/myuser/Data` is the mounted resources partition mounted on the Docker image, the new relative path will be `RADS/main_config.ini`.  
+The `<verbose>` level can be selected from [debug, info, warning, error].
 
 # Models
 The trained models are automatically downloaded when running Raidionics or Raidionics-Slicer.
