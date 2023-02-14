@@ -7,8 +7,6 @@ with open("README.md", "r", errors='ignore') as f:
 with open('requirements.txt', 'r', encoding='utf-16', errors='ignore') as ff:
     required = ff.read().splitlines()
 
-required.append('raidionicsseg@git+https://github.com/dbouget/raidionics_seg_lib.git@master#egg=raidionicsseg')
-
 if platform.system() == 'Windows':
     required.append('antspy@https://github.com/SGotla/ANTsPy/releases/download/0.1.7Win64/antspy-0.1.7-cp37-cp37m-win_amd64.whl')
     # required.append('pandas==1.3.5')
@@ -22,6 +20,8 @@ elif platform.system() == 'Darwin':
     required.append('MedPy==0.4.0')
 else:
     required.append('antspyx')
+
+required.append('raidionicsseg@git+https://github.com/dbouget/raidionics_seg_lib.git@master#egg=raidionicsseg')
 
 setup(
     name='raidionicsrads',
