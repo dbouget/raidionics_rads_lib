@@ -19,6 +19,7 @@ class SegmentationStep(AbstractPipelineStep):
     """
     _input_volume_uid = None  # Internal unique id to the first/main radiological volume.
     _segmentation_targets = None  # String(s) matching elements of AnnotationClassType, multiple annotations can be returned by a single model.
+    _segmentation_output_type = None  # String describing how the predictions should be stored, either raw or thresholded.
     _model_name = None  # Basename of the folder containing the model to execute
     _patient_parameters = None  # Overall patient parameters, updated on-the-fly
     _working_folder = None  # Temporary directory on disk to store inputs/outputs for the segmentation
@@ -28,10 +29,14 @@ class SegmentationStep(AbstractPipelineStep):
         self.__reset()
         self._model_name = self._step_json["model"]
         self._segmentation_targets = self._step_json["target"]
+        self._segmentation_output_type = None
+        if "format" in self._step_json:
+            self._segmentation_output_type = self._step_json["format"]
 
     def __reset(self):
         self._input_volume_uid = None
         self._segmentation_targets = None
+        self._segmentation_output_type = None
         self._model_name = None
         self._patient_parameters = None
         self._working_folder = None
@@ -146,7 +151,8 @@ class SegmentationStep(AbstractPipelineStep):
 
     def __perform_neuro_segmentation(self) -> None:
         """
-
+        @TODO. How to use runtime parameters for generating probabilities or binary predictions, and use the binarized
+        versions by default when needed (e.g., the brain mask as preprocessing)?
         """
         try:
             existing_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
@@ -168,8 +174,10 @@ class SegmentationStep(AbstractPipelineStep):
             seg_config.set('System', 'model_folder', os.path.join(ResourcesConfiguration.getInstance().model_folder,
                                                                   self._model_name))
             seg_config.add_section('Runtime')
-            seg_config.set('Runtime', 'reconstruction_method', 'thresholding')
-            seg_config.set('Runtime', 'reconstruction_order', 'resample_first')
+            seg_config.set('Runtime', 'reconstruction_method', ResourcesConfiguration.getInstance().predictions_reconstruction_method)
+            if self._segmentation_output_type:
+                seg_config.set('Runtime', 'reconstruction_method', self._segmentation_output_type)
+            seg_config.set('Runtime', 'reconstruction_order', ResourcesConfiguration.getInstance().predictions_reconstruction_order)
 
             # @TODO. Have to be slightly improved, but should be working for our use-cases for now.
             existing_brain_annotations = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(volume_uid=self._input_volume_uid,
@@ -270,7 +278,10 @@ class SegmentationStep(AbstractPipelineStep):
             seg_config.set('System', 'model_folder', os.path.join(ResourcesConfiguration.getInstance().model_folder,
                                                                   self._model_name))
             seg_config.add_section('Runtime')
-            seg_config.set('Runtime', 'reconstruction_method', 'thresholding')
+            seg_config.set('Runtime', 'reconstruction_method',
+                           ResourcesConfiguration.getInstance().predictions_reconstruction_method)
+            if self._segmentation_output_type:
+                seg_config.set('Runtime', 'reconstruction_method', self._segmentation_output_type)
             seg_config.set('Runtime', 'reconstruction_order', 'resample_first')
 
             # @TODO. Have to be slightly improved, but should be working for our use-cases for now.

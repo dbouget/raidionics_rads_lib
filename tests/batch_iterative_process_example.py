@@ -91,7 +91,7 @@ def batch_iterative_process_example():
             rads_config.set('System', 'model_folder', models_folderpath)
             rads_config.set('System', 'pipeline_filename', os.path.join(models_folderpath, 'MRI_Tumor_Postop', 'pipeline.json'))
             rads_config.add_section('Runtime')
-            rads_config.set('Runtime', 'reconstruction_method', 'thresholding')
+            rads_config.set('Runtime', 'reconstruction_method', 'probabilities')  # thresholding, probabilities
             rads_config.set('Runtime', 'reconstruction_order', 'resample_first')
             rads_config_filename = os.path.join(tmp_folder, 'rads_config.ini')
             with open(rads_config_filename, 'w') as outfile:
@@ -107,17 +107,19 @@ def batch_iterative_process_example():
                     subprocess.check_call(['raidionicsrads',
                                            '{config}'.format(config=rads_config_filename),
                                            '--verbose', args.verbose])
-            # @TODO. For using Docker, models and pipelines should also be copied in a temp input folder to mount
             # elif process_backend == 'docker':
+            #     # @TODO. For using Docker, models and pipelines should also be copied in a temp input folder to mount.
+            #     # In addition, the paths going into the config should be based on the /home/ubuntu/resources mounted space.
             #     cmd_docker = ['docker', 'run', '-v', '{}:/home/ubuntu/resources'.format(dest_folderpath),
-            #                   '--runtime=nvidia', '--network=host', '--ipc=host', 'dbouget/raidionics-rads:v1.1']
+            #                   '--runtime=nvidia', '--network=host', '--ipc=host', 'dbouget/raidionics-rads:v1.1',
+            #                   '-c /home/ubuntu/resources/<path>/<to>/main_config.ini', '-v', args.verbose]
             #     if platform.system() == 'Windows':
             #         subprocess.check_call(cmd_docker, shell=True)
             #     else:
             #         subprocess.check_call(cmd_docker)
             else:
                 logging.error("Backend option not supported, please select from [local, docker]")
-                pass
+                return
 
             # Clean-up
             if os.path.exists(tmp_folder):
