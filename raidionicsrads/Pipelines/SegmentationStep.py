@@ -67,7 +67,11 @@ class SegmentationStep(AbstractPipelineStep):
                                                                                       sequence=input_json["sequence"])
                     if volume_uid == "-1":
                         raise ValueError("No radiological volume for {}.".format(input_json))
-                    self._input_volume_uid = volume_uid
+
+                    # Assuming the first input is actually the final target. Might need to add another parameter
+                    # for specifying the volume the annotation is linked to, if multiple inputs.
+                    if not self._input_volume_uid:
+                        self._input_volume_uid = volume_uid
                     # Use-case where the input is actually an annotation and not a raw radiological volume
                     if input_json["labels"]:
                         annotation_type = get_type_from_string(AnnotationClassType, input_json["labels"])

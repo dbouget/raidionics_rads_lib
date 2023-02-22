@@ -40,21 +40,24 @@ USER ubuntu
 # To expose the executable
 ENV PATH="${PATH}:/home/ubuntu/.local/bin"
 
+USER root
+RUN mkdir /home/ubuntu/ANTsX
+WORKDIR "/home/ubuntu/ANTsX"
+COPY ANTsX/ $WORKDIR
+USER ubuntu
+
 # downloading source code (not necessary, mostly to run the test scripts)
 WORKDIR "/home/ubuntu"
 RUN git clone https://github.com/dbouget/raidionics-rads-lib.git --recurse-submodules
 
 # Python packages
+WORKDIR "/home/ubuntu/raidionics-rads-lib"
 RUN pip3 install --upgrade pip
-RUN pip3 install git+https://github.com/dbouget/raidionics-rads-lib.git
+RUN pip3 install -e .
 RUN pip3 install onnxruntime-gpu==1.12.1
 
-USER root
-RUN mkdir /home/ubuntu/ANTsX
-WORKDIR "/home/ubuntu/ANTsX"
-COPY ANTsX/ $WORKDIR
 WORKDIR "/home/ubuntu"
-
+USER root
 # setting up a resources folder which should mirror a user folder, to "send" data/models in and "collect" the results
 RUN mkdir /home/ubuntu/resources
 RUN chown -R ubuntu:ubuntu /home/ubuntu/resources
