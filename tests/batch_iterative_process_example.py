@@ -71,6 +71,7 @@ def batch_iterative_process_example():
             input_pat_folder = os.path.join(cohort_folderpath, pat)
             dest_pat_folder = os.path.join(dest_folderpath, pat)
             if os.path.exists(dest_pat_folder):
+                print("Skipping inference for patient {}. Delete destination folder beforehand".format(pat))
                 continue
 
             os.makedirs(dest_pat_folder)
@@ -93,6 +94,7 @@ def batch_iterative_process_example():
             rads_config.add_section('Runtime')
             rads_config.set('Runtime', 'reconstruction_method', 'probabilities')  # thresholding, probabilities
             rads_config.set('Runtime', 'reconstruction_order', 'resample_first')
+            rads_config.set('Runtime', 'use_preprocessed_data', 'False')
 
             # Running the process
             if process_backend == 'local':

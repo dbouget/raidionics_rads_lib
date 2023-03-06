@@ -50,6 +50,7 @@ class ResourcesConfiguration:
         self.predictions_non_overlapping = True
         self.predictions_reconstruction_method = None
         self.predictions_reconstruction_order = None
+        self.predictions_use_preprocessed_data = False
 
         self.runtime_brain_mask_filepath = ''
         self.runtime_tumor_mask_filepath = ''
@@ -376,6 +377,10 @@ class ResourcesConfiguration:
         if self.config.has_option('Runtime', 'reconstruction_order'):
             if self.config['Runtime']['reconstruction_order'].split('#')[0].strip() != '':
                 self.predictions_reconstruction_order = self.config['Runtime']['reconstruction_order'].split('#')[0].strip()
+
+        if self.config.has_option('Runtime', 'use_preprocessed_data'):
+            if self.config['Runtime']['use_preprocessed_data'].split('#')[0].strip() != '':
+                self.predictions_use_preprocessed_data = True if self.config['Runtime']['use_preprocessed_data'].split('#')[0].strip().lower() == 'true' else False
 
         if self.diagnosis_task == 'neuro_diagnosis':
             self.__parse_runtime_neuro_parameters()

@@ -155,8 +155,6 @@ class SegmentationStep(AbstractPipelineStep):
 
     def __perform_neuro_segmentation(self) -> None:
         """
-        @TODO. How to use runtime parameters for generating probabilities or binary predictions, and use the binarized
-        versions by default when needed (e.g., the brain mask as preprocessing)?
         """
         try:
             existing_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
@@ -182,6 +180,7 @@ class SegmentationStep(AbstractPipelineStep):
             if self._segmentation_output_type:
                 seg_config.set('Runtime', 'reconstruction_method', self._segmentation_output_type)
             seg_config.set('Runtime', 'reconstruction_order', ResourcesConfiguration.getInstance().predictions_reconstruction_order)
+            seg_config.set('Runtime', 'use_preprocessed_data', str(ResourcesConfiguration.getInstance().predictions_use_preprocessed_data))
 
             # @TODO. Have to be slightly improved, but should be working for our use-cases for now.
             existing_brain_annotations = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(volume_uid=self._input_volume_uid,

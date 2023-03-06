@@ -112,10 +112,16 @@ class RegistrationStep(AbstractPipelineStep):
 
     def __registration(self, fixed_filepath, moving_filepath):
         try:
+            registration_method = 'SyN'
+            if ResourcesConfiguration.getInstance().predictions_use_preprocessed_data:
+                # If the input samples are already preprocessed, registration was hence already performed.
+                # Not performing this step at all would be preferred, but in the meantime doing simply rigid
+                # registration will have a minimal impact on runtime.
+                registration_method = 'QuickRigid'
             logging.info("[RegistrationStep] Using {} ANTs backend.".format(ResourcesConfiguration.getInstance().system_ants_backend))
             logging.info("[RegistrationStep] ANTs root located in {}.".format(ResourcesConfiguration.getInstance().ants_root))
             self._registration_runner.compute_registration(fixed=fixed_filepath, moving=moving_filepath,
-                                                           registration_method='SyN') #registration_method='SyN'
+                                                           registration_method=registration_method)
             non_available_uid = True
             reg_uid = None
             while non_available_uid:
