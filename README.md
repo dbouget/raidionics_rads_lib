@@ -10,18 +10,15 @@ The module can either be used as a Python library, as CLI, or as Docker containe
 # Installation
 
 ```
-pip install git+https://github.com/dbouget/raidionics-rads-lib.git
+pip install git+https://github.com/dbouget/raidionics_rads_lib.git
 ```
 
-For developers:  
-```
-git clone https://github.com/dbouget/raidionics_rads_lib.git --recurse-submodules
-```
-
-For running inference on GPU through the raidionics_seg_lib backend, your machine must be properly configured
-(cf. [here](https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html))  
+<details>
+<summary>
 
 # Usage
+</summary>
+
 ## CLI
 ```
 raidionicsrads CONFIG
@@ -62,12 +59,35 @@ For example, if the file is located on my machine under `/home/myuser/Data/RADS/
 and that `/home/myuser/Data` is the mounted resources partition mounted on the Docker image, the new relative path will be `RADS/main_config.ini`.  
 The `<verbose>` level can be selected from [debug, info, warning, error].
 
-# Models
-The trained models are automatically downloaded when running Raidionics or Raidionics-Slicer.
+</details>
 
-# For developers
+<details>
+<summary>
+
+# Models
+</summary>
+
+The trained models are automatically downloaded when running Raidionics or Raidionics-Slicer.
+Alternatively, all existing Raidionics models can be browsed [here](https://github.com/dbouget/Raidionics-models/releases/tag/1.2.0) directly.
+</details>
+
+<details>
+<summary>
+
+# Developers
+</summary>
+
+```
+git clone https://github.com/dbouget/raidionics_rads_lib.git --recurse-submodules
+```
+For running inference on GPU through the raidionics_seg_lib backend, your machine must be properly configured
+(cf. [here](https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html))  
+
 The ANTs library can be manually installed (from source) and be used as a cpp backend rather than Python.
 Visit https://github.com/ANTsX/ANTs.
+
+
+</details>
 
 # How to cite
 If you are using Raidionics in your research, please use the following citation:

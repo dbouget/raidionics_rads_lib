@@ -46,12 +46,12 @@ WORKDIR "/home/ubuntu/ANTsX"
 COPY ANTsX/ $WORKDIR
 USER ubuntu
 
-# downloading source code (not necessary, mostly to run the test scripts)
+# downloading source code and setting up the environment
 WORKDIR "/home/ubuntu"
-RUN git clone https://github.com/dbouget/raidionics-rads-lib.git --recurse-submodules
+RUN git clone -b v1.1.0-beta https://github.com/dbouget/raidionics_rads_lib.git
 
 # Python packages
-WORKDIR "/home/ubuntu/raidionics-rads-lib"
+WORKDIR "/home/ubuntu/raidionics_rads_lib"
 RUN pip3 install --upgrade pip
 RUN pip3 install -e .
 RUN pip3 install onnxruntime-gpu==1.12.1
@@ -61,13 +61,13 @@ USER root
 # setting up a resources folder which should mirror a user folder, to "send" data/models in and "collect" the results
 RUN mkdir /home/ubuntu/resources
 RUN chown -R ubuntu:ubuntu /home/ubuntu/resources
-RUN chown -R ubuntu:ubuntu /home/ubuntu/raidionics-rads-lib
-RUN chmod -R 777 /home/ubuntu/raidionics-rads-lib
+RUN chown -R ubuntu:ubuntu /home/ubuntu/raidionics_rads_lib
+RUN chmod -R 777 /home/ubuntu/raidionics_rads_lib
 USER ubuntu
 EXPOSE 8888
 
 # CMD ["/bin/bash"]
-ENTRYPOINT ["python3","/home/ubuntu/raidionics-rads-lib/main.py"]
+ENTRYPOINT ["python3","/home/ubuntu/raidionics_rads_lib/main.py"]
 
 
 

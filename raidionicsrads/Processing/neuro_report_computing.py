@@ -1,3 +1,5 @@
+import traceback
+
 import pandas as pd
 from copy import deepcopy
 import operator
@@ -153,23 +155,27 @@ def compute_subcortical_structures_location(volume, category=None, reference='BC
 
     tracts_dict = ResourcesConfiguration.getInstance().subcortical_structures['MNI'][reference]['Singular']
     for i, tfn in enumerate(tracts_dict.keys()):
-        reg_tract_ni = nib.load(tracts_dict[tfn])
-        reg_tract = reg_tract_ni.get_data()[:]
-        reg_tract[reg_tract < tract_cutoff] = 0
-        reg_tract[reg_tract >= tract_cutoff] = 1
-        overlap_volume = np.logical_and(reg_tract, volume).astype('uint8')
-        distances_columns.append('distance_' + tfn.split('.')[0][:-4] + '_' + category)
-        overlaps_columns.append('overlap_' + tfn.split('.')[0][:-4] + '_' + category)
-        if np.count_nonzero(overlap_volume) != 0:
-            distances[tfn] = -1.
-            overlaps[tfn] = (np.count_nonzero(overlap_volume) / np.count_nonzero(volume)) * 100.
-        else:
-            dist = -1.
-            if np.count_nonzero(reg_tract) > 0:
-                dist = hd95(volume, reg_tract, voxelspacing=reg_tract_ni.header.get_zooms(), connectivity=1)
+        dist = -1.
+        try:
+            reg_tract_ni = nib.load(tracts_dict[tfn])
+            reg_tract = reg_tract_ni.get_data()[:]
+            reg_tract[reg_tract < tract_cutoff] = 0
+            reg_tract[reg_tract >= tract_cutoff] = 1
+            overlap_volume = np.logical_and(reg_tract, volume).astype('uint8')
+            distances_columns.append('distance_' + tfn.split('.')[0][:-4] + '_' + category)
+            overlaps_columns.append('overlap_' + tfn.split('.')[0][:-4] + '_' + category)
+            if np.count_nonzero(overlap_volume) != 0:
+                distances[tfn] = dist
+                overlaps[tfn] = (np.count_nonzero(overlap_volume) / np.count_nonzero(volume)) * 100.
+            else:
+                if np.count_nonzero(reg_tract) > 0:
+                    dist = hd95(volume, reg_tract, voxelspacing=reg_tract_ni.header.get_zooms(), connectivity=1)
+                distances[tfn] = dist
+                overlaps[tfn] = 0.
+        except Exception:
+            print("Tumor distance to subcortical structure could not be computed.")
+            print(traceback.format_exc())
             distances[tfn] = dist
-            overlaps[tfn] = 0.
-
     return overlaps, distances
 
 
