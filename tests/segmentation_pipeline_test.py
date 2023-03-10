@@ -113,6 +113,7 @@ def segmentation_pipeline_test():
         pipeline_json[step_str]["inputs"]["0"]["space"]["sequence"] = "T1-CE"
         pipeline_json[step_str]["target"] = "Brain"
         pipeline_json[step_str]["model"] = "MRI_Brain"
+        pipeline_json[step_str]["format"] = "thresholding"
         pipeline_json[step_str]["description"] = "Brain segmentation in T1-CE (T0)."
 
         with open(os.path.join(test_dir, 'test_pipeline.json'), 'w', newline='\n') as outfile:
