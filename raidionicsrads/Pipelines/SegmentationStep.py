@@ -170,7 +170,6 @@ class SegmentationStep(AbstractPipelineStep):
             seg_config = configparser.ConfigParser()
             seg_config.add_section('System')
             seg_config.set('System', 'gpu_id', ResourcesConfiguration.getInstance().gpu_id)
-            # seg_config.set('System', 'input_filename', self._input_volume_filepath)
             seg_config.set('System', 'inputs_folder', os.path.join(self._working_folder, 'inputs'))
             seg_config.set('System', 'output_folder', os.path.join(self._working_folder, 'outputs'))
             seg_config.set('System', 'model_folder', os.path.join(ResourcesConfiguration.getInstance().model_folder,
@@ -180,7 +179,7 @@ class SegmentationStep(AbstractPipelineStep):
             if self._segmentation_output_type:
                 seg_config.set('Runtime', 'reconstruction_method', self._segmentation_output_type)
             seg_config.set('Runtime', 'reconstruction_order', ResourcesConfiguration.getInstance().predictions_reconstruction_order)
-            seg_config.set('Runtime', 'use_preprocessed_data', str(ResourcesConfiguration.getInstance().predictions_use_preprocessed_data))
+            seg_config.set('Runtime', 'use_preprocessed_data', str(ResourcesConfiguration.getInstance().predictions_use_stripped_data))
 
             # @TODO. Have to be slightly improved, but should be working for our use-cases for now.
             existing_brain_annotations = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(volume_uid=self._input_volume_uid,
