@@ -286,6 +286,7 @@ class SegmentationStep(AbstractPipelineStep):
             if self._segmentation_output_type:
                 seg_config.set('Runtime', 'reconstruction_method', self._segmentation_output_type)
             seg_config.set('Runtime', 'reconstruction_order', 'resample_first')
+            seg_config.set('Runtime', 'use_preprocessed_data', "True" if ResourcesConfiguration.getInstance().predictions_use_stripped_data else "False")
 
             # @TODO. Have to be slightly improved, but should be working for our use-cases for now.
             existing_lungs_annotations = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(

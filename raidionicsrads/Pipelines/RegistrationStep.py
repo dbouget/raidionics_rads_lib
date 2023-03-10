@@ -113,8 +113,7 @@ class RegistrationStep(AbstractPipelineStep):
     def __registration(self, fixed_filepath, moving_filepath):
         try:
             registration_method = 'SyN'
-            if ResourcesConfiguration.getInstance().predictions_use_preprocessed_data:
-                # If the input samples are already preprocessed, registration was hence already performed.
+            if ResourcesConfiguration.getInstance().predictions_use_registered_data:
                 # Not performing this step at all would be preferred, but in the meantime doing simply rigid
                 # registration will have a minimal impact on runtime.
                 registration_method = 'QuickRigid'
