@@ -22,6 +22,7 @@ else:
     required.append('antspyx')
 
 required.append('raidionicsseg@git+https://github.com/dbouget/raidionics_seg_lib.git@master#egg=raidionicsseg')
+required.append('numpy==1.23.1')  # From version 1.24.0 and above, np.bool has been removed, which breaks hd95 computation in MedPy v0.4.0 atm...
 
 setup(
     name='raidionicsrads',
