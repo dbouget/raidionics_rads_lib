@@ -337,12 +337,7 @@ class ResourcesConfiguration:
                     os.path.isdir(self.config['System']['ants_root'].split('#')[0].strip()):
                 self.ants_root = self.config['System']['ants_root'].split('#')[0].strip()
 
-        if os.path.exists(self.ants_root):
-            # Working locally
-            # os.environ["ANTSPATH"] = os.path.join(self.ants_root, "build/bin/")
-            # self.ants_reg_dir = os.path.join(self.ants_root, 'src', 'Scripts')
-            # self.ants_apply_dir = os.path.join(self.ants_root, 'build', 'bin')
-            # Should work on the CI
+        if os.path.exists(self.ants_root) and os.path.exists(os.path.join(self.ants_root, "bin")):
             os.environ["ANTSPATH"] = os.path.join(self.ants_root, "bin")
             self.ants_reg_dir = os.path.join(self.ants_root, 'Scripts')
             self.ants_apply_dir = os.path.join(self.ants_root, 'bin')
