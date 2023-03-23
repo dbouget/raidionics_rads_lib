@@ -1,10 +1,11 @@
-# Raidionics backend for computing tumor characteristics and standardized report (RADS)
+# Raidionics processing backend for performing segmentation and computation of standardized report (RADS)
 
 [![License](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
 [![Build Actions Status](https://github.com/dbouget/raidionics-rads-lib/workflows/Build/badge.svg)](https://github.com/dbouget/raidionics-rads-lib/actions)
 [![Paper](https://zenodo.org/badge/DOI/10.3389/fneur.2022.932219.svg)](https://www.frontiersin.org/articles/10.3389/fneur.2022.932219/full)
 
-The code corresponds to the Raidionics backend for generating standardized reports from MRI/CT volumes.  
+The code corresponds to the Raidionics backend for running processing pipelines over MRI/CT scans. The segmentation of
+a few organs or tumor types, as well as the generation of standardized reports are included.  
 The module can either be used as a Python library, as CLI, or as Docker container.
 
 # Installation
