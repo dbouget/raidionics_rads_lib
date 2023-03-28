@@ -48,7 +48,8 @@ USER ubuntu
 
 # downloading source code and setting up the environment
 WORKDIR "/home/ubuntu"
-RUN git clone -b v1.1.0-beta https://github.com/dbouget/raidionics_rads_lib.git
+# RUN git clone -b v1.1.0-beta https://github.com/dbouget/raidionics_rads_lib.git
+RUN git clone https://github.com/dbouget/raidionics_rads_lib.git
 
 # Python packages
 WORKDIR "/home/ubuntu/raidionics_rads_lib"

@@ -40,10 +40,13 @@ class ANTsRegistration:
             for elem in self.reg_transform['invtransforms']:
                 if os.path.exists(elem):
                     os.remove(elem)
-        shutil.rmtree(self.registration_folder)
+
+        if os.path.exists(self.registration_folder):
+            shutil.rmtree(self.registration_folder)
 
     def clear_output_folder(self):
-        shutil.rmtree(self.registration_folder)
+        if os.path.exists(self.registration_folder):
+            shutil.rmtree(self.registration_folder)
 
     def dump_and_clean(self):
         """
