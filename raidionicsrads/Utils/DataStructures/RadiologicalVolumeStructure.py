@@ -29,6 +29,7 @@ class MRISequenceType(Enum):
     T1c = 1, 'T1-CE'  # Gd-enhanced T1-weighted sequence
     T2 = 2, 'T2'  # t2-tse sequence
     FLAIR = 3, 'FLAIR'  # FLAIR or t2-tirm sequences
+    DWI = 4, 'DWI'  # DWI
 
     def __str__(self):
         return self.string
@@ -149,6 +150,8 @@ class RadiologicalVolume:
                 self._sequence_type = MRISequenceType.T2
             elif "gd" in base_name:
                 self._sequence_type = MRISequenceType.T1c
+            elif "dwi" in base_name:
+                self._sequence_type = MRISequenceType.DWI
             else:
                 self._sequence_type = MRISequenceType.T1w
         else:

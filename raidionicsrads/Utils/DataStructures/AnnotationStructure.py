@@ -1,7 +1,7 @@
 import os
 from typing import List
 from aenum import Enum, unique
-from ..utilities import get_type_from_string, input_file_type_conversion
+from ..utilities import get_type_from_string, get_type_from_enum_name, input_file_type_conversion
 from ..configuration_parser import ResourcesConfiguration
 
 
@@ -17,6 +17,19 @@ class AnnotationClassType(Enum):
 
     Lungs = 100, 'Lungs'
     Airways = 101, 'Airways'
+    LymphNodes = 102, 'Lymph nodes (all sizes)'
+    VenaCava = 103, 'Vena cava'
+    AorticArch = 104, 'Aortic arch'
+    AscendingAorta = 105, 'Ascending aorta'
+    DescendingAorta = 106, 'Descending aorta'
+    Spine = 107, 'Spine'
+    Heart = 108, 'Heart'
+    PulmonaryVeins = 109, 'Pulmonary veins'
+    PulmonaryTrunk = 110, 'Pulmonary trunk'
+    BrachiocephalicVeins = 111, 'Brachiocephalic veins'
+    SubCarArt = 112, 'Subclavian and carotid arteries'
+    Azygos = 113, 'Azygos vein'
+    Esophagus = 114, 'Esophagus'
 
     def __str__(self):
         return self.string
@@ -58,7 +71,7 @@ class Annotation:
         self._raw_input_filepath = input_filename
         self._output_folder = output_folder
         self._radiological_volume_uid = radiological_volume_uid
-        self._annotation_type = get_type_from_string(AnnotationClassType, annotation_class)
+        self._annotation_type = get_type_from_enum_name(AnnotationClassType, annotation_class)
         self.__init_from_scratch()
 
     def __reset(self):

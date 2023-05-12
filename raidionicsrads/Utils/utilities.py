@@ -1,3 +1,5 @@
+import logging
+
 from aenum import Enum, unique
 from typing import Union
 import os
@@ -15,6 +17,20 @@ def get_type_from_string(enum_type: Enum, string: str) -> Union[str, int]:
     elif type(string) == enum_type:
         return string
     else: #Unmanaged input type
+        logging.warning("Unable to find a match for type {} and value {}.".format(enum_type, string))
+        return -1
+
+
+def get_type_from_enum_name(enum_type: Enum, string: str) -> Union[str, int]:
+    if type(string) == str:
+        for i in range(len(list(enum_type))):
+            if string == list(enum_type)[i].name:
+                return list(enum_type)[i]
+        return -1
+    elif type(string) == enum_type:
+        return string
+    else: #Unmanaged input type
+        logging.warning("Unable to find a match for type {} and value {}.".format(enum_type, string))
         return -1
 
 

@@ -5,7 +5,7 @@ import nibabel as nib
 import logging
 import configparser
 import traceback
-from ..Utils.utilities import get_type_from_string
+from ..Utils.utilities import get_type_from_string, get_type_from_enum_name
 from ..Utils.configuration_parser import ResourcesConfiguration
 from ..Utils.io import load_nifti_volume
 from .AbstractPipelineStep import AbstractPipelineStep
@@ -27,6 +27,7 @@ class SegmentationStep(AbstractPipelineStep):
     def __init__(self, step_json: dict):
         super(SegmentationStep, self).__init__(step_json=step_json)
         self.__reset()
+        # @TODO. Extend the model_name if multiple are available based on the number of inputs (postop seg) with e.g. _1c, _2c, etc...
         self._model_name = self._step_json["model"]
         self._segmentation_targets = self._step_json["target"]
         self._segmentation_output_type = None
@@ -74,7 +75,7 @@ class SegmentationStep(AbstractPipelineStep):
                         self._input_volume_uid = volume_uid
                     # Use-case where the input is actually an annotation and not a raw radiological volume
                     if input_json["labels"]:
-                        annotation_type = get_type_from_string(AnnotationClassType, input_json["labels"])
+                        annotation_type = get_type_from_enum_name(AnnotationClassType, input_json["labels"])
                         anno_uids = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(volume_uid=volume_uid,
                                                                                                                 annotation_class=annotation_type)
                         if len(anno_uids) == 0:
@@ -111,7 +112,7 @@ class SegmentationStep(AbstractPipelineStep):
 
                     # Use-case where the input is actually an annotation and not a radiological volume
                     if input_json["labels"]:
-                        annotation_type = get_type_from_string(AnnotationClassType, input_json["labels"])
+                        annotation_type = get_type_from_enum_name(AnnotationClassType, input_json["labels"])
                         if annotation_type == -1:
                             raise ValueError("No AnnotationClassType matching {}.".format(input_json["labels"]))
 
@@ -159,7 +160,7 @@ class SegmentationStep(AbstractPipelineStep):
         try:
             existing_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
                 volume_uid=self._input_volume_uid,
-                annotation_class=get_type_from_string(AnnotationClassType, self._segmentation_targets[0]))
+                annotation_class=get_type_from_enum_name(AnnotationClassType, self._segmentation_targets[0]))
             if len(existing_uid) != 0:
                 # An annotation object matching the request already exists, hence skipping the step.
                 logging.info("[SegmentationStep] Automatic segmentation skipped, results already existing.")
@@ -261,9 +262,11 @@ class SegmentationStep(AbstractPipelineStep):
 
         """
         try:
+            # Only looking if the first segmentation target exists, which is not optimal.
+            # @TODO. Should check if all targets are existing to decide whether to run the model or not.
             existing_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
                 volume_uid=self._input_volume_uid,
-                annotation_class=get_type_from_string(AnnotationClassType, self._segmentation_targets[0]))
+                annotation_class=get_type_from_enum_name(AnnotationClassType, self._segmentation_targets[0]))
             if len(existing_uid) != 0:
                 # An annotation object matching the request already exists, hence skipping the step.
                 logging.info("[SegmentationStep] Automatic segmentation skipped, results already existing.")
@@ -284,7 +287,7 @@ class SegmentationStep(AbstractPipelineStep):
                            ResourcesConfiguration.getInstance().predictions_reconstruction_method)
             if self._segmentation_output_type:
                 seg_config.set('Runtime', 'reconstruction_method', self._segmentation_output_type)
-            seg_config.set('Runtime', 'reconstruction_order', 'resample_first')
+            seg_config.set('Runtime', 'reconstruction_order', ResourcesConfiguration.getInstance().predictions_reconstruction_order)
             seg_config.set('Runtime', 'use_preprocessed_data', "True" if ResourcesConfiguration.getInstance().predictions_use_stripped_data else "False")
 
             # @TODO. Have to be slightly improved, but should be working for our use-cases for now.
