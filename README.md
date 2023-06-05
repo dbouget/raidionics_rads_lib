@@ -30,7 +30,7 @@ according to the pattern from [**blank_main_config.ini**](https://github.com/dbo
 
 ## Python module
 ```
-from raidionicsrads import run_rads
+from raidionicsrads.compute import run_rads
 run_rads(config_filename="/path/to/main_config.ini")
 ```
 
