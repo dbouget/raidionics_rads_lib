@@ -126,6 +126,13 @@ class SegmentationStep(AbstractPipelineStep):
                             raise ValueError("No registered annotation file on disk for {}.".format(input_fp))
                         new_fp = os.path.join(self._working_folder, 'inputs', 'input' + str(k) + '.nii.gz')
                         shutil.copyfile(input_fp, new_fp)
+                    # Use-case where the provided inputs are already co-registered
+                    elif ResourcesConfiguration.getInstance().predictions_use_registered_data:
+                        input_fp = self._patient_parameters.get_radiological_volume(volume_uid=volume_uid).get_usable_input_filepath()
+                        if not os.path.exists(input_fp):
+                            raise ValueError("No radiological volume file on disk for {}.".format(input_fp))
+                        new_fp = os.path.join(self._working_folder, 'inputs', 'input' + str(k) + '.nii.gz')
+                        shutil.copyfile(input_fp, new_fp)
                     else:
                         reg_fp = self._patient_parameters.get_radiological_volume(volume_uid=volume_uid).get_registered_volume_info(ref_space_uid)["filepath"]
                         if not os.path.exists(reg_fp):

@@ -65,12 +65,12 @@ def input_file_category_disambiguation(input_filename: str) -> str:
 
 
 def input_file_type_conversion(input_filename: str, output_folder: str) -> str:
-    # Always converting the input file to nifti (if possible), otherwise will be discarded.
+    # Always converting the input file to compressed nifti (based on SimpleITK), otherwise will be discarded.
     # @TODO. Do we catch a potential .seg file that would be coming from 3D Slicer for annotations?
     pre_file_extension = os.path.basename(input_filename).split('.')[0]
     file_extension = '.'.join(os.path.basename(input_filename).split('.')[1:])
     filename = input_filename
-    if file_extension != 'nii' and file_extension != 'nii.gz':
+    if file_extension != 'nii.gz':
         input_sitk = sitk.ReadImage(input_filename)
         nifti_outfilename = os.path.join(output_folder, pre_file_extension + '.nii.gz')
         sitk.WriteImage(input_sitk, nifti_outfilename)
