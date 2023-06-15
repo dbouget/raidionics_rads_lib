@@ -133,7 +133,7 @@ def compute_cortical_structures_location(volume, reference='MNI'):
         overlap = np.round(ratio_in_lobe * 100., 2)
         region_name = ''
         if reference == 'MNI':
-            region_name = '-'.join(lobes_description.loc[lobes_description['Label'] == li]['Region'].values[0].strip().split(' ')) + '_' + (lobes_description.loc[lobes_description['Label'] == li]['Laterality'].values[0].strip() if lobes_description.loc[lobes_description['Label'] == li]['Laterality'].values[0].strip() is not 'None' else '')
+            region_name = '-'.join(lobes_description.loc[lobes_description['Label'] == li]['Region'].values[0].strip().split(' ')) + '_' + (lobes_description.loc[lobes_description['Label'] == li]['Laterality'].values[0].strip() if lobes_description.loc[lobes_description['Label'] == li]['Laterality'].values[0].strip() != 'None' else '')
         elif reference == 'Harvard-Oxford':
             region_name = '-'.join(lobes_description.loc[lobes_description['Label'] == li]['Region'].values[0].strip().split(' '))
         else:
