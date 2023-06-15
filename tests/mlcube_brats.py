@@ -1,17 +1,23 @@
 import os
+
+import numpy as np
 import yaml
 import shutil
 import configparser
 import logging
+import logging.config
 import sys
+from enum import Enum
+import uuid
 import subprocess
 import traceback
 import argparse
 import platform
+import nibabel as nib
 from copy import deepcopy
 
 
-def mlcube_brats():
+def mlcube_brats(exec_id, task_args, model_name):
     """
     Example code for running a pipeline iteratively over a set of patients. Custom pipelines can be performed by
     feeding a local json file to the following line below in the code:
@@ -36,14 +42,15 @@ def mlcube_brats():
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_dir', metavar='data_dir', help='Path to the input patients folder')
     parser.add_argument('--output_dir', metavar='output_dir', help='Path to save the predictions')
-    parser.add_argument('--tumor_type', metavar='models', help='Tumor type to segment')
 
-    argsin = sys.argv[1:]
-    args = parser.parse_args(argsin)
+    # argsin = sys.argv[1:]
+    # args = parser.parse_args(argsin)
+    args = parser.parse_args(task_args)
     input_folderpath = args.data_dir
     dest_folderpath = args.output_dir
-    tumor_type = args.tumor_type
 
+    print("Input data folder: {}".format(input_folderpath))
+    print("Destination folder: {}".format(dest_folderpath))
     logging.basicConfig()
     logging.getLogger().setLevel(logging.INFO)
 
@@ -59,6 +66,7 @@ def mlcube_brats():
         input_folderpath = os.path.dirname(input_folderpath)
 
     for pat in patients:
+        print("Processing patient: {}".format(pat))
         tmp_folder = ''
         revamped_input_folder = ''
         try:
@@ -89,28 +97,29 @@ def mlcube_brats():
                     seq_files.append(f)
                 break
 
+            print("Identified {} files in patient folder.".format(len(seq_files)))
             os.makedirs(os.path.join(revamped_input_folder, "T0"))
             for sf in seq_files:
                 if "t1c" in sf:
-                    new_name = deepcopy(sf)
-                    new_name.replace("t1c", "t1_gd")
-                    shutil.copyfile(src=os.path.join(input_pat_folder, sf),
+                    src_filename = os.path.join(input_pat_folder, sf)
+                    new_name = sf.replace("t1c", "t1_gd")
+                    shutil.copyfile(src=src_filename,
                                     dst=os.path.join(revamped_input_folder, "T0", new_name))
-                if "t1w" in sf:
-                    new_name = deepcopy(sf)
-                    new_name.replace("t1w", "t1_woc")
-                    shutil.copyfile(src=os.path.join(input_pat_folder, sf),
+                if "t1n" in sf:
+                    src_filename = os.path.join(input_pat_folder, sf)
+                    new_name = sf.replace("t1n", "t1_woc")
+                    shutil.copyfile(src=src_filename,
                                     dst=os.path.join(revamped_input_folder, "T0", new_name))
                 if "t2f" in sf:
-                    new_name = deepcopy(sf)
-                    new_name.replace("t2f", "flair")
-                    shutil.copyfile(src=os.path.join(input_pat_folder, sf),
+                    src_filename = os.path.join(input_pat_folder, sf)
+                    new_name = sf.replace("t2f", "flair")
+                    shutil.copyfile(src=src_filename,
                                     dst=os.path.join(revamped_input_folder, "T0", new_name))
 
                 if "t2w" in sf:
-                    new_name = deepcopy(sf)
-                    new_name.replace("t2w", "t2")
-                    shutil.copyfile(src=os.path.join(input_pat_folder, sf),
+                    src_filename = os.path.join(input_pat_folder, sf)
+                    new_name = sf.replace("t2w", "t2")
+                    shutil.copyfile(src=src_filename,
                                     dst=os.path.join(revamped_input_folder, "T0", new_name))
 
             # Setting up the configuration file
@@ -122,8 +131,8 @@ def mlcube_brats():
             rads_config.set('System', 'gpu_id', "-1")
             rads_config.set('System', 'input_folder', revamped_input_folder)
             rads_config.set('System', 'output_folder', dest_pat_folder)
-            rads_config.set('System', 'model_folder', "/workspace/models/MRI_HGG_Brats")
-            rads_config.set('System', 'pipeline_filename', '/workspace/models/MRI_HGG_Brats/pipeline.json')
+            rads_config.set('System', 'model_folder', "/workspace/models")
+            rads_config.set('System', 'pipeline_filename', '/workspace/models/' + model_name + '/pipeline.json')
             rads_config.add_section('Runtime')
             rads_config.set('Runtime', 'reconstruction_method', 'thresholding')  # thresholding, probabilities
             rads_config.set('Runtime', 'reconstruction_order', 'resample_first')
@@ -142,11 +151,39 @@ def mlcube_brats():
                 subprocess.check_call(['raidionicsrads',
                                        '{config}'.format(config=rads_config_filename),
                                        '--verbose', 'info'])
+            # Output files reformatting
+            prediction_files = []
+            for _, _, files in os.walk(os.path.join(dest_pat_folder, "T0")):
+                for f in files:
+                    prediction_files.append(f)
+                break
+
+            global_prediction = None
+            global_prediction_affine = None
+            for pf in prediction_files:
+                predictions_nib = nib.load(os.path.join(dest_pat_folder, "T0", pf))
+                predictions = predictions_nib.get_data()[:]
+                if global_prediction is None:
+                    global_prediction = np.zeros(predictions.shape)
+                    global_prediction_affine = predictions_nib.affine
+
+                if "Necrosis" in pf:
+                    global_prediction[predictions == 1] = 1
+                elif "Edema" in pf:
+                    global_prediction[predictions == 1] = 2
+                elif "Tumor" in pf:
+                    global_prediction[predictions == 1] = 3
+
+            global_prediction_filename = os.path.join(dest_pat_folder, prediction_files[0].split("-t1")[0] + '.nii.gz')
+            nib.save(nib.Nifti1Image(global_prediction, global_prediction_affine), global_prediction_filename)
+
             # Clean-up
             if os.path.exists(tmp_folder):
                 shutil.rmtree(tmp_folder)
             if os.path.exists(revamped_input_folder):
                 shutil.rmtree(revamped_input_folder)
+            if os.path.exists(os.path.join(dest_pat_folder, "T0")):
+                shutil.rmtree(os.path.join(dest_pat_folder, "T0"))
         except Exception:
             print("Patient {} failed.".format(pat))
             print(traceback.format_exc())
@@ -157,4 +194,42 @@ def mlcube_brats():
             continue
 
 
-mlcube_brats()
+class Task(str, Enum):
+    """Tasks implemented in this MLCube"""
+
+    Gli_Seg = 'gli_seg_brats'
+    """Glioma segmentation"""
+
+    Men_Seg = 'men_seg_brats'
+    """Meningioma segmentation"""
+
+    Met_Seg = 'met_seg_brats'
+    """Metastasis segmentation"""
+
+
+def main():
+    """
+    mnist.py task task_specific_parameters...
+    """
+    # noinspection PyBroadException
+    print("Preparsing message")
+    parser = argparse.ArgumentParser()
+    parser.add_argument('mlcube_task', type=str, help="Task for this MLCube.")
+    mlcube_args, task_args = parser.parse_known_args()
+    # print("mlcube args: {}".format(mlcube_args))
+    # print("task args: {}".format(task_args))
+
+    execution_id = str(uuid.uuid4())
+    if mlcube_args.mlcube_task == Task.Gli_Seg:
+        mlcube_brats(execution_id, task_args, "MRI_HGG_Brats")
+    elif mlcube_args.mlcube_task == Task.Men_Seg:
+        mlcube_brats(execution_id, task_args, "MRI_Meningioma_Brats")
+    elif mlcube_args.mlcube_task == Task.Met_Seg:
+        mlcube_brats(execution_id, task_args, "MRI_Metastasis_Brats")
+    else:
+        raise ValueError(f"Unknown task: {task_args}")
+    print(f"MLCube task ({mlcube_args.mlcube_task}) completed. See log file for details.")
+
+
+if __name__ == '__main__':
+    main()
