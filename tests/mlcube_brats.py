@@ -69,6 +69,7 @@ def mlcube_brats(exec_id, task_args, model_name):
         print("Processing patient: {}".format(pat))
         tmp_folder = ''
         revamped_input_folder = ''
+        dest_pat_folder = ''
         try:
             # Setting up directories
             input_pat_folder = os.path.join(input_folderpath, pat)
@@ -128,7 +129,7 @@ def mlcube_brats(exec_id, task_args, model_name):
             rads_config.set('Default', 'task', 'neuro_diagnosis')
             rads_config.set('Default', 'caller', '')
             rads_config.add_section('System')
-            rads_config.set('System', 'gpu_id', "-1")
+            rads_config.set('System', 'gpu_id', "0")
             rads_config.set('System', 'input_folder', revamped_input_folder)
             rads_config.set('System', 'output_folder', dest_pat_folder)
             rads_config.set('System', 'model_folder', "/workspace/models")
@@ -174,7 +175,7 @@ def mlcube_brats(exec_id, task_args, model_name):
                 elif "Tumor" in pf:
                     global_prediction[predictions == 1] = 3
 
-            global_prediction_filename = os.path.join(dest_pat_folder, prediction_files[0].split("-t1")[0] + '.nii.gz')
+            global_prediction_filename = os.path.join(dest_folderpath, prediction_files[0].split("-t1")[0] + '.nii.gz')
             nib.save(nib.Nifti1Image(global_prediction, global_prediction_affine), global_prediction_filename)
 
             # Clean-up
@@ -182,8 +183,8 @@ def mlcube_brats(exec_id, task_args, model_name):
                 shutil.rmtree(tmp_folder)
             if os.path.exists(revamped_input_folder):
                 shutil.rmtree(revamped_input_folder)
-            if os.path.exists(os.path.join(dest_pat_folder, "T0")):
-                shutil.rmtree(os.path.join(dest_pat_folder, "T0"))
+            if os.path.exists(dest_pat_folder):
+                shutil.rmtree(dest_pat_folder)
         except Exception:
             print("Patient {} failed.".format(pat))
             print(traceback.format_exc())
@@ -191,6 +192,8 @@ def mlcube_brats(exec_id, task_args, model_name):
                 shutil.rmtree(tmp_folder)
             if os.path.exists(revamped_input_folder):
                 shutil.rmtree(revamped_input_folder)
+            if os.path.exists(dest_pat_folder):
+                shutil.rmtree(dest_pat_folder)
             continue
 
 
@@ -199,6 +202,9 @@ class Task(str, Enum):
 
     Gli_Seg = 'gli_seg_brats'
     """Glioma segmentation"""
+
+    Gli_SSA_Seg = 'gli_ssa_seg_brats'
+    """Glioma SSA segmentation"""
 
     Men_Seg = 'men_seg_brats'
     """Meningioma segmentation"""
@@ -221,7 +227,9 @@ def main():
 
     execution_id = str(uuid.uuid4())
     if mlcube_args.mlcube_task == Task.Gli_Seg:
-        mlcube_brats(execution_id, task_args, "MRI_HGG_Brats")
+        mlcube_brats(execution_id, task_args, "MRI_GLI_Brats")
+    elif mlcube_args.mlcube_task == Task.Gli_SSA_Seg:
+        mlcube_brats(execution_id, task_args, "MRI_GLI_SSA_Brats")
     elif mlcube_args.mlcube_task == Task.Men_Seg:
         mlcube_brats(execution_id, task_args, "MRI_Meningioma_Brats")
     elif mlcube_args.mlcube_task == Task.Met_Seg:
