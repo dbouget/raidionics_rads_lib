@@ -142,7 +142,7 @@ def reporting_pipeline_test():
         pipeline_json[step_str]["inputs"]["0"]["space"]["timestamp"] = 0
         pipeline_json[step_str]["inputs"]["0"]["space"]["sequence"] = "T1-CE"
         pipeline_json[step_str]["target"] = "Tumor"
-        pipeline_json[step_str]["model"] = "MRI_HGGlioma"
+        pipeline_json[step_str]["model"] = "MRI_GBM"
         pipeline_json[step_str]["description"] = "Tumor segmentation in T1-CE (T0)."
 
         step_index = step_index + 1
