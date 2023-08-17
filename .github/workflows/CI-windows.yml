@@ -2,25 +2,19 @@ name: CI Windows
 
 on:
   push:
-    branches: [master, release]
+    branches: [master, release, update]
   pull_request:
     branches: [master, release]
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - os: windows-2019
-            TARGET: windows
-            CMD_BUILD: python setup.py bdist_wheel --plat-name win_amd64
+    runs-on: windows-2019
     steps:
-      - uses: actions/checkout@v1
-      - name: Set up Python 3.7
-        uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v4
         with:
-          python-version: 3.7
+          python-version: "3.8"
 
       - name: Collect submodules
         uses: actions/checkout@v3
@@ -33,8 +27,8 @@ jobs:
           pip install wheel setuptools
 #          pip install -e git+https://github.com/dbouget/raidionics_seg_lib.git@master#egg=raidionicsseg
 
-      - name: Built wheel for ${{matrix.TARGET}}
-        run: ${{matrix.CMD_BUILD}}
+      - name: Built wheel for windows
+        run: python setup.py bdist_wheel --plat-name win_amd64
 
       - name: Upload Python wheel
         uses: actions/upload-artifact@v2
@@ -45,19 +39,16 @@ jobs:
 
   test:
     needs: build
-    strategy:
-      matrix:
-        os: [ windows-2019 ]
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-2019
 
     steps:
-      - name: Set up Python 3.7
-        uses: actions/setup-python@v2
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v4
         with:
-          python-version: 3.7
+          python-version: "3.8"
 
       - name: Download artifact
-        uses: actions/download-artifact@master
+        uses: actions/download-artifact@v3
         with:
           name: "Python wheel"
 
