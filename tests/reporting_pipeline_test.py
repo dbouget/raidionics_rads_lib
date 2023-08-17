@@ -39,7 +39,7 @@ def reporting_pipeline_test():
         test_image_url = 'https://drive.google.com/uc?id=1WWKheweJ8bbNCZbz7ZdnI5_P6xKZTkaL'  # Test patient
         seq_model_url = 'https://github.com/raidionics/Raidionics-models/releases/download/1.2.0/Raidionics-MRI_Sequence_Classifier-ONNX-v12.zip'
         brain_model_url = 'https://github.com/raidionics/Raidionics-models/releases/download/1.2.0/Raidionics-MRI_Brain-ONNX-v12.zip'
-        tumor_model_url = 'https://github.com/raidionics/Raidionics-models/releases/download/1.2.0/Raidionics-MRI_HGGlioma-ONNX-v12.zip'
+        tumor_model_url = 'https://github.com/raidionics/Raidionics-models/releases/download/1.2.0/Raidionics-MRI_GBM-ONNX-v12.zip'
 
         archive_dl_dest = os.path.join(test_dir, 'inference_patient.zip')
         gdown.cached_download(url=test_image_url, path=archive_dl_dest)
