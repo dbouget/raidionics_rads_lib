@@ -39,6 +39,7 @@ def registration_pipeline_test():
     try:
         test_image_url = 'https://drive.google.com/uc?id=1WWKheweJ8bbNCZbz7ZdnI5_P6xKZTkaL'  # Test patient
         seq_model_url = 'https://github.com/raidionics/Raidionics-models/releases/download/1.2.0/Raidionics-MRI_Sequence_Classifier-ONNX-v12.zip'
+        brain_model_url = 'https://github.com/raidionics/Raidionics-models/releases/download/1.2.0/Raidionics-MRI_Brain-ONNX-v12.zip'
 
         archive_dl_dest = os.path.join(test_dir, 'inference_patient.zip')
         gdown.cached_download(url=test_image_url, path=archive_dl_dest)
@@ -47,6 +48,17 @@ def registration_pipeline_test():
         archive_dl_dest = os.path.join(test_dir, 'seq-model.zip')
         headers = {}
         response = requests.get(seq_model_url, headers=headers, stream=True)
+        response.raise_for_status()
+        if response.status_code == requests.codes.ok:
+            with open(archive_dl_dest, "wb") as f:
+                for chunk in response.iter_content(chunk_size=1048576):
+                    f.write(chunk)
+        with zipfile.ZipFile(archive_dl_dest, 'r') as zip_ref:
+            zip_ref.extractall(models_dir)
+
+        archive_dl_dest = os.path.join(test_dir, 'brain-model.zip')
+        headers = {}
+        response = requests.get(brain_model_url, headers=headers, stream=True)
         response.raise_for_status()
         if response.status_code == requests.codes.ok:
             with open(archive_dl_dest, "wb") as f:
@@ -86,6 +98,23 @@ def registration_pipeline_test():
         pipeline_json[step_str]["inputs"] = {}  # Empty input means running it on all existing data for the patient
         pipeline_json[step_str]["model"] = "MRI_Sequence_Classifier"
         pipeline_json[step_str]["description"] = "Classification of the MRI sequence type for all input scans."
+
+        step_index = step_index + 1
+        step_str = str(step_index)
+        pipeline_json[step_str] = {}
+        pipeline_json[step_str]["task"] = "Segmentation"
+        pipeline_json[step_str]["inputs"] = {}
+        pipeline_json[step_str]["inputs"]["0"] = {}
+        pipeline_json[step_str]["inputs"]["0"]["timestamp"] = 0
+        pipeline_json[step_str]["inputs"]["0"]["sequence"] = "T1-CE"
+        pipeline_json[step_str]["inputs"]["0"]["labels"] = None
+        pipeline_json[step_str]["inputs"]["0"]["space"] = {}
+        pipeline_json[step_str]["inputs"]["0"]["space"]["timestamp"] = 0
+        pipeline_json[step_str]["inputs"]["0"]["space"]["sequence"] = "T1-CE"
+        pipeline_json[step_str]["target"] = "Brain"
+        pipeline_json[step_str]["model"] = "MRI_Brain"
+        pipeline_json[step_str]["format"] = "thresholding"
+        pipeline_json[step_str]["description"] = "Brain segmentation in T1-CE (T0)."
 
         step_index = step_index + 1
         step_str = str(step_index)
