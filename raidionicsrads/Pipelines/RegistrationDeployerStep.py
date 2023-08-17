@@ -136,7 +136,7 @@ class RegistrationDeployerStep(AbstractPipelineStep):
             for i, elem in enumerate(tqdm(ResourcesConfiguration.getInstance().subcortical_structures['MNI'][s]['Singular'].keys())):
                 raw_filename = ResourcesConfiguration.getInstance().subcortical_structures['MNI'][s]['Singular'][elem]
                 raw_tract_ni = nib.load(raw_filename)
-                raw_tract = raw_tract_ni.get_data()[:]
+                raw_tract = raw_tract_ni.get_fdata()[:]
                 raw_tract[raw_tract < bcb_tracts_cutoff] = 0
                 raw_tract[raw_tract >= bcb_tracts_cutoff] = 1
                 raw_tract = raw_tract.astype('uint8')

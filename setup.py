@@ -27,10 +27,7 @@ elif platform.system() == 'Darwin':
 else:
     required.append('antspyx')
 
-required.append('raidionicsseg@git+https://github.com/dbouget/raidionics_seg_lib.git@master#egg=raidionicsseg')
-
-if sys.version_info >= (3, 8):  # Haven't checked all, but at least 3.8
-    required.append('numpy==1.23.1')  # From version 1.24.0 and above, np.bool has been removed, which breaks hd95 computation in MedPy v0.4.0 atm...
+required.append('raidionicsseg@git+https://github.com/dbouget/raidionics_seg_lib.git@update#egg=raidionicsseg')
 
 setup(
     name='raidionicsrads',
@@ -56,7 +53,7 @@ setup(
     install_requires=required,
     include_package_data=True,
     python_requires=">=3.7",
-    version='1.1.0',
+    version='1.1.1',
     author='David Bouget (david.bouget@sintef.no)',
     license='BSD 2-Clause',
     description='Raidionics reporting and data system backend (RADS)',

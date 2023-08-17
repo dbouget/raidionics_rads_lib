@@ -2,8 +2,7 @@ name: CI MacOS
 
 on:
   push:
-    branches:
-      - '*'
+    branches: [master, release]
   pull_request:
     branches: [master, release]
 

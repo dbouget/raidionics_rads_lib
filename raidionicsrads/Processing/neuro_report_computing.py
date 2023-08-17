@@ -19,7 +19,7 @@ def compute_neuro_report(input_filename: str, report: NeuroReportingStructure) -
 
     """
     registered_tumor_ni = load_nifti_volume(input_filename)
-    registered_tumor = registered_tumor_ni.get_data()[:]
+    registered_tumor = registered_tumor_ni.get_fdata()[:]
 
     tumor_type = report._tumor_type
     if np.count_nonzero(registered_tumor) == 0:
@@ -43,7 +43,7 @@ def compute_neuro_report(input_filename: str, report: NeuroReportingStructure) -
 
     # Computing the tumor volume in original patient space
     # segmentation_ni = nib.load(ResourcesConfiguration.getInstance().runtime_tumor_mask_filepath)
-    # segmentation_mask = segmentation_ni.get_data()[:]
+    # segmentation_mask = segmentation_ni.get_fdata()[:]
     # volume = compute_volume(volume=segmentation_mask, spacing=segmentation_ni.header.get_zooms())
     # self.diagnosis_parameters.statistics['Main']['Overall'].original_space_tumor_volume = volume
 
@@ -63,7 +63,7 @@ def compute_neuro_report(input_filename: str, report: NeuroReportingStructure) -
     # Computing localisation and lateralisation for the whole tumor extent
     brain_lateralisation_mask_ni = load_nifti_volume(
         ResourcesConfiguration.getInstance().mni_atlas_lateralisation_mask_filepath)
-    brain_lateralisation_mask = brain_lateralisation_mask_ni.get_data()[:]
+    brain_lateralisation_mask = brain_lateralisation_mask_ni.get_fdata()[:]
     left, right, mid = compute_lateralisation(volume=refined_image, brain_mask=brain_lateralisation_mask)
     report._statistics['Main']['Overall'].left_laterality_percentage = left
     report._statistics['Main']['Overall'].right_laterality_percentage = right
@@ -76,7 +76,7 @@ def compute_neuro_report(input_filename: str, report: NeuroReportingStructure) -
             map_filepath = ResourcesConfiguration.getInstance().mni_resection_maps['Probability']['Right']
 
         resection_probability_map_ni = nib.load(map_filepath)
-        resection_probability_map = resection_probability_map_ni.get_data()[:]
+        resection_probability_map = resection_probability_map_ni.get_fdata()[:]
         residual, resectable, average = compute_resectability_index(volume=refined_image,
                                                                     resectability_map=resection_probability_map)
         report._statistics['Main']['Overall'].mni_space_expected_residual_tumor_volume = residual
@@ -107,7 +107,7 @@ def compute_cortical_structures_location(volume, reference='MNI'):
     logging.debug("Computing cortical structures location with {}.".format(reference))
     regions_data = ResourcesConfiguration.getInstance().cortical_structures['MNI'][reference]
     region_mask_ni = nib.load(regions_data['Mask'])
-    region_mask = region_mask_ni.get_data()
+    region_mask = region_mask_ni.get_fdata()
     lobes_description = pd.read_csv(regions_data['Description'])
 
     # Computing the lobe location for the center of mass
@@ -133,7 +133,7 @@ def compute_cortical_structures_location(volume, reference='MNI'):
         overlap = np.round(ratio_in_lobe * 100., 2)
         region_name = ''
         if reference == 'MNI':
-            region_name = '-'.join(lobes_description.loc[lobes_description['Label'] == li]['Region'].values[0].strip().split(' ')) + '_' + (lobes_description.loc[lobes_description['Label'] == li]['Laterality'].values[0].strip() if lobes_description.loc[lobes_description['Label'] == li]['Laterality'].values[0].strip() != 'None' else '')
+            region_name = '-'.join(str(lobes_description.loc[lobes_description['Label'] == li]['Region'].values[0]).strip().split(' ')) + '_' + (str(lobes_description.loc[lobes_description['Label'] == li]['Laterality'].values[0]).strip() if str(lobes_description.loc[lobes_description['Label'] == li]['Laterality'].values[0]).strip() != 'None' else '')
         elif reference == 'Harvard-Oxford':
             region_name = '-'.join(lobes_description.loc[lobes_description['Label'] == li]['Region'].values[0].strip().split(' '))
         else:
@@ -158,7 +158,7 @@ def compute_subcortical_structures_location(volume, category=None, reference='BC
         dist = -1.
         try:
             reg_tract_ni = nib.load(tracts_dict[tfn])
-            reg_tract = reg_tract_ni.get_data()[:]
+            reg_tract = reg_tract_ni.get_fdata()[:]
             reg_tract[reg_tract < tract_cutoff] = 0
             reg_tract[reg_tract >= tract_cutoff] = 1
             overlap_volume = np.logical_and(reg_tract, volume).astype('uint8')
@@ -169,7 +169,7 @@ def compute_subcortical_structures_location(volume, category=None, reference='BC
                 overlaps[tfn] = (np.count_nonzero(overlap_volume) / np.count_nonzero(volume)) * 100.
             else:
                 if np.count_nonzero(reg_tract) > 0:
-                    dist = hd95(volume, reg_tract, voxelspacing=reg_tract_ni.header.get_zooms(), connectivity=1)
+                    dist = compute_hd95(volume, reg_tract, voxelspacing=reg_tract_ni.header.get_zooms(), connectivity=1)
                 distances[tfn] = dist
                 overlaps[tfn] = 0.
         except Exception:
@@ -185,8 +185,8 @@ def compute_surgical_report(preop_filename, postop_filename, report):
     """
     preop_annotation_ni = nib.load(preop_filename)
     postop_annotation_ni = nib.load(postop_filename)
-    preop_volume = compute_volume(preop_annotation_ni.get_data()[:], preop_annotation_ni.header.get_zooms())
-    postop_volume = compute_volume(postop_annotation_ni.get_data()[:], postop_annotation_ni.header.get_zooms())
+    preop_volume = compute_volume(preop_annotation_ni.get_fdata()[:], preop_annotation_ni.header.get_zooms())
+    postop_volume = compute_volume(postop_annotation_ni.get_fdata()[:], postop_annotation_ni.header.get_zooms())
 
     eor = ((preop_volume - postop_volume) / preop_volume) * 100.
     report._statistics.preop_volume = preop_volume
@@ -201,3 +201,4 @@ def compute_surgical_report(preop_filename, postop_filename, report):
         report._statistics.resection_category = ResectionCategoryType.SubR
     else:
         report._statistics.resection_category = ResectionCategoryType.ParR
+

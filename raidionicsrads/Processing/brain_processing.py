@@ -108,7 +108,7 @@ def perform_custom_brain_extraction(image_filepath: str, folder: str) -> str:
     try:
         brain_mask_filename = os.path.join(ResourcesConfiguration.getInstance().output_folder, 'labels_Brain.nii.gz')
         brain_mask_ni = load_nifti_volume(brain_mask_filename)
-        brain_mask = brain_mask_ni.get_data()[:].astype('uint8')
+        brain_mask = brain_mask_ni.get_fdata()[:].astype('uint8')
 
         # The automatic segmentation should be clean, but just in case, only the largest component is retained.
         labels, nb_components = label(brain_mask)
@@ -151,8 +151,8 @@ def perform_brain_masking(image_filepath, mask_filepath, output_folder):
     image_ni = load_nifti_volume(image_filepath)
     brain_mask_ni = load_nifti_volume(mask_filepath)
 
-    image = image_ni.get_data()[:]
-    brain_mask = brain_mask_ni.get_data()[:]
+    image = image_ni.get_fdata()[:]
+    brain_mask = brain_mask_ni.get_fdata()[:]
     image[brain_mask == 0] = 0
 
     masked_input_filepath = os.path.join(output_folder, os.path.basename(image_filepath).split('.')[0] + '_masked.nii.gz')

@@ -12,7 +12,7 @@ def load_nifti_volume(volume_path):
         if len(nib_volume.shape) == 4: #Common problem
             nib_volume = four_to_three(nib_volume)[0]
         else: #DWI volumes
-            nib_volume = nib.Nifti1Image(nib_volume.get_data()[:, :, :, 0, 0], affine=nib_volume.affine)
+            nib_volume = nib.Nifti1Image(nib_volume.get_fdata()[:, :, :, 0, 0], affine=nib_volume.affine)
 
     return nib_volume
 
@@ -44,11 +44,11 @@ def generate_cortical_structures_labels_for_slicer(atlas_name):
         label = row['Label']
         if label == label:
             if atlas_name == 'MNI':
-                structure_name = '-'.join(row['Region'].strip().split(' '))
+                structure_name = '-'.join(str(row['Region']).strip().split(' '))
                 if row['Laterality'] != 'None':
-                    structure_name = structure_name + '_' + row['Laterality'].strip()
+                    structure_name = structure_name + '_' + str(row['Laterality']).strip()
                 if row['Matter type'] == 'wm' or row['Matter type'] == 'gm':
-                    structure_name = structure_name + '_' + row['Matter type'].strip()
+                    structure_name = structure_name + '_' + str(row['Matter type']).strip()
             elif atlas_name == 'Harvard-Oxford':
                 structure_name = '-'.join(row['Region'].strip().split(' '))
             elif atlas_name == 'Schaefer7' or atlas_name == 'Schaefer17':

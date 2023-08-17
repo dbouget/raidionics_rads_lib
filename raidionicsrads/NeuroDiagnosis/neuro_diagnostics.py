@@ -245,7 +245,7 @@ class NeuroDiagnostics:
             tumor_mask_filename = os.path.join(ResourcesConfiguration.getInstance().output_folder,
                                                'labels_Tumor.nii.gz')
             tumor_mask_ni = load_nifti_volume(tumor_mask_filename)
-            tumor_mask = tumor_mask_ni.get_data()[:].astype('uint8')
+            tumor_mask = tumor_mask_ni.get_fdata()[:].astype('uint8')
 
             # final_tumor_mask = np.zeros(tumor_pred.shape)
             # # Only background and target as classes, so index 1 is the only one needed
@@ -295,7 +295,7 @@ class NeuroDiagnostics:
             for i, elem in enumerate(tqdm(ResourcesConfiguration.getInstance().subcortical_structures['MNI'][s]['Singular'].keys())):
                 raw_filename = ResourcesConfiguration.getInstance().subcortical_structures['MNI'][s]['Singular'][elem]
                 raw_tract_ni = nib.load(raw_filename)
-                raw_tract = raw_tract_ni.get_data()[:]
+                raw_tract = raw_tract_ni.get_fdata()[:]
                 raw_tract[raw_tract < bcb_tracts_cutoff] = 0
                 raw_tract[raw_tract >= bcb_tracts_cutoff] = 1
                 raw_tract = raw_tract.astype('uint8')
@@ -320,7 +320,7 @@ class NeuroDiagnostics:
     def compute_statistics(self):
         tumor_mask_registered_filename = os.path.join(self.registration_runner.registration_folder, 'input_segmentation_to_MNI.nii.gz')
         registered_tumor_ni = load_nifti_volume(tumor_mask_registered_filename)
-        registered_tumor = registered_tumor_ni.get_data()[:]
+        registered_tumor = registered_tumor_ni.get_fdata()[:]
 
         # @TODO. The tumor type is given by the user for now, no tumor classification yet!
         tumor_type = self.selected_model.split('_')[1]  # @TODO. Info should be stored somewhere else properly.
@@ -354,7 +354,7 @@ class NeuroDiagnostics:
 
         # Computing localisation and lateralisation for the whole tumor extent
         segmentation_ni = nib.load(ResourcesConfiguration.getInstance().runtime_tumor_mask_filepath)
-        segmentation_mask = segmentation_ni.get_data()[:]
+        segmentation_mask = segmentation_ni.get_fdata()[:]
         volume = compute_volume(volume=segmentation_mask, spacing=segmentation_ni.header.get_zooms())
         self.diagnosis_parameters.statistics['Main']['Overall'].original_space_tumor_volume = volume
         volume = compute_volume(volume=refined_image, spacing=registered_tumor_ni.header.get_zooms())
@@ -396,7 +396,7 @@ class NeuroDiagnostics:
         #
         #     # Generate the same clusters on the original segmentation mask
         #     tumor_mask_ni = nib.load(os.path.join(self.output_path, 'input_tumor_mask.nii.gz'))
-        #     tumor_mask = tumor_mask_ni.get_data()[:]
+        #     tumor_mask = tumor_mask_ni.get_fdata()[:]
         #     img_ero = binary_closing(tumor_mask, structure=kernel, iterations=1)
         #     tumor_clusters = measurements.label(img_ero)[0]
         #     refined_image = deepcopy(tumor_clusters)
@@ -441,7 +441,7 @@ class NeuroDiagnostics:
             Nothing
         """
         brain_lateralisation_mask_ni = load_nifti_volume(ResourcesConfiguration.getInstance().mni_atlas_lateralisation_mask_filepath)
-        brain_lateralisation_mask = brain_lateralisation_mask_ni.get_data()[:]
+        brain_lateralisation_mask = brain_lateralisation_mask_ni.get_fdata()[:]
         left, right, mid = compute_lateralisation(volume=volume, brain_mask=brain_lateralisation_mask)
         self.diagnosis_parameters.statistics[category]['Overall'].left_laterality_percentage = left
         self.diagnosis_parameters.statistics[category]['Overall'].right_laterality_percentage = right
@@ -466,7 +466,7 @@ class NeuroDiagnostics:
             map_filepath = ResourcesConfiguration.getInstance().mni_resection_maps['Probability']['Right']
 
         resection_probability_map_ni = nib.load(map_filepath)
-        resection_probability_map = resection_probability_map_ni.get_data()[:]
+        resection_probability_map = resection_probability_map_ni.get_fdata()[:]
         residual, resectable, average = compute_resectability_index(volume=volume,
                                                                     resectability_map=resection_probability_map)
         self.diagnosis_parameters.statistics[category]['Overall'].mni_space_expected_residual_tumor_volume = residual
@@ -477,7 +477,7 @@ class NeuroDiagnostics:
         logging.debug("Computing cortical structures location with {}.".format(reference))
         regions_data = ResourcesConfiguration.getInstance().cortical_structures['MNI'][reference]
         region_mask_ni = nib.load(regions_data['Mask'])
-        region_mask = region_mask_ni.get_data()
+        region_mask = region_mask_ni.get_fdata()
         lobes_description = pd.read_csv(regions_data['Description'])
 
         # Computing the lobe location for the center of mass
@@ -528,7 +528,7 @@ class NeuroDiagnostics:
         tracts_dict = ResourcesConfiguration.getInstance().subcortical_structures['MNI'][reference]['Singular']
         for i, tfn in enumerate(tracts_dict.keys()):
             reg_tract_ni = nib.load(tracts_dict[tfn])
-            reg_tract = reg_tract_ni.get_data()[:]
+            reg_tract = reg_tract_ni.get_fdata()[:]
             reg_tract[reg_tract < tract_cutoff] = 0
             reg_tract[reg_tract >= tract_cutoff] = 1
             overlap_volume = np.logical_and(reg_tract, volume).astype('uint8')
