@@ -66,3 +66,6 @@ jobs:
 
       - name: Segmentation pipeline unit test
         run: cd ${{github.workspace}}/tests && python segmentation_pipeline_test.py
+
+      - name: Registration pipeline unit test
+        run: cd ${{github.workspace}}/tests && python registration_pipeline_test.py
