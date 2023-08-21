@@ -65,6 +65,7 @@ jobs:
 
       - name: Install wheel
         run: pip install --find-links=${{github.workspace}} raidionicsrads
+        shell: bash
 
       - name: Test CLI
         run: |
