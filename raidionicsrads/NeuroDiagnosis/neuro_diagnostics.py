@@ -503,7 +503,7 @@ class NeuroDiagnostics:
             overlap = np.round(ratio_in_lobe * 100., 2)
             region_name = ''
             if reference == 'MNI':
-                region_name = '-'.join(lobes_description.loc[lobes_description['Label'] == li]['Region'].values[0].strip().split(' ')) + '_' + (lobes_description.loc[lobes_description['Label'] == li]['Laterality'].values[0].strip() if lobes_description.loc[lobes_description['Label'] == li]['Laterality'].values[0].strip() is not 'None' else '')
+                region_name = '-'.join(str(lobes_description.loc[lobes_description['Label'] == li]['Region'].values[0]).strip().split(' ')) + '_' + (str(lobes_description.loc[lobes_description['Label'] == li]['Laterality'].values[0]).strip() if str(lobes_description.loc[lobes_description['Label'] == li]['Laterality'].values[0]).strip() != 'None' else '')
             elif reference == 'Harvard-Oxford':
                 region_name = '-'.join(lobes_description.loc[lobes_description['Label'] == li]['Region'].values[0].strip().split(' '))
             else:
@@ -540,7 +540,7 @@ class NeuroDiagnostics:
             else:
                 dist = -1.
                 if np.count_nonzero(reg_tract) > 0:
-                    dist = hd95(volume, reg_tract, voxelspacing=reg_tract_ni.header.get_zooms(), connectivity=1)
+                    dist = compute_hd95(volume, reg_tract, voxelspacing=reg_tract_ni.header.get_zooms(), connectivity=1)
                 distances[tfn] = dist
                 overlaps[tfn] = 0.
 
