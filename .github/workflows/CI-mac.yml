@@ -7,22 +7,25 @@ on:
   pull_request:
     branches: [master, release]
 
+env:
+  MACOSX_DEPLOYMENT_TARGET: 10.15
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
-          - os: macos-10.15
+          - os: macos-11
             TARGET: macos
             CMD_BUILD: python setup.py bdist_wheel --plat-name macosx_10_15_x86_64
 
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
       - name: Set up Python 3.7
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
-          python-version: 3.7
+          python-version: "3.7"
 
       - name: Collect submodules
         uses: actions/checkout@v3
@@ -49,17 +52,17 @@ jobs:
     needs: build
     strategy:
       matrix:
-        os: [ macos-10.15 ]
+        os: [ macos-11 ]
     runs-on: ${{ matrix.os }}
 
     steps:
       - name: Set up Python 3.7
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
-          python-version: 3.7
+          python-version: "3.7"
 
       - name: Download artifact
-        uses: actions/download-artifact@master
+        uses: actions/download-artifact@v3
         with:
           name: "Python wheel"
 
@@ -77,3 +80,6 @@ jobs:
 
       - name: Segmentation pipeline unit test
         run: cd ${{github.workspace}}/tests && python segmentation_pipeline_test.py
+
+      - name: Registration pipeline unit test
+        run: cd ${{github.workspace}}/tests && python registration_pipeline_test.py
