@@ -8,8 +8,8 @@ with open("README.md", "r", errors='ignore') as f:
 with open('requirements.txt', 'r', encoding='utf-16', errors='ignore') as ff:
     required = ff.read().splitlines()
 
-# if platform.system() == 'Windows':
-#     required.append('antspy@https://github.com/SGotla/ANTsPy/releases/download/0.1.7Win64/antspy-0.1.7-cp37-cp37m-win_amd64.whl')
+if platform.system() == 'Windows':
+    required.append('antspyx@https://github.com/ANTsX/ANTsPy/releases/download/v0.3.8/antspyx-0.3.8-cp37-cp37m-win_amd64.whl')
 #     # required.append('pandas==1.3.5')
 #     required.append('scikit-learn==1.0.2')
 #     required.append('statsmodels==0.13.2')
@@ -18,8 +18,8 @@ if platform.system() == 'Darwin' and platform.processor() == 'arm':   # Specific
     required.append('scikit-learn==1.0.2')
     required.append('statsmodels==0.13.2')
     # required.append('MedPy==0.4.0')
-# elif platform.system() == 'Darwin':
-#     required.append('antspyx@https://github.com/ANTsX/ANTsPy/releases/download/v0.1.8/antspyx-0.1.8-cp37-cp37m-macosx_10_14_x86_64.whl')
+elif platform.system() == 'Darwin':
+    required.append('antspyx@https://github.com/ANTsX/ANTsPy/releases/download/v0.3.8/antspyx-0.3.8-cp37-cp37m-macosx_10_9_x86_64.whl')
 #     # required.append('pandas==1.3.5')
 #     required.append('scikit-learn==1.0.2')
 #     required.append('statsmodels==0.13.2')
