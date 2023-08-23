@@ -1,5 +1,5 @@
 from __future__ import division
-
+import platform
 import logging
 import os
 import time
@@ -133,19 +133,34 @@ class ANTsRegistration:
             script_path = os.path.join(self.ants_reg_dir, 'antsRegistrationSyN.sh')
 
         try:
-            subprocess.call(["{script}".format(script=script_path),
-                             '-d{dim}'.format(dim=3),
-                             '-f{fixed}'.format(fixed=fixed),
-                             '-m{moving}'.format(moving=moving),
-                             '-o{output}'.format(output=self.registration_folder),
-                             '-t{trans}'.format(trans=registration_method),
-                             '-n{cores}'.format(cores=8),
-                             #'-p{precision}'.format(precision='f')
-                             # '-x[{mask_fixed},{mask_moving}]'.format(
-                             #     mask_fixed='',
-                             #     mask_moving='')])
-                             #'-x{mask}'.format(mask=fixed_mask_filepath)
-                             ])
+            if platform.system() == 'Windows':
+                subprocess.call(["{script}".format(script=script_path),
+                                 '-d{dim}'.format(dim=3),
+                                 '-f{fixed}'.format(fixed=fixed),
+                                 '-m{moving}'.format(moving=moving),
+                                 '-o{output}'.format(output=self.registration_folder),
+                                 '-t{trans}'.format(trans=registration_method),
+                                 '-n{cores}'.format(cores=8),
+                                 #'-p{precision}'.format(precision='f')
+                                 # '-x[{mask_fixed},{mask_moving}]'.format(
+                                 #     mask_fixed='',
+                                 #     mask_moving='')])
+                                 #'-x{mask}'.format(mask=fixed_mask_filepath)
+                                 ], shell=True)
+            else:
+                subprocess.call(["{script}".format(script=script_path),
+                                 '-d{dim}'.format(dim=3),
+                                 '-f{fixed}'.format(fixed=fixed),
+                                 '-m{moving}'.format(moving=moving),
+                                 '-o{output}'.format(output=self.registration_folder),
+                                 '-t{trans}'.format(trans=registration_method),
+                                 '-n{cores}'.format(cores=8),
+                                 #'-p{precision}'.format(precision='f')
+                                 # '-x[{mask_fixed},{mask_moving}]'.format(
+                                 #     mask_fixed='',
+                                 #     mask_moving='')])
+                                 #'-x{mask}'.format(mask=fixed_mask_filepath)
+                                 ])
 
             if registration_method == 's':
                 self.reg_transform['fwdtransforms'] = [os.path.join(self.registration_folder, '1Warp.nii.gz'),
@@ -236,7 +251,10 @@ class ANTsRegistration:
         # Or just:
         # args = "bin/bar -c somefile.xml -d text.txt -r aString -f anotherString".split()
         try:
-            popen = subprocess.Popen(args, stdout=subprocess.PIPE)
+            if platform.system() == 'Windows':
+                popen = subprocess.Popen(args, stdout=subprocess.PIPE, shell=True)
+            else:
+                popen = subprocess.Popen(args, stdout=subprocess.PIPE)
             popen.wait()
             output = popen.stdout.read()
             return moving_registered_filename
@@ -315,7 +333,10 @@ class ANTsRegistration:
         # Or just:
         # args = "bin/bar -c somefile.xml -d text.txt -r aString -f anotherString".split()
         try:
-            popen = subprocess.Popen(args, stdout=subprocess.PIPE)
+            if platform.system() == 'Windows':
+                popen = subprocess.Popen(args, stdout=subprocess.PIPE, shell=True)
+            else:
+                popen = subprocess.Popen(args, stdout=subprocess.PIPE)
             popen.wait()
             output = popen.stdout.read()
             return moving_registered_filename
