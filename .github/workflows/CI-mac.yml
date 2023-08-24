@@ -32,17 +32,31 @@ jobs:
         with:
           submodules: 'recursive'
 
+      - name: Download ANTs
+        uses: robinraju/release-downloader@main
+        with:
+          repository: "raidionics/Raidionics-dependencies"
+          latest: true
+          fileName: "ANTsX-v2.4.3_ubuntu.tar.gz"
+          out-file-path: "downloads"
+
+      - name: Extract ANTs
+        run: |
+          cd ${{github.workspace}}/downloads/
+          tar -xzf ANTsX-v2.4.3_macos.tar.gz -C ${{github.workspace}}/downloads/
+          mkdir ${{github.workspace}}/ANTs
+          mv ${{github.workspace}}/downloads/install ${{github.workspace}}/ANTs/
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install wheel setuptools
-#          pip install -e git+https://github.com/dbouget/raidionics_seg_lib.git@master#egg=raidionicsseg
 
       - name: Built wheel for ${{matrix.TARGET}}
         run: ${{matrix.CMD_BUILD}}
 
       - name: Upload Python wheel
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: Python wheel
           path: ${{github.workspace}}/dist/raidionicsrads-*.whl
@@ -81,5 +95,11 @@ jobs:
       - name: Segmentation pipeline unit test
         run: cd ${{github.workspace}}/tests && python segmentation_pipeline_test.py
 
-      - name: Registration pipeline unit test
+      - name: Reporting pipeline unit test
+        run: cd ${{github.workspace}}/tests && python reporting_pipeline_test.py
+
+      - name: Registration pipeline unit test with Python backend
         run: cd ${{github.workspace}}/tests && python registration_pipeline_test.py
+
+      - name: Registration pipeline unit test with cpp backend
+        run: cd ${{github.workspace}}/tests && python registration_pipeline_cpp_backend_test.py

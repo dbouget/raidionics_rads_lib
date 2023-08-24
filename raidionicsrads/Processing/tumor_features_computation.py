@@ -5,7 +5,6 @@ from typing import Tuple
 from scipy.ndimage.measurements import center_of_mass
 from scipy.ndimage import measurements
 from skimage.measure import regionprops
-# from medpy.metric.binary import hd95
 from scipy.ndimage import binary_closing, _ni_support
 from scipy.ndimage.morphology import distance_transform_edt, binary_erosion,\
     generate_binary_structure
@@ -94,7 +93,7 @@ def compute_multifocality(volume: np.ndarray, spacing: tuple,
                 if lab != max_radius_index:
                     satellite_label = np.zeros(volume.shape)
                     satellite_label[tumor_clusters == (lab + 1)] = 1
-                    dist = hd95(satellite_label, main_tumor_label, voxelspacing=spacing, connectivity=1)
+                    dist = compute_hd95(satellite_label, main_tumor_label, voxelspacing=spacing, connectivity=1)
                     if multifocal_largest_minimum_distance is None:
                         multifocal_largest_minimum_distance = dist
                     elif dist > multifocal_largest_minimum_distance:

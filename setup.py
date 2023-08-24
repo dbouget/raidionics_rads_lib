@@ -11,27 +11,18 @@ with open('requirements.txt', 'r', encoding='utf-16', errors='ignore') as ff:
 if platform.system() == 'Windows':
     # required.append('antspyx@https://github.com/ANTsX/ANTsPy/releases/download/v0.3.8/antspyx-0.3.8-cp37-cp37m-win_amd64.whl')
     required.append('antspy@https://github.com/SGotla/ANTsPy/releases/download/0.1.7Win64/antspy-0.1.7-cp37-cp37m-win_amd64.whl')
-#     # required.append('pandas==1.3.5')
     required.append('scikit-learn==1.0.2')
     required.append('statsmodels==0.13.2')
+    required.append('matplotlib==3.3.4')
 elif platform.system() == 'Darwin' and platform.processor() == 'arm':   # Specific for Apple M1 chips
-    # required.append('pandas==1.3.5')
     required.append('scikit-learn==1.0.2')
     required.append('statsmodels==0.13.2')
-    # required.append('MedPy==0.4.0')
 elif platform.system() == 'Darwin':
     required.append('antspyx@https://github.com/ANTsX/ANTsPy/releases/download/v0.3.8/antspyx-0.3.8-cp37-cp37m-macosx_10_9_x86_64.whl')
-#     # required.append('pandas==1.3.5')
 #     required.append('scikit-learn==1.0.2')
 #     required.append('statsmodels==0.13.2')
-#     required.append('MedPy==0.4.0')
 else:
     required.append('antspyx==0.3.8')
-
-# required.append('raidionicsseg@git+https://github.com/dbouget/raidionics_seg_lib.git@master#egg=raidionicsseg')
-
-# if sys.version_info >= (3, 8):  # Haven't checked all, but at least 3.8
-#     required.append('numpy==1.23.1')  # From version 1.24.0 and above, np.bool has been removed, which breaks hd95 computation in MedPy v0.4.0 atm...
 
 setup(
     name='raidionicsrads',
