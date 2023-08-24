@@ -1,3 +1,4 @@
+import platform
 import os
 import json
 import shutil
@@ -79,7 +80,11 @@ def registration_pipeline_test():
         rads_config.set('Default', 'caller', '')
         rads_config.add_section('System')
         rads_config.set('System', 'gpu_id', "-1")
-        rads_config.set('System', 'ants_root', "/home/runner/work/ANTs")
+        rads_config.set('System', 'ants_root', "/home/runner/work/raidionics_rads_lib/raidionics_rads_lib/ANTs/install")
+        if platform.system() == 'Windows':
+            rads_config.set('System', 'ants_root', "D:\\a\\raidionics_rads_lib\\raidionics_rads_lib\\ANTs\\install")
+        elif platform.system() == "Darwin":
+            rads_config.set('System', 'ants_root', "/Users/runner/work/raidionics_rads_lib/raidionics_rads_lib/ANTs/install")
         rads_config.set('System', 'input_folder', patient_dir)
         rads_config.set('System', 'output_folder', output_dir)
         rads_config.set('System', 'model_folder', models_dir)
@@ -154,7 +159,6 @@ def registration_pipeline_test():
 
         logging.info("Registration CLI unit test started.\n")
         try:
-            import platform
             if platform.system() == 'Windows':
                 subprocess.check_call(['raidionicsrads',
                                        '{config}'.format(config=rads_config_filename),

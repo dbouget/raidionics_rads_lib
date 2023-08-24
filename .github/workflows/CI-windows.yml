@@ -33,7 +33,7 @@ jobs:
         with:
           repository: "raidionics/Raidionics-dependencies"
           latest: true
-          fileName: "ANTsX-v2.4.3_ubuntu.tar.gz"
+          fileName: "ANTsX-v2.4.3_windows.tar.gz"
           out-file-path: "downloads"
 
       - name: Extract ANTs
