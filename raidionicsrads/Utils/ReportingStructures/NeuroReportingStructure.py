@@ -18,9 +18,9 @@ class NeuroReportingStructure:
     _radiological_volume_uid = None  # Parent CT/MRI volume to which the report is attached
     _output_folder = None
     _tumor_type = None  # Type of brain tumor identified
-    _tumor_multifocal = None  #
-    _tumor_parts = None
-    _tumor_multifocal_distance = None
+    _tumor_multifocal = False  # Boolean status about multifocality
+    _tumor_parts = 0  #
+    _tumor_multifocal_distance = -1.  #
     _statistics = {}
 
     def __init__(self, id: str, parent_uid: str, output_folder: str):
@@ -43,9 +43,9 @@ class NeuroReportingStructure:
         self._radiological_volume_uid = None
         self._output_folder = None
         self._tumor_type = None
-        self._tumor_multifocal = None
-        self._tumor_parts = None
-        self._tumor_multifocal_distance = None
+        self._tumor_multifocal = False
+        self._tumor_parts = 0
+        self._tumor_multifocal_distance = -1.
         self._statistics = {}
 
     def setup(self, tumor_type: str, tumor_elements: int) -> None:
