@@ -224,6 +224,10 @@ def reporting_pipeline_test():
                 subprocess.check_call(['raidionicsrads',
                                        '{config}'.format(config=rads_config_filename),
                                        '--verbose', 'debug'], shell=True)
+            elif platform.system() == 'Darwin' and platform.processor() == 'arm':
+                subprocess.check_call(['python3', '-m', 'raidionicsrads',
+                                       '{config}'.format(config=rads_config_filename),
+                                       '--verbose', 'debug'])
             else:
                 subprocess.check_call(['raidionicsrads',
                                        '{config}'.format(config=rads_config_filename),
