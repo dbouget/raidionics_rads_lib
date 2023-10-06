@@ -42,7 +42,7 @@ jobs:
           cd ${{github.workspace}}/downloads/
           7z ${{github.workspace}}/downloads/ ANTsX-v2.4.3_windows.zip
           mkdir ${{github.workspace}}/ANTs
-          mv ${{github.workspace}}/downloads/install ${{github.workspace}}/ANTs/
+          mv ${{github.workspace}}/downloads/ANTsX-v2.4.3_windows/install ${{github.workspace}}/ANTs/
 
       - name: Install dependencies
         run: |
@@ -64,7 +64,7 @@ jobs:
     strategy:
       matrix:
         os: [ windows-2019, windows-2022 ]
-        python-version: [ "3.7", "3.8", "3.9", "3.10", "3.11" ]
+        python-version: [ "3.7", "3.8", "3.9", "3.10"]
     runs-on: ${{ matrix.os }}
 
     steps:
