@@ -5,7 +5,6 @@ from typing import Tuple
 from scipy.ndimage.measurements import center_of_mass
 from scipy.ndimage import measurements
 from skimage.measure import regionprops
-# from medpy.metric.binary import hd95
 from scipy.ndimage import binary_closing, _ni_support
 from scipy.ndimage.morphology import distance_transform_edt, binary_erosion,\
     generate_binary_structure

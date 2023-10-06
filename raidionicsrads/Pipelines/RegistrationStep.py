@@ -118,7 +118,8 @@ class RegistrationStep(AbstractPipelineStep):
                 # registration will have a minimal impact on runtime.
                 registration_method = 'QuickRigid'
             logging.info("[RegistrationStep] Using {} ANTs backend.".format(ResourcesConfiguration.getInstance().system_ants_backend))
-            logging.info("[RegistrationStep] ANTs root located in {}.".format(ResourcesConfiguration.getInstance().ants_root))
+            if ResourcesConfiguration.getInstance().system_ants_backend == "cpp":
+                logging.info("[RegistrationStep] ANTs root located in {}.".format(ResourcesConfiguration.getInstance().ants_root))
             self._registration_runner.compute_registration(fixed=fixed_filepath, moving=moving_filepath,
                                                            registration_method=registration_method)
             non_available_uid = True

@@ -6,6 +6,7 @@ from aenum import Enum, unique
 from ..Utils.utilities import get_type_from_string
 from .ClassificationStep import ClassificationStep
 from .SegmentationStep import SegmentationStep
+from .SegmentationRefinementStep import SegmentationRefinementStep
 from .RegistrationStep import RegistrationStep
 from .RegistrationDeployerStep import RegistrationDeployerStep
 from .FeaturesComputationStep import FeaturesComputationStep
@@ -25,6 +26,7 @@ class TaskType(Enum):
     AReg = 3, "Apply registration"
     FComp = 4, "Features computation"
     SRep = 5, "Surgical reporting"
+    SegRef = 6, "Segmentation refinement"
 
     def __str__(self):
         return self.string
@@ -63,6 +65,8 @@ class Pipeline:
                 step = ClassificationStep(self._pipeline_json[s])
             elif task == TaskType.Seg:
                 step = SegmentationStep(self._pipeline_json[s])
+            elif task == TaskType.SegRef:
+                step = SegmentationRefinementStep(self._pipeline_json[s])
             elif task == TaskType.Reg:
                 step = RegistrationStep(self._pipeline_json[s])
             elif task == TaskType.AReg:

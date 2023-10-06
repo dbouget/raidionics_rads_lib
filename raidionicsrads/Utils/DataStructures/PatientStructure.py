@@ -5,7 +5,7 @@ import pandas as pd
 import logging
 from typing import List
 from ..configuration_parser import ResourcesConfiguration
-from ..utilities import input_file_category_disambiguation
+from ..utilities import input_file_category_disambiguation, get_type_from_enum_name
 from .RadiologicalVolumeStructure import RadiologicalVolume
 from .AnnotationStructure import Annotation, AnnotationClassType
 from .RegistrationStructure import Registration
@@ -143,6 +143,71 @@ class PatientParameters:
 
     def include_reporting(self, report_uid, report):
         self._reportings[report_uid] = report
+
+    def get_input_from_json(self, input_json: dict):
+        """
+        Automatic identifies and returns the proper structure instance based on the content of the input json dict.
+        """
+        # Use-case where the input is in its original reference space
+        if input_json["space"]["timestamp"] == input_json["timestamp"] and \
+                input_json["space"]["sequence"] == input_json["sequence"]:
+            volume_uid = self.get_radiological_volume_uid(timestamp=input_json["timestamp"],
+                                                          sequence=input_json["sequence"])
+            # Use-case where the input is actually an annotation and not a raw radiological volume
+            if input_json["labels"]:
+                annotation_type = get_type_from_enum_name(AnnotationClassType, input_json["labels"])
+                anno_uids = self.get_all_annotations_uids_class_radiological_volume(volume_uid=volume_uid,
+                                                                                    annotation_class=annotation_type)
+                if len(anno_uids) != 0:
+                    return self.get_annotation(anno_uids[0])
+                else:
+                    raise ValueError("No annotation file existing for the specified json input with:\n {}.\n".format(input_json))
+            else:
+                return self.get_radiological_volume(volume_uid)
+        else:  # The input is in a registered space
+            volume_uid = self.get_radiological_volume_uid(timestamp=input_json["timestamp"],
+                                                          sequence=input_json["sequence"])
+            if volume_uid == "-1":
+                raise ValueError("No radiological volume for {}.".format(input_json))
+
+            ref_space_uid = self.get_radiological_volume_uid(timestamp=input_json["space"]["timestamp"],
+                                                             sequence=input_json["space"]["sequence"])
+            if ref_space_uid == "-1" and input_json["space"]["timestamp"] != "-1":
+                raise ValueError("No radiological volume for {}.".format(input_json))
+            else:  # @TODO. The reference space is an atlas, have to make an extra-pass for this.
+                pass
+            # Use-case where the input is actually an annotation and not a raw radiological volume
+            if input_json["labels"]:
+                annotation_type = get_type_from_enum_name(AnnotationClassType, input_json["labels"])
+                if annotation_type == -1:
+                    raise ValueError("No radiological volume for {}.".format(input_json))
+
+                anno_uids = self.get_all_annotations_uids_class_radiological_volume(volume_uid=volume_uid,
+                                                                                    annotation_class=annotation_type)
+                if len(anno_uids) == 0:
+                    raise ValueError("No radiological volume for {}.".format(input_json))
+                anno_uid = anno_uids[0]
+                volume = self.get_annotation(annotation_uid=anno_uid).get_registered_volume_info(ref_space_uid)
+                input_fp = volume["filepath"]
+                if not os.path.exists(input_fp):
+                    raise ValueError("No radiological volume for {}.".format(input_json))
+                else:
+                    return volume
+                # Use-case where the provided inputs are already co-registered
+            elif ResourcesConfiguration.getInstance().predictions_use_registered_data:
+                volume = self.get_radiological_volume(volume_uid=volume_uid)
+                input_fp = volume.get_usable_input_filepath()
+                if not os.path.exists(input_fp):
+                    raise ValueError("No radiological volume for {}.".format(input_json))
+                else:
+                    return volume
+            else:
+                volume = self.get_radiological_volume(volume_uid=volume_uid).get_registered_volume_info(ref_space_uid)
+                reg_fp = volume["filepath"]
+                if not os.path.exists(reg_fp):
+                    raise ValueError("No radiological volume for {}.".format(input_json))
+                else:
+                    return volume
 
     def get_all_radiological_volume_uids(self) -> List[str]:
         return list(self._radiological_volumes.keys())

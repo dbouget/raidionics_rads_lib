@@ -24,7 +24,7 @@ def get_type_from_string(enum_type: Enum, string: str) -> Union[str, int]:
 def get_type_from_enum_name(enum_type: Enum, string: str) -> Union[str, int]:
     if type(string) == str:
         for i in range(len(list(enum_type))):
-            if string == list(enum_type)[i].name:
+            if string.lower() == list(enum_type)[i].name.lower():
                 return list(enum_type)[i]
         return -1
     elif type(string) == enum_type:

@@ -63,6 +63,7 @@ class Annotation:
     _annotation_type = None
     _annotation_subtype = None
     _registered_volumes = {}
+    # @TODO. Should we save also if the annotation is manual or automatic?
 
     def __init__(self, uid: str, input_filename: str, output_folder: str, radiological_volume_uid: str,
                  annotation_class: str) -> None:
@@ -93,6 +94,16 @@ class Annotation:
 
     def get_output_folder(self) -> str:
         return self._output_folder
+
+    @property
+    def raw_input_filepath(self) -> str:
+        return self._raw_input_filepath
+
+    # @raw_input_filepath.setter
+    # def raw_input_filepath(self, filepath: str) -> None:
+    #     self._raw_input_filepath = filepath
+    #     # @TODO. To check, might not want to give the option to change input filepath?
+    #     self.__init_from_scratch()
 
     def get_usable_input_filepath(self) -> str:
         return self._usable_input_filepath
