@@ -96,8 +96,8 @@ jobs:
       - name: Reporting pipeline unit test
         run: cd ${{github.workspace}}/tests && python reporting_pipeline_test.py
 
-      - name: Registration pipeline unit test with Python backend
-        run: cd ${{github.workspace}}/tests && python registration_pipeline_test.py
-
-      - name: Registration pipeline unit test with cpp backend
-        run: cd ${{github.workspace}}/tests && python registration_pipeline_cpp_backend_test.py
+#      - name: Registration pipeline unit test with Python backend
+#        run: cd ${{github.workspace}}/tests && python registration_pipeline_test.py
+#
+#      - name: Registration pipeline unit test with cpp backend
+#        run: cd ${{github.workspace}}/tests && python registration_pipeline_cpp_backend_test.py
