@@ -2,6 +2,7 @@ import configparser
 import logging
 import os
 import sys
+import platform
 import datetime
 import time
 from pathlib import PurePath
@@ -341,6 +342,8 @@ class ResourcesConfiguration:
             os.environ["ANTSPATH"] = os.path.join(self.ants_root, "bin")
             self.ants_reg_dir = os.path.join(self.ants_root, 'Scripts')
             self.ants_apply_dir = os.path.join(self.ants_root, 'bin')
+            self.system_ants_backend = 'cpp'
+        elif platform.system() == 'Darwin' and platform.processor() == 'arm':   # Specific for macOS with ARM processor
             self.system_ants_backend = 'cpp'
         else:
             self.system_ants_backend = 'python'
