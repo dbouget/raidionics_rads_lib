@@ -39,10 +39,10 @@ jobs:
 
       - name: Extract ANTs
         run: |
-          cd ${{github.workspace}}/downloads/
-          7z ${{github.workspace}}/downloads/ ${{github.workspace}}/downloads/ANTsX-v2.4.3_windows.zip
-          mkdir ${{github.workspace}}/ANTs
-          mv ${{github.workspace}}/downloads/ANTsX-v2.4.3_windows/install ${{github.workspace}}/ANTs/
+          cd ${{github.workspace}}\downloads\
+          7z ${{github.workspace}}\downloads\ ${{github.workspace}}\downloads\ANTsX-v2.4.3_windows.zip
+          mkdir ${{github.workspace}}\ANTs
+          mv ${{github.workspace}}\downloads\ANTsX-v2.4.3_windows\install ${{github.workspace}}\ANTs\
 
       - name: Install dependencies
         run: |
