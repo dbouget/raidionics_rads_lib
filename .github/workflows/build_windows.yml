@@ -42,7 +42,7 @@ jobs:
           cd ${{github.workspace}}/downloads/
           7z x ${{github.workspace}}/downloads/ANTsX-v2.4.3_windows.zip
           mkdir ${{github.workspace}}/ANTs
-          mv ${{github.workspace}}/downloads/ANTsX-v2.4.3_windows/install ${{github.workspace}}/ANTs/
+#          mv ${{github.workspace}}/downloads/ANTsX-v2.4.3_windows/install ${{github.workspace}}/ANTs/
 
       - name: Install dependencies
         run: |
