@@ -1,7 +1,7 @@
 # Raidionics processing backend for performing segmentation and computation of standardized report (RADS)
 
 [![License](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
-[![](https://img.shields.io/badge/python-3.7|3.8|3.9|3.10|3.11-blue.svg)](https://www.python.org/downloads/)
+[![](https://img.shields.io/badge/python-(3.7)|3.8|3.9|3.10|(3.11)-blue.svg)](https://www.python.org/downloads/)
 [![Paper](https://zenodo.org/badge/DOI/10.3389/fneur.2022.932219.svg)](https://www.frontiersin.org/articles/10.3389/fneur.2022.932219/full)
 
 The code corresponds to the Raidionics backend for running processing pipelines over MRI/CT scans. The segmentation of
