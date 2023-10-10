@@ -338,13 +338,14 @@ class ResourcesConfiguration:
                     os.path.isdir(self.config['System']['ants_root'].split('#')[0].strip()):
                 self.ants_root = self.config['System']['ants_root'].split('#')[0].strip()
 
-        if os.path.exists(self.ants_root) and os.path.exists(os.path.join(self.ants_root, "bin")):
-            os.environ["ANTSPATH"] = os.path.join(self.ants_root, "bin")
+        if platform.system() == 'Darwin' and platform.processor() == 'arm':   # Specific for macOS with ARM processor
+            self.ants_root = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'ANTs')
+            os.environ["ANTSPATH"] = self.ants_root
             self.ants_reg_dir = os.path.join(self.ants_root, 'Scripts')
             self.ants_apply_dir = os.path.join(self.ants_root, 'bin')
             self.system_ants_backend = 'cpp'
-        elif platform.system() == 'Darwin' and platform.processor() == 'arm':   # Specific for macOS with ARM processor
-            os.environ["ANTSPATH"] = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'ANTs')
+        elif os.path.exists(self.ants_root) and os.path.exists(os.path.join(self.ants_root, "bin")):
+            os.environ["ANTSPATH"] = os.path.join(self.ants_root, "bin")
             self.ants_reg_dir = os.path.join(self.ants_root, 'Scripts')
             self.ants_apply_dir = os.path.join(self.ants_root, 'bin')
             self.system_ants_backend = 'cpp'
