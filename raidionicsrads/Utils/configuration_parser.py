@@ -344,6 +344,8 @@ class ResourcesConfiguration:
             self.ants_reg_dir = os.path.join(self.ants_root, 'Scripts')
             self.ants_apply_dir = os.path.join(self.ants_root, 'bin')
             self.system_ants_backend = 'cpp'
+            if not os.path.exists(self.ants_root) or not os.path.exists(os.path.join(self.ants_root, "bin")):
+                raise ValueError("No C++ backend accessible for ANTs on macOS ARM machine!\n")
         elif os.path.exists(self.ants_root) and os.path.exists(os.path.join(self.ants_root, "bin")):
             os.environ["ANTSPATH"] = os.path.join(self.ants_root, "bin")
             self.ants_reg_dir = os.path.join(self.ants_root, 'Scripts')
@@ -351,8 +353,6 @@ class ResourcesConfiguration:
             self.system_ants_backend = 'cpp'
         else:
             self.system_ants_backend = 'python'
-        print("ANTs backend type: {}".format(self.system_ants_backend))
-        print("ANTs backend C++ root folder: {}".format(self.ants_root))
 
         if self.config.has_option('System', 'output_folder'):
             if self.config['System']['output_folder'].split('#')[0].strip() != '':
