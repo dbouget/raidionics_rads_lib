@@ -37,6 +37,7 @@ setup(
             'raidionicsrads.NeuroDiagnosis',
             'raidionicsrads.MediastinumDiagnosis',
             'raidionicsrads.Atlases',
+            'raidionicsrads.ANTs',
             'tests',
         ]
     ),
