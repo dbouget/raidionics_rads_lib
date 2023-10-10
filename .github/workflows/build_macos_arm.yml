@@ -78,7 +78,7 @@ jobs:
           name: "Python wheel"
 
       - name: Install wheel
-        run: pip3 install --find-links=${{github.workspace}} raidionicsrads-*
+        run: pip3 install --force-reinstall --find-links=${{github.workspace}} raidionicsrads-*
         shell: bash
 
       - name: Test CLI
