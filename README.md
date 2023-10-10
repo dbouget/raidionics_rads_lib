@@ -57,7 +57,7 @@ For the preliminary preoperative tumor segmentation validation and software feat
 <details>
 <summary>
 
-# Usage
+## [Usage](https://github.com/raidionics/Raidionics#usage)
 </summary>
 
 ## CLI
