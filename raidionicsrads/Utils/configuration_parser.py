@@ -329,7 +329,7 @@ class ResourcesConfiguration:
                 self.caller = self.config['Default']['caller'].split('#')[0].strip()
 
     def __parse_system_parameters(self):
-        self.ants_root = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'ANTs')
+        self.ants_root = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../', 'ANTs')
         self.ants_reg_dir = ''
         self.ants_apply_dir = ''
 
