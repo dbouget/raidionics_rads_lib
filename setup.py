@@ -14,13 +14,9 @@ with open('requirements.txt', 'r', encoding='utf-16', errors='ignore') as ff:
 #     required.append('scikit-learn==1.0.2')
 #     required.append('statsmodels==0.13.2')
 #     required.append('matplotlib==3.3.4')
-if platform.system() == 'Darwin' and platform.processor() == 'arm':   # Specific for Apple M1 chips
+if platform.system() == 'Darwin' and platform.processor() == 'arm':   # Specific for macOS ARM machines
     required.append('scikit-learn')
     required.append('statsmodels')
-# elif platform.system() == 'Darwin':
-#     required.append('antspyx@https://github.com/ANTsX/ANTsPy/releases/download/v0.3.8/antspyx-0.3.8-cp37-cp37m-macosx_10_9_x86_64.whl')
-# #     required.append('scikit-learn==1.0.2')
-# #     required.append('statsmodels==0.13.2')
 else:
     required.append('antspyx==0.3.8')
 
