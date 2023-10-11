@@ -343,6 +343,12 @@ class ResourcesConfiguration:
             self.ants_reg_dir = os.path.join(self.ants_root, 'Scripts')
             self.ants_apply_dir = os.path.join(self.ants_root, 'bin')
             self.system_ants_backend = 'cpp'
+        elif platform.system() == 'Darwin' and platform.processor() == 'arm':  # Specific for macOS ARM processor
+            # No Python ANTs supported for such machines
+            self.system_ants_backend = 'cpp'
+            if not os.path.exists(self.ants_root):
+                logging.warning("Could not find a valid ANTs root repository at {}.\n ".format(self.ants_root))
+                logging.warning("A valid ANTs directory with the C++ binaries is mandatory for running registration!")
         else:
             self.system_ants_backend = 'python'
 
