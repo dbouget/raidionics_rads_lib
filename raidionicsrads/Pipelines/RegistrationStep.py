@@ -47,6 +47,9 @@ class RegistrationStep(AbstractPipelineStep):
         """
         self._patient_parameters = patient_parameters
         try:
+            if ResourcesConfiguration.getInstance().predictions_use_registered_data:
+                return
+
             moving_volume_uid = self._patient_parameters.get_radiological_volume_uid(timestamp=self._step_json["moving"]["timestamp"],
                                                                                      sequence=self._step_json["moving"]["sequence"])
             if moving_volume_uid != "-1":
@@ -75,6 +78,9 @@ class RegistrationStep(AbstractPipelineStep):
             raise ValueError("[RegistrationStep] Setting up process failed.")
 
     def execute(self):
+        if ResourcesConfiguration.getInstance().predictions_use_registered_data:
+            return self._patient_parameters
+
         fmf, mmf = self.__registration_preprocessing()
         self.__registration(fmf, mmf)
 
@@ -113,10 +119,6 @@ class RegistrationStep(AbstractPipelineStep):
     def __registration(self, fixed_filepath, moving_filepath):
         try:
             registration_method = 'SyN'
-            if ResourcesConfiguration.getInstance().predictions_use_registered_data:
-                # Not performing this step at all would be preferred, but in the meantime doing simply rigid
-                # registration will have a minimal impact on runtime.
-                registration_method = 'QuickRigid'
             logging.info("[RegistrationStep] Using {} ANTs backend.".format(ResourcesConfiguration.getInstance().system_ants_backend))
             if ResourcesConfiguration.getInstance().system_ants_backend == "cpp":
                 logging.info("[RegistrationStep] ANTs root located in {}.".format(ResourcesConfiguration.getInstance().ants_root))
