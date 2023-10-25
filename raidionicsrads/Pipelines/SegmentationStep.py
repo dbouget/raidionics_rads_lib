@@ -62,8 +62,9 @@ class SegmentationStep(AbstractPipelineStep):
             for k in list(self._step_json["inputs"].keys()):
                 input_json = self._step_json["inputs"][k]
                 # Use-case where the radiological volume should be used in its original reference space
-                if input_json["space"]["timestamp"] == input_json["timestamp"] and \
-                        input_json["space"]["sequence"] == input_json["sequence"]:
+                if ((input_json["space"]["timestamp"] == input_json["timestamp"] and
+                    input_json["space"]["sequence"] == input_json["sequence"]) or
+                        ResourcesConfiguration.getInstance().predictions_use_registered_data):
                     volume_uid = self._patient_parameters.get_radiological_volume_uid(timestamp=input_json["timestamp"],
                                                                                       sequence=input_json["sequence"])
                     if volume_uid == "-1":
