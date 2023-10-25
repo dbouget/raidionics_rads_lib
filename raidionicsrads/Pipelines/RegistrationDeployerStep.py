@@ -39,14 +39,23 @@ class RegistrationDeployerStep(AbstractPipelineStep):
 
     def setup(self, patient_parameters):
         """
+
         """
-        self._patient_parameters = patient_parameters
-        self._registration_instance = self._patient_parameters.get_registration_by_json(fixed=self._step_json["fixed"],
-                                                                                  moving=self._step_json["moving"])
-        self._fixed_volume_uid = self._registration_instance._fixed_uid
-        self._moving_volume_uid = self._registration_instance._moving_uid
-        self._registration_runner.reg_transform['fwdtransforms'] = self._registration_instance._forward_filepaths
-        self._registration_runner.reg_transform['invtransforms'] = self._registration_instance._inverse_filepaths
+        try:
+            self._patient_parameters = patient_parameters
+
+            if ResourcesConfiguration.getInstance().predictions_use_registered_data:
+                return
+
+            self._registration_instance = self._patient_parameters.get_registration_by_json(fixed=self._step_json["fixed"],
+                                                                                      moving=self._step_json["moving"])
+            self._fixed_volume_uid = self._registration_instance._fixed_uid
+            self._moving_volume_uid = self._registration_instance._moving_uid
+            self._registration_runner.reg_transform['fwdtransforms'] = self._registration_instance._forward_filepaths
+            self._registration_runner.reg_transform['invtransforms'] = self._registration_instance._inverse_filepaths
+        except Exception as e:
+            logging.error("[RegistrationDeployerStep] Step setup failed with: {}.".format(traceback.format_exc()))
+            raise ValueError("[RegistrationDeployerStep] Step setup failed.")
 
     def execute(self):
         """
@@ -54,14 +63,21 @@ class RegistrationDeployerStep(AbstractPipelineStep):
         @TODO2. Have to take into account the registration direction from [forward, inverse].
         @TODO3. Have to deal with neuro/mediastinum, or more use-cases
         """
-        if self._moving_volume_uid != 'MNI' and self._direction == 'forward':
-            self.__apply_registration()
-            self.__apply_registration_annotations()
-        elif self._moving_volume_uid != 'MNI' and self._direction == 'inverse':
-            self.__apply_registration_atlas_space()
+        try:
+            if ResourcesConfiguration.getInstance().predictions_use_registered_data:
+                return self._patient_parameters
 
-        self._registration_runner.clear_output_folder()
-        return self._patient_parameters
+            if self._moving_volume_uid != 'MNI' and self._direction == 'forward':
+                self.__apply_registration()
+                self.__apply_registration_annotations()
+            elif self._moving_volume_uid != 'MNI' and self._direction == 'inverse':
+                self.__apply_registration_atlas_space()
+
+            self._registration_runner.clear_output_folder()
+            return self._patient_parameters
+        except Exception as e:
+            logging.error("[RegistrationDeployerStep] Registration deployment failed with: {}.".format(traceback.format_exc()))
+            raise ValueError("[RegistrationDeployerStep] Registration deployment failed.")
 
     def __apply_registration(self):
         fixed_filepath = None

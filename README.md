@@ -14,13 +14,13 @@ The module can either be used as a Python library, as CLI, or as Docker containe
 pip install git+https://github.com/dbouget/raidionics_rads_lib.git
 ```
 
-## [Continuous integration](https://github.com/dbouget/raidionics_seg_lib/continuous-integration)
+## [Continuous integration](https://github.com/dbouget/raidionics_rads_lib/continuous-integration)
 
 | Operating System | Status                                                                                                         |
 |------------------|----------------------------------------------------------------------------------------------------------------|
 | **macOS ARM**    | ![CI](https://github.com/dbouget/raidionics_rads_lib/workflows/Build%20macOS%20ARM/badge.svg?branch=macos_arm) |
 
-## [How to cite](https://github.com/raidionics/Raidionics#how-to-cite)
+## [How to cite](https://github.com/dbouget/raidionics_rads_lib#how-to-cite)
 If you are using Raidionics in your research, please cite the following references.
 
 The final software including updated performance metrics for preoperative tumors and introducing postoperative tumor segmentation:
@@ -54,7 +54,7 @@ For the preliminary preoperative tumor segmentation validation and software feat
 <details>
 <summary>
 
-## [Usage](https://github.com/raidionics/Raidionics#usage)
+## [Usage](https://github.com/dbouget/raidionics_rads_lib#usage)
 </summary>
 
 ## CLI
