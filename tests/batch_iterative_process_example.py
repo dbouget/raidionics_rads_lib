@@ -128,8 +128,8 @@ def batch_iterative_process_example():
                 with open(rads_config_filename, 'w') as outfile:
                     rads_config.write(outfile)
                 cmd_docker = ['docker', 'run', '-v', '{}:/home/ubuntu/resources'.format(docker_folder),
-                              '--runtime=nvidia', '--network=host', '--ipc=host', 'dbouget/raidionics-rads:v1.1',
-                              '-c /home/ubuntu/resources/rads_config.ini', '-v', args.verbose]
+                              '--runtime=nvidia', '--network=host', '--ipc=host', 'dbouget/raidionics-rads:v1.2',
+                              '-c', '/home/ubuntu/resources/rads_config.ini', '-v', args.verbose]
                 if platform.system() == 'Windows':
                     subprocess.check_call(cmd_docker, shell=True)
                 else:
