@@ -8,20 +8,20 @@ The code corresponds to the Raidionics backend for running processing pipelines 
 a few organs or tumor types, as well as the generation of standardized reports are included.  
 The module can either be used as a Python library, as CLI, or as Docker container.
 
-## [Installation](https://github.com/dbouget/raidionics_rads_lib/installation)
+## [Installation](https://github.com/dbouget/raidionics_rads_lib#installation)
 
 ```
 pip install git+https://github.com/dbouget/raidionics_rads_lib.git
 ```
 
-## [Continuous integration](https://github.com/dbouget/raidionics_rads_lib/continuous-integration)
+## [Continuous integration](https://github.com/dbouget/raidionics_rads_lib#continuous-integration)
 
-| Operating System | Status                                                                                                      |
-|------------------|-------------------------------------------------------------------------------------------------------------|
-| **Windows**      | ![CI](https://github.com/dbouget/raidionics_rads_lib/workflows/Build%20Windows/badge.svg?branch=master)     |
-| **Ubuntu**       | ![CI](https://github.com/dbouget/raidionics_rads_lib/workflows/Build%20Ubuntu/badge.svg?branch=master)      |
-| **macOS**        | ![CI](https://github.com/dbouget/raidionics_rads_lib/workflows/Build%20macOS/badge.svg?branch=master)       |
-| **macOS ARM**    | ![CI](https://github.com/dbouget/raidionics_rads_lib/workflows/Build%20macOS%20ARM/badge.svg?branch=master) |
+| Operating System | Status                                                                                                                                                                                                     |
+|------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Windows**      | [![Build Windows](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_windows.yml/badge.svg)](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_windows.yml)       |
+| **Ubuntu**       | [![Build Ubuntu](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_ubuntu.yml/badge.svg)](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_ubuntu.yml)          |
+| **macOS**        | [![Build macOS](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_macos.yml/badge.svg)](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_macos.yml)             |
+| **macOS ARM**    | [![Build macOS ARM](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_macos_arm.yml/badge.svg)](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_macos_arm.yml) |
 
 ## [How to cite](https://github.com/dbouget/raidionics_rads_lib#how-to-cite)
 If you are using Raidionics in your research, please cite the following references.
@@ -60,7 +60,7 @@ For the preliminary preoperative tumor segmentation validation and software feat
 ## [Usage](https://github.com/dbouget/raidionics_rads_lib#usage)
 </summary>
 
-## CLI
+### [CLI](https://github.com/dbouget/raidionics_rads_lib#cli)
 ```
 raidionicsrads CONFIG
 ```
@@ -68,13 +68,13 @@ raidionicsrads CONFIG
 CONFIG should point to a configuration file (*.ini), specifying all runtime parameters,
 according to the pattern from [**blank_main_config.ini**](https://github.com/dbouget/raidionics-rads-lib/blob/master/blank_main_config.ini).
 
-## Python module
+### [Python module](https://github.com/dbouget/raidionics_rads_lib#python-module)
 ```
 from raidionicsrads.compute import run_rads
 run_rads(config_filename="/path/to/main_config.ini")
 ```
 
-## Docker
+### [Docker](https://github.com/dbouget/raidionics_rads_lib#docker)
 :warning: The Docker image can only perform inference using the CPU, there is no GPU support at this stage.
 ```
 docker pull dbouget/raidionics-rads:v1.1
@@ -105,7 +105,7 @@ The `<verbose>` level can be selected from [debug, info, warning, error].
 <details>
 <summary>
 
-# Models
+# [Models](https://github.com/dbouget/raidionics_rads_lib#models)
 </summary>
 
 The trained models are automatically downloaded when running Raidionics or Raidionics-Slicer.
@@ -115,7 +115,7 @@ Alternatively, all existing Raidionics models can be browsed [here](https://gith
 <details>
 <summary>
 
-# Developers
+# [Developers](https://github.com/dbouget/raidionics_rads_lib#developers)
 </summary>
 
 ```
