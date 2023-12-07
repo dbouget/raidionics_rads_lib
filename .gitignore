@@ -36,3 +36,4 @@ quickpkg/
 *.csv
 *.zip
 ANTsX/
+notebooks/
