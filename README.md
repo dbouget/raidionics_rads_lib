@@ -16,12 +16,12 @@ pip install git+https://github.com/dbouget/raidionics_rads_lib.git
 
 ## [Continuous integration](https://github.com/dbouget/raidionics_rads_lib#continuous-integration)
 
-| Operating System | Status                                                                                                                                                                                                     |
-|------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Windows**      | [![Build Windows](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_windows.yml/badge.svg)](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_windows.yml)       |
-| **Ubuntu**       | [![Build Ubuntu](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_ubuntu.yml/badge.svg)](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_ubuntu.yml)          |
-| **macOS**        | [![Build macOS](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_macos.yml/badge.svg)](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_macos.yml)             |
-| **macOS ARM**    | [![Build macOS ARM](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_macos_arm.yml/badge.svg)](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_macos_arm.yml) |
+| Operating System | Status                                                                                                                                                                                                                      |
+|------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Windows**      | [![Build Windows](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_windows.yml/badge.svg)](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_windows.yml)                        |
+| **Ubuntu**       | [![Build Ubuntu](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_ubuntu.yml/badge.svg)](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_ubuntu.yml)                           |
+| **macOS**        | [![Build macOS](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_macos.yml/badge.svg)](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_macos.yml)                              |
+| **macOS ARM**    | [![Build macOS ARM](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_macos_arm.yml/badge.svg?branch=macos_arm)](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_macos_arm.yml) |
 
 ## [How to cite](https://github.com/dbouget/raidionics_rads_lib#how-to-cite)
 If you are using Raidionics in your research, please cite the following references.
