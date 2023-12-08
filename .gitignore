@@ -37,3 +37,4 @@ quickpkg/
 *.zip
 ANTsX/
 notebooks/
+.ipynb_checkpoints/
