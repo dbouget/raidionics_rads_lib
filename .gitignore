@@ -38,3 +38,4 @@ quickpkg/
 ANTsX/
 notebooks/
 .ipynb_checkpoints/
+tests
