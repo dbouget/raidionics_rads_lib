@@ -21,6 +21,14 @@ except:
 
 
 def registration_pipeline_docker_test():
+    """
+    Testing the CLI within a Docker container for the registration pipeline unit test, running on CPU.
+    The latest Docker image is being hosted at: dbouget/raidionics-rads:v1.1-py38-cpu
+
+    Returns
+    -------
+
+    """
     logging.basicConfig()
     logging.getLogger().setLevel(logging.DEBUG)
     logging.info("Running registration pipeline unit test in Docker container.\n")
@@ -29,8 +37,7 @@ def registration_pipeline_docker_test():
     if os.path.exists(test_dir):
         shutil.rmtree(test_dir)
     os.makedirs(test_dir)
-    patient_dir = os.path.join(test_dir, 'patients')
-    os.makedirs(patient_dir)
+    patient_dir = os.path.join(test_dir, 'patient')
     output_dir = os.path.join(test_dir, 'results')
     os.makedirs(output_dir)
     models_dir = os.path.join(test_dir, 'models')
@@ -86,10 +93,10 @@ def registration_pipeline_docker_test():
         rads_config.set('Default', 'caller', '')
         rads_config.add_section('System')
         rads_config.set('System', 'gpu_id', "-1")
-        rads_config.set('System', 'input_folder', patient_dir.replace(test_dir, '/home/ubuntu/resources'))
-        rads_config.set('System', 'output_folder', output_dir.replace(test_dir, '/home/ubuntu/resources'))
-        rads_config.set('System', 'model_folder', models_dir.replace(test_dir, '/home/ubuntu/resources'))
-        rads_config.set('System', 'pipeline_filename', os.path.join('/home/ubuntu/resources', 'test_pipeline.json'))
+        rads_config.set('System', 'input_folder', patient_dir.replace(test_dir, '/workspace/resources'))
+        rads_config.set('System', 'output_folder', output_dir.replace(test_dir, '/workspace/resources'))
+        rads_config.set('System', 'model_folder', models_dir.replace(test_dir, '/workspace/resources'))
+        rads_config.set('System', 'pipeline_filename', os.path.join('/workspace/resources', 'test_pipeline.json'))
         rads_config.add_section('Runtime')
         rads_config.set('Runtime', 'reconstruction_method', 'thresholding')
         rads_config.set('Runtime', 'reconstruction_order', 'resample_first')
@@ -154,9 +161,9 @@ def registration_pipeline_docker_test():
         logging.info("Running registration pipeline unit test in Docker container.\n")
         try:
             import platform
-            cmd_docker = ['docker', 'run', '-v', '{}:/home/ubuntu/resources'.format(test_dir),
-                          '--network=host', '--ipc=host', 'dbouget/raidionics-rads:v1.2',
-                          '-c', '/home/ubuntu/resources/results/rads_config.ini', '-v', 'debug']
+            cmd_docker = ['docker', 'run', '-v', '{}:/workspace/resources'.format(test_dir),
+                          '--network=host', '--ipc=host', '--user', str(os.geteuid()), 'dbouget/raidionics-rads:v1.1-py38-cpu',
+                          '-c', '/workspace/resources/results/rads_config.ini', '-v', 'debug']
             logging.info("Executing the following Docker call: {}".format(cmd_docker))
             if platform.system() == 'Windows':
                 subprocess.check_call(cmd_docker, shell=True)
