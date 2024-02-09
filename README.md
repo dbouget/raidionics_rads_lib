@@ -27,7 +27,7 @@ pip install git+https://github.com/dbouget/raidionics_rads_lib.git
 
 ## [Getting started](https://github.com/dbouget/raidionics_rads_lib#getting-started)
 
-### [Notebooks](https://github.com/dbouget/validation_metrics_computation#notebooks)
+### [Notebooks](https://github.com/dbouget/raidionics_rads_lib#notebooks)
 
 Below are Jupyter Notebooks including different examples on how to get started with the segmentation and reporting tasks,
 either over the brain or mediastinal area.
@@ -53,7 +53,7 @@ either over the brain or mediastinal area.
 </summary>
 
 ```
-raidionicsrads CONFIG
+raidionicsrads -c CONFIG (-v debug)
 ```
 
 CONFIG should point to a configuration file (*.ini), specifying all runtime parameters,
@@ -79,14 +79,18 @@ run_rads(config_filename="/path/to/main_config.ini")
 ### [Docker](https://github.com/dbouget/raidionics_rads_lib#docker)
 </summary>
 
+When calling Docker images, the --user flag must be properly used in order for the folders and files created inside
+the container to inherit the proper read/write permissions. The user ID is retrieved on-the-fly in the following
+examples, but it can be given in a more hard-coded fashion if known by the user.
+
 :warning: The Docker image can only perform inference using the CPU, there is no GPU support at this stage.
 ```
-docker pull dbouget/raidionics-rads:v1.1
+docker pull dbouget/raidionics-rads:v1.1-py38-cpu
 ```
 
 For opening the Docker image and interacting with it, run:  
 ```
-docker run --entrypoint /bin/bash -v /home/<username>/<resources_path>:/home/ubuntu/resources -t -i --runtime=nvidia --network=host --ipc=host dbouget/raidionics-rads:v1.1
+docker run --entrypoint /bin/bash -v /home/<username>/<resources_path>:/workspace/resources -t -i --runtime=nvidia --network=host --ipc=host --user $(id -u) dbouget/raidionics-rads:v1.1-py38-cpu
 ```
 
 The `/home/<username>/<resources_path>` before the column sign has to be changed to match a directory on your local 
@@ -96,7 +100,7 @@ be placed.
 
 For launching the Docker image as a CLI, run:  
 ```
-docker run -v /home/<username>/<resources_path>:/home/ubuntu/resources -t -i --runtime=nvidia --network=host --ipc=host dbouget/raidionics-rads:v1.1 -c /home/ubuntu/resources/<path>/<to>/main_config.ini -v <verbose>
+docker run -v /home/<username>/<resources_path>:/workspace/resources -t -i --runtime=nvidia --network=host --ipc=host --user $(id -u) dbouget/raidionics-rads:v1.1-py38-cpu -c /workspace/resources/<path>/<to>/main_config.ini -v <verbose>
 ```
 
 The `<path>/<to>/main_config.ini` must point to a valid configuration file on your machine, as a relative path to the `/home/<username>/<resources_path>` described above.
