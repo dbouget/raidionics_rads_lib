@@ -8,7 +8,7 @@ with open("README.md", "r", errors='ignore') as f:
 with open('requirements.txt', 'r', encoding='utf-16', errors='ignore') as ff:
     required = ff.read().splitlines()
 
-if platform.system() == 'Windows' and sys.version_info.minor == 7: # Required to avoid building the wheel (which fails)
+if platform.system() == 'Windows' and sys.version_info.minor == 7:  # Required to avoid building the wheel (which fails)
      required.append('antspyx@https://github.com/ANTsX/ANTsPy/releases/download/v0.3.8/antspyx-0.3.8-cp37-cp37m-win_amd64.whl')
 elif platform.system() == 'Darwin' and platform.processor() == 'arm':   # Specific for Apple M1 chips
     required.append('scikit-learn')
