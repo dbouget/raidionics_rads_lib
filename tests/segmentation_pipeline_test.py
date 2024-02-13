@@ -29,8 +29,7 @@ def segmentation_pipeline_test():
     if os.path.exists(test_dir):
         shutil.rmtree(test_dir)
     os.makedirs(test_dir)
-    patient_dir = os.path.join(test_dir, 'patients')
-    os.makedirs(patient_dir)
+    patient_dir = os.path.join(test_dir, 'patient')
     output_dir = os.path.join(test_dir, 'results')
     os.makedirs(output_dir)
     models_dir = os.path.join(test_dir, 'models')

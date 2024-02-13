@@ -10,7 +10,7 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install dependencies
         run: |
           arch -arm64 brew reinstall zlib
@@ -30,7 +30,7 @@ jobs:
             command: pip3 install -U pip3 wheel setuptools
 
       - name: Collect submodules
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
@@ -52,7 +52,7 @@ jobs:
         run: python3 setup.py bdist_wheel --plat-name macosx_11_0_arm64
 
       - name: Upload Python wheel
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Python wheel
           path: ${{github.workspace}}/dist/raidionicsrads-*.whl
@@ -72,7 +72,7 @@ jobs:
           default: ${{ matrix.python-version }}
 
       - name: Download artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: "Python wheel"
 
@@ -86,7 +86,7 @@ jobs:
           python3 -m raidionicsseg --help
 
       - name: Clone repo
-        uses: actions/checkout@v1
+        uses: actions/checkout@v4
 
       - name: Segmentation pipeline unit test
         run: cd ${{github.workspace}}/tests && python3 segmentation_pipeline_test.py
