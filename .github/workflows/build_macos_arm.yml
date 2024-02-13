@@ -108,4 +108,4 @@ jobs:
           run: cd ${{github.workspace}}/tests && python3 reporting_pipeline_test.py
 
         - name: Registration pipeline unit test with Python backend
-          run: cd ${{github.workspace}}/tests && python registration_pipeline_test.py
+          run: cd ${{github.workspace}}/tests && python3 registration_pipeline_test.py
