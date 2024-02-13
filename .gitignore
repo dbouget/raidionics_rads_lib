@@ -36,3 +36,6 @@ quickpkg/
 *.csv
 *.zip
 ANTsX/
+notebooks/
+.ipynb_checkpoints/
+tests

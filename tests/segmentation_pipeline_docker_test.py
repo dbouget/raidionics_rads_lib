@@ -20,17 +20,24 @@ except:
     import gdown
 
 
-def registration_pipeline_test():
+def segmentation_pipeline_docker_test():
+    """
+    Testing the CLI within a Docker container for the segmentation pipeline unit test, running on CPU.
+    The latest Docker image is being hosted at: dbouget/raidionics-rads:v1.1-py38-cpu
+
+    Returns
+    -------
+
+    """
     logging.basicConfig()
     logging.getLogger().setLevel(logging.DEBUG)
-    logging.info("Running registration pipeline unit test.\n")
+    logging.info("Running segmentation pipeline unit test in Docker container.\n")
     logging.info("Downloading unit test resources.\n")
     test_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'unit_tests_results_dir')
     if os.path.exists(test_dir):
         shutil.rmtree(test_dir)
     os.makedirs(test_dir)
-    patient_dir = os.path.join(test_dir, 'patients')
-    os.makedirs(patient_dir)
+    patient_dir = os.path.join(test_dir, 'patient')
     output_dir = os.path.join(test_dir, 'results')
     os.makedirs(output_dir)
     models_dir = os.path.join(test_dir, 'models')
@@ -86,10 +93,10 @@ def registration_pipeline_test():
         rads_config.set('Default', 'caller', '')
         rads_config.add_section('System')
         rads_config.set('System', 'gpu_id', "-1")
-        rads_config.set('System', 'input_folder', patient_dir)
-        rads_config.set('System', 'output_folder', output_dir)
-        rads_config.set('System', 'model_folder', models_dir)
-        rads_config.set('System', 'pipeline_filename', os.path.join(test_dir, 'test_pipeline.json'))
+        rads_config.set('System', 'input_folder', patient_dir.replace(test_dir, '/workspace/resources'))
+        rads_config.set('System', 'output_folder', output_dir.replace(test_dir, '/workspace/resources'))
+        rads_config.set('System', 'model_folder', models_dir.replace(test_dir, '/workspace/resources'))
+        rads_config.set('System', 'pipeline_filename', os.path.join('/workspace/resources', 'test_pipeline.json'))
         rads_config.add_section('Runtime')
         rads_config.set('Runtime', 'reconstruction_method', 'thresholding')
         rads_config.set('Runtime', 'reconstruction_order', 'resample_first')
@@ -123,72 +130,43 @@ def registration_pipeline_test():
         pipeline_json[step_str]["format"] = "thresholding"
         pipeline_json[step_str]["description"] = "Brain segmentation in T1-CE (T0)."
 
-        step_index = step_index + 1
-        step_str = str(step_index)
-        pipeline_json[step_str] = {}
-        pipeline_json[step_str]["task"] = "Registration"
-        pipeline_json[step_str]["moving"] = {}
-        pipeline_json[step_str]["moving"]["timestamp"] = 0
-        pipeline_json[step_str]["moving"]["sequence"] = "T1-CE"
-        pipeline_json[step_str]["fixed"] = {}
-        pipeline_json[step_str]["fixed"]["timestamp"] = 0
-        pipeline_json[step_str]["fixed"]["sequence"] = "T1-CE"
-        pipeline_json[step_str]["description"] = "Registration from T1CE (T0) to T1CE (T0)."
-
-        step_index = step_index + 1
-        step_str = str(step_index)
-        pipeline_json[step_str] = {}
-        pipeline_json[step_str]["task"] = "Apply registration"
-        pipeline_json[step_str]["moving"] = {}
-        pipeline_json[step_str]["moving"]["timestamp"] = 0
-        pipeline_json[step_str]["moving"]["sequence"] = "T1-CE"
-        pipeline_json[step_str]["fixed"] = {}
-        pipeline_json[step_str]["fixed"]["timestamp"] = 0
-        pipeline_json[step_str]["fixed"]["sequence"] = "T1-CE"
-        pipeline_json[step_str]["direction"] = "forward"
-        pipeline_json[step_str]["description"] = "Apply registration from T1CE (T0) to T1CE (T0)."
-
         with open(os.path.join(test_dir, 'test_pipeline.json'), 'w', newline='\n') as outfile:
             json.dump(pipeline_json, outfile, indent=4, sort_keys=True)
 
-        logging.info("Running registration pipeline unit test.\n")
-        from raidionicsrads.compute import run_rads
-        run_rads(rads_config_filename)
-
-        logging.info("Collecting and comparing results.\n")
-        # @TODO. How to check/compare results?
-
-        logging.info("Registration CLI unit test started.\n")
+        logging.info("Running segmentation pipeline unit test in Docker container.\n")
         try:
             import platform
+            cmd_docker = ['docker', 'run', '-v', '{}:/workspace/resources'.format(test_dir),
+                          '--network=host', '--ipc=host', '--user', str(os.geteuid()), 'dbouget/raidionics-rads:v1.1-py38-cpu',
+                          '-c', '/workspace/resources/results/rads_config.ini', '-v', 'debug']
+            logging.info("Executing the following Docker call: {}".format(cmd_docker))
             if platform.system() == 'Windows':
-                subprocess.check_call(['raidionicsrads',
-                                       '{config}'.format(config=rads_config_filename),
-                                       '--verbose', 'debug'], shell=True)
-            elif platform.system() == 'Darwin' and platform.processor() == 'arm':
-                subprocess.check_call(['python3', '-m', 'raidionicsrads',
-                                       '{config}'.format(config=rads_config_filename),
-                                       '--verbose', 'debug'])
+                subprocess.check_call(cmd_docker, shell=True)
             else:
-                subprocess.check_call(['raidionicsrads',
-                                       '{config}'.format(config=rads_config_filename),
-                                       '--verbose', 'debug'])
+                subprocess.check_call(cmd_docker)
         except Exception as e:
-            logging.error("Error during registration pipeline CLI unit test with: \n {}.\n".format(traceback.format_exc()))
-            shutil.rmtree(test_dir)
-            raise ValueError("Error during registration pipeline CLI unit test.\n")
+            logging.error("Error during segmentation pipeline unit test in Docker container with: \n {}.\n".format(traceback.format_exc()))
+            if os.path.exists(test_dir):
+                shutil.rmtree(test_dir)
+            raise ValueError("Error during segmentation pipeline unit test in Docker container.\n")
 
         logging.info("Collecting and comparing results.\n")
-        # @TODO. How to check/compare results?
-
-        logging.info("Registration CLI unit test succeeded.\n")
+        automatic_seg_filename = os.path.join(output_dir, 'T0', 'input1_annotation-Brain.nii.gz')
+        if not os.path.exists(automatic_seg_filename):
+            logging.error("Segmentation pipeline unit test in Docker container failed, no segmentation was generated.\n")
+            if os.path.exists(test_dir):
+                shutil.rmtree(test_dir)
+            raise ValueError("Segmentation pipeline unit test in Docker container failed, no segmentation was generated.\n")
+        logging.info("Standardized reporting unit test in Docker container succeeded.\n")
     except Exception as e:
-        logging.error("Error during registration pipeline unit test with: \n {}.\n".format(traceback.format_exc()))
+        logging.error("Error during segmentation pipeline unit test in Docker container with: \n {}.\n".format(traceback.format_exc()))
+        if os.path.exists(test_dir):
+            shutil.rmtree(test_dir)
+        raise ValueError("Error during segmentation pipeline unit test in Docker container with.\n")
+
+    logging.info("Segmentation pipeline unit test in Docker container succeeded.\n")
+    if os.path.exists(test_dir):
         shutil.rmtree(test_dir)
-        raise ValueError("Error during registration pipeline unit test with.\n")
-
-    logging.info("Registration pipeline unit test succeeded.\n")
-    shutil.rmtree(test_dir)
 
 
-registration_pipeline_test()
+segmentation_pipeline_docker_test()

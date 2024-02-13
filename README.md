@@ -3,25 +3,112 @@
 [![License](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
 [![](https://img.shields.io/badge/python-(3.7)|3.8|3.9|3.10|(3.11)-blue.svg)](https://www.python.org/downloads/)
 [![Paper](https://zenodo.org/badge/DOI/10.3389/fneur.2022.932219.svg)](https://www.frontiersin.org/articles/10.3389/fneur.2022.932219/full)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/gist/dbouget/fdd4d034a2351b2ce7ab624ffb646ab5/01_run_simple_segmentation.ipynb)
 
 The code corresponds to the Raidionics backend for running processing pipelines over MRI/CT scans. The segmentation of
 a few organs or tumor types, as well as the generation of standardized reports are included.  
 The module can either be used as a Python library, as CLI, or as Docker container.
 
-## [Installation](https://github.com/dbouget/raidionics_rads_lib/installation)
+## [Installation](https://github.com/dbouget/raidionics_rads_lib#installation)
 
 ```
 pip install git+https://github.com/dbouget/raidionics_rads_lib.git
 ```
 
-## [Continuous integration](https://github.com/dbouget/raidionics_rads_lib/continuous-integration)
+## [Continuous integration](https://github.com/dbouget/raidionics_rads_lib#continuous-integration)
 
-| Operating System | Status                                                                                                      |
-|------------------|-------------------------------------------------------------------------------------------------------------|
-| **Windows**      | ![CI](https://github.com/dbouget/raidionics_rads_lib/workflows/Build%20Windows/badge.svg?branch=master)     |
-| **Ubuntu**       | ![CI](https://github.com/dbouget/raidionics_rads_lib/workflows/Build%20Ubuntu/badge.svg?branch=master)      |
-| **macOS**        | ![CI](https://github.com/dbouget/raidionics_rads_lib/workflows/Build%20macOS/badge.svg?branch=master)       |
-| **macOS ARM**    | ![CI](https://github.com/dbouget/raidionics_rads_lib/workflows/Build%20macOS%20ARM/badge.svg?branch=master) |
+| Operating System | Status                                                                                                                                                                                                                      |
+|------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Windows**      | [![Build Windows](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_windows.yml/badge.svg)](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_windows.yml)                        |
+| **Ubuntu**       | [![Build Ubuntu](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_ubuntu.yml/badge.svg)](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_ubuntu.yml)                           |
+| **macOS**        | [![Build macOS](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_macos.yml/badge.svg)](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_macos.yml)                              |
+| **macOS ARM**    | [![Build macOS ARM](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_macos_arm.yml/badge.svg?branch=macos_arm)](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_macos_arm.yml) |
+
+
+## [Getting started](https://github.com/dbouget/raidionics_rads_lib#getting-started)
+
+### [Notebooks](https://github.com/dbouget/raidionics_rads_lib#notebooks)
+
+Below are Jupyter Notebooks including different examples on how to get started with the segmentation and reporting tasks,
+either over the brain or mediastinal area.
+
+<div style="display: flex;">
+  <div style="flex: 1; margin-right: 20px;">
+
+| Notebook                       | Clinical target     | Colab                                                                                                                                                                                                                                            | GitHub                                                                                                                                                                                              |
+|--------------------------------|---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Preoperative Segmentation**  | :brain: Neuro       | <a href="https://colab.research.google.com/gist/dbouget/fdd4d034a2351b2ce7ab624ffb646ab5/01_run_simple_segmentation.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>        | [![View on GitHub](https://img.shields.io/badge/View%20on%20GitHub-blue?logo=github)](https://github.com/dbouget/raidionics_rads_lib/blob/master/notebooks/01_run_simple_segmentation.ipynb)        |
+| **Preoperative Segmentation**  | :lungs: Mediastinum | <a href="https://colab.research.google.com/gist/dbouget/c53fb8671345b30a53b274feed82faf1/05_run_segmentation_mediastinum.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>        | [![View on GitHub](https://img.shields.io/badge/View%20on%20GitHub-blue?logo=github)](https://github.com/dbouget/raidionics_rads_lib/blob/master/notebooks/05_run_segmentation_mediastinum.ipynb)   |
+| **Postoperative Segmentation** | :brain: Neuro       | <a href="https://colab.research.google.com/gist/dbouget/1381a91b5b8f63ef41e71f9a46c9da28/03_run_postoperative_segmentation.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a> | [![View on GitHub](https://img.shields.io/badge/View%20on%20GitHub-blue?logo=github)](https://github.com/dbouget/raidionics_rads_lib/blob/master/notebooks/03_run_postoperative_segmentation.ipynb) |
+| **Preoperative Reporting**     | :brain: Neuro       | <a href="https://colab.research.google.com/gist/dbouget/f87576cdae559ce2a328f0ba7f60828d/02_run_simple_reporting.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>           | [![View on GitHub](https://img.shields.io/badge/View%20on%20GitHub-blue?logo=github)](https://github.com/dbouget/raidionics_rads_lib/blob/master/notebooks/02_run_simple_reporting.ipynb)           |
+| **Postoperative Reporting**    | :brain: Neuro       | <a href="https://colab.research.google.com/gist/dbouget/983c8e2c6968e8d48f798972ed9f4988/04_run_postoperative_reporting.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>           | [![View on GitHub](https://img.shields.io/badge/View%20on%20GitHub-blue?logo=github)](https://github.com/dbouget/raidionics_rads_lib/blob/master/notebooks/04_run_postoperative_reporting.ipynb)    |
+
+  </div>
+</div>
+
+<details>
+<summary>
+
+### [CLI](https://github.com/dbouget/raidionics_rads_lib#cli)
+</summary>
+
+```
+raidionicsrads -c CONFIG (-v debug)
+```
+
+CONFIG should point to a configuration file (*.ini), specifying all runtime parameters,
+according to the pattern from [**blank_main_config.ini**](https://github.com/dbouget/raidionics-rads-lib/blob/master/blank_main_config.ini).
+</details>
+
+<details>
+<summary>
+
+### [Python module](https://github.com/dbouget/raidionics_rads_lib#python-module)
+</summary>
+
+```
+from raidionicsrads.compute import run_rads
+run_rads(config_filename="/path/to/main_config.ini")
+```
+
+</details>
+
+<details>
+<summary>
+
+### [Docker](https://github.com/dbouget/raidionics_rads_lib#docker)
+</summary>
+
+When calling Docker images, the --user flag must be properly used in order for the folders and files created inside
+the container to inherit the proper read/write permissions. The user ID is retrieved on-the-fly in the following
+examples, but it can be given in a more hard-coded fashion if known by the user.
+
+:warning: The Docker image can only perform inference using the CPU, there is no GPU support at this stage.
+```
+docker pull dbouget/raidionics-rads:v1.1-py38-cpu
+```
+
+For opening the Docker image and interacting with it, run:  
+```
+docker run --entrypoint /bin/bash -v /home/<username>/<resources_path>:/workspace/resources -t -i --runtime=nvidia --network=host --ipc=host --user $(id -u) dbouget/raidionics-rads:v1.1-py38-cpu
+```
+
+The `/home/<username>/<resources_path>` before the column sign has to be changed to match a directory on your local 
+machine containing the data to expose to the docker image. Namely, it must contain folder(s) with images you want to 
+run inference on, as long as a folder with the trained models to use, and a destination folder where the results will 
+be placed.
+
+For launching the Docker image as a CLI, run:  
+```
+docker run -v /home/<username>/<resources_path>:/workspace/resources -t -i --runtime=nvidia --network=host --ipc=host --user $(id -u) dbouget/raidionics-rads:v1.1-py38-cpu -c /workspace/resources/<path>/<to>/main_config.ini -v <verbose>
+```
+
+The `<path>/<to>/main_config.ini` must point to a valid configuration file on your machine, as a relative path to the `/home/<username>/<resources_path>` described above.
+For example, if the file is located on my machine under `/home/myuser/Data/RADS/main_config.ini`, 
+and that `/home/myuser/Data` is the mounted resources partition mounted on the Docker image, the new relative path will be `RADS/main_config.ini`.  
+The `<verbose>` level can be selected from [debug, info, warning, error].
+
+</details>
 
 ## [How to cite](https://github.com/dbouget/raidionics_rads_lib#how-to-cite)
 If you are using Raidionics in your research, please cite the following references.
@@ -57,55 +144,7 @@ For the preliminary preoperative tumor segmentation validation and software feat
 <details>
 <summary>
 
-## [Usage](https://github.com/dbouget/raidionics_rads_lib#usage)
-</summary>
-
-## CLI
-```
-raidionicsrads CONFIG
-```
-
-CONFIG should point to a configuration file (*.ini), specifying all runtime parameters,
-according to the pattern from [**blank_main_config.ini**](https://github.com/dbouget/raidionics-rads-lib/blob/master/blank_main_config.ini).
-
-## Python module
-```
-from raidionicsrads.compute import run_rads
-run_rads(config_filename="/path/to/main_config.ini")
-```
-
-## Docker
-:warning: The Docker image can only perform inference using the CPU, there is no GPU support at this stage.
-```
-docker pull dbouget/raidionics-rads:v1.1
-```
-
-For opening the Docker image and interacting with it, run:  
-```
-docker run --entrypoint /bin/bash -v /home/<username>/<resources_path>:/home/ubuntu/resources -t -i --runtime=nvidia --network=host --ipc=host dbouget/raidionics-rads:v1.1
-```
-
-The `/home/<username>/<resources_path>` before the column sign has to be changed to match a directory on your local 
-machine containing the data to expose to the docker image. Namely, it must contain folder(s) with images you want to 
-run inference on, as long as a folder with the trained models to use, and a destination folder where the results will 
-be placed.
-
-For launching the Docker image as a CLI, run:  
-```
-docker run -v /home/<username>/<resources_path>:/home/ubuntu/resources -t -i --runtime=nvidia --network=host --ipc=host dbouget/raidionics-rads:v1.1 -c /home/ubuntu/resources/<path>/<to>/main_config.ini -v <verbose>
-```
-
-The `<path>/<to>/main_config.ini` must point to a valid configuration file on your machine, as a relative path to the `/home/<username>/<resources_path>` described above.
-For example, if the file is located on my machine under `/home/myuser/Data/RADS/main_config.ini`, 
-and that `/home/myuser/Data` is the mounted resources partition mounted on the Docker image, the new relative path will be `RADS/main_config.ini`.  
-The `<verbose>` level can be selected from [debug, info, warning, error].
-
-</details>
-
-<details>
-<summary>
-
-# Models
+## [Models](https://github.com/dbouget/raidionics_rads_lib#models)
 </summary>
 
 The trained models are automatically downloaded when running Raidionics or Raidionics-Slicer.
@@ -115,7 +154,7 @@ Alternatively, all existing Raidionics models can be browsed [here](https://gith
 <details>
 <summary>
 
-# Developers
+## [Developers](https://github.com/dbouget/raidionics_rads_lib#developers)
 </summary>
 
 ```

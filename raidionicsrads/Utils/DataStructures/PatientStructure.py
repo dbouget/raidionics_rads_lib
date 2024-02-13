@@ -3,6 +3,7 @@ import numpy as np
 import re
 import pandas as pd
 import logging
+import nibabel as nib
 from typing import List
 from ..configuration_parser import ResourcesConfiguration
 from ..utilities import input_file_category_disambiguation, get_type_from_enum_name
@@ -51,6 +52,9 @@ class PatientParameters:
     def __init_from_scratch(self):
         """
         Iterating through the patient folder to identify the radiological volumes for each timestamp.
+
+        In case of stripped inputs (i.e., skull-stripped or lung-stripped), the corresponding mask should be created
+        for each input
         """
         timestamp_folders = []
         for _, dirs, _ in os.walk(self._input_filepath):
@@ -134,6 +138,30 @@ class PatientParameters:
                     volume_object.set_sequence_type(df.loc[df['File'] == vn]['MRI sequence'].values[0])
                 else:
                     logging.warning("[PatientStructure] Filename {} not matching any radiological volume volume.".format(vn))
+
+        # Setting up masks (i.e., brain or lungs) if stripped inputs are used.
+        if ResourcesConfiguration.getInstance().predictions_use_stripped_data:
+            target_type = AnnotationClassType.Brain if ResourcesConfiguration.getInstance().diagnosis_task == 'neuro_diagnosis' else AnnotationClassType.Lungs
+            for uid in self.get_all_radiological_volume_uids():
+                volume = self.get_radiological_volume(uid)
+                volume_nib = nib.load(volume.get_raw_input_filepath())
+                img_data = volume_nib.get_fdata()[:]
+                mask = np.zeros(img_data.shape)
+                mask[img_data != 0] = 1
+                mask_fn = os.path.join(volume.get_output_folder(),
+                                       os.path.basename(volume.get_raw_input_filepath()).split('.')[0] + '_label_' + str(target_type) + '.nii.gz')
+
+                nib.save(nib.Nifti1Image(mask, affine=volume_nib.affine), mask_fn)
+                non_available_uid = True
+                anno_uid = None
+                while non_available_uid:
+                    anno_uid = 'A' + str(np.random.randint(0, 10000))
+                    if anno_uid not in self.get_all_annotations_uids():
+                        non_available_uid = False
+                self._annotation_volumes[anno_uid] = Annotation(uid=data_uid, input_filename=mask_fn,
+                                                                output_folder=volume.get_output_folder(),
+                                                                radiological_volume_uid=uid,
+                                                                annotation_class=target_type)
 
     def include_annotation(self, anno_uid, annotation):
         self._annotation_volumes[anno_uid] = annotation
