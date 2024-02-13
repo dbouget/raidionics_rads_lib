@@ -1,19 +1,30 @@
 name: Build macOS ARM
 
 on:
-  # Allows to run the workflow manually from the Actions tab
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches: [master, release]
   workflow_dispatch:
+
+env:
+  MACOSX_DEPLOYMENT_TARGET: 11.0
 
 jobs:
   build:
-    name: Build RADS lib on MacOS ARM
-    runs-on: self-hosted
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: macos-14
+            TARGET: macos
+            CMD_BUILD: python3 setup.py bdist_wheel --plat-name macosx_11_0_arm64
 
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
-        run: |
-          arch -arm64 brew reinstall zlib
+        run: arch -arm64 brew reinstall zlib
 
       - name: Setup pyenv
         env:
@@ -24,9 +35,9 @@ jobs:
           LDFLAGS: "-L/usr/local/opt/zlib/lib"
           CPPFLAGS: "-I/usr/local/opt/zlib/include"
           PKG_CONFIG_PATH: "/usr/local/opt/zlib/lib/pkgconfig"
-        uses: "gabrielfalcao/pyenv-action@v13"
+        uses: "gabrielfalcao/pyenv-action@v18"
         with:
-            default: 3.7
+            default: "3.9"
             command: pip3 install -U pip3 wheel setuptools
 
       - name: Collect submodules
@@ -48,8 +59,8 @@ jobs:
           tar -xzf ANTsX-v2.4.3_macos_arm.tar.gz -C ${{github.workspace}}/downloads/
           mv ${{github.workspace}}/downloads/install ${{github.workspace}}/raidionicsrads/ANTs/
 
-      - name: Building wheel for macOS ARM
-        run: python3 setup.py bdist_wheel --plat-name macosx_11_0_arm64
+      - name: Built wheel for ${{matrix.TARGET}}
+        run: ${{matrix.CMD_BUILD}}
 
       - name: Upload Python wheel
         uses: actions/upload-artifact@v4
@@ -62,34 +73,39 @@ jobs:
     needs: build
     strategy:
       matrix:
-        python-version: ["3.7", "3.8", "3.9", "3.10"]
-    runs-on: self-hosted
+        os: [macos-14]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
+    runs-on: ${{ matrix.os }}
 
     steps:
-      - name: Setup pyenv for Python ${{ matrix.python-version }}
-        uses: "gabrielfalcao/pyenv-action@v13"
-        with:
-          default: ${{ matrix.python-version }}
+        - name: Set up pyenv using Python ${{ matrix.python-version }}
+          uses: "gabrielfalcao/pyenv-action@v18"
+          with:
+              default: ${{ matrix.python-version }}
+              command: pip3 install -U pip3 wheel setuptools
 
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: "Python wheel"
+        - name: Download artifact
+          uses: actions/download-artifact@v4
+          with:
+            name: "Python wheel"
 
-      - name: Install wheel
-        run: pip3 install --force-reinstall --find-links=${{github.workspace}} raidionicsrads-*
-        shell: bash
+        - name: Install wheel
+          run: pip3 install --default-timeout=100 --find-links=${{github.workspace}} raidionicsrads-*
+          shell: bash
 
-      - name: Test CLI
-        run: |
-          python3 -m raidionicsrads --help
-          python3 -m raidionicsseg --help
+        - name: Test CLI
+          run: |
+            python3 -m raidionicsrads --help
+            python3 -m raidionicsseg --help
 
-      - name: Clone repo
-        uses: actions/checkout@v4
+        - name: Clone repo
+          uses: actions/checkout@v4
 
-      - name: Segmentation pipeline unit test
-        run: cd ${{github.workspace}}/tests && python3 segmentation_pipeline_test.py
+        - name: Segmentation pipeline unit test
+          run: cd ${{github.workspace}}/tests && python3 segmentation_pipeline_test.py
 
-      - name: Reporting pipeline unit test
-        run: cd ${{github.workspace}}/tests && python3 reporting_pipeline_test.py
+        - name: Reporting pipeline unit test
+          run: cd ${{github.workspace}}/tests && python3 reporting_pipeline_test.py
+
+        - name: Registration pipeline unit test with Python backend
+          run: cd ${{github.workspace}}/tests && python registration_pipeline_test.py
