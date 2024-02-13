@@ -22,14 +22,14 @@ jobs:
             CMD_BUILD: python setup.py bdist_wheel --plat-name macosx_10_15_x86_64
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python 3.7
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.7"
 
       - name: Collect submodules
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
@@ -57,7 +57,7 @@ jobs:
         run: ${{matrix.CMD_BUILD}}
 
       - name: Upload Python wheel
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Python wheel
           path: ${{github.workspace}}/dist/raidionicsrads-*.whl
@@ -73,12 +73,12 @@ jobs:
 
     steps:
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Download artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: "Python wheel"
 
@@ -92,7 +92,7 @@ jobs:
           raidionicsseg --help
 
       - name: Clone repo
-        uses: actions/checkout@v1
+        uses: actions/checkout@v4
 
       - name: Segmentation pipeline unit test
         run: cd ${{github.workspace}}/tests && python segmentation_pipeline_test.py
