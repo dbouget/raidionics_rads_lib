@@ -99,7 +99,12 @@ def compute_neuro_report(input_filename: str, report: NeuroReportingStructure) -
         else:
             report._statistics['Main']['Overall'].mni_space_subcortical_structures_overlap[s] = overlaps
             report._statistics['Main']['Overall'].mni_space_subcortical_structures_distance[s] = distances
-
+    for s in ResourcesConfiguration.getInstance().neuro_features_braingrid:
+        overlap_per_voxel, infiltrated_voxels = compute_braingrid_voxels_infiltration(volume=refined_image,
+                                                                                       category='Main',
+                                                                                       reference=s)
+        report._statistics['Main']['Overall'].mni_space_braingrid_infiltration_overlap[s] = overlap_per_voxel
+        report._statistics['Main']['Overall'].mni_space_braingrid_infiltration_count = infiltrated_voxels
     return report
 
 
@@ -177,6 +182,30 @@ def compute_subcortical_structures_location(volume, category=None, reference='BC
             print(traceback.format_exc())
             distances[tfn] = dist
     return overlaps, distances
+
+
+def compute_braingrid_voxels_infiltration(volume, category=None, reference='Voxels'):
+    logging.debug("Computing BrainGrid infiltration with {}.".format(reference))
+    regions_data = ResourcesConfiguration.getInstance().braingrid_structures['MNI'][reference]
+    region_mask_ni = nib.load(regions_data['Mask'])
+    region_mask = region_mask_ni.get_fdata()
+    lobes_description = pd.read_csv(regions_data['Description'])
+
+    total_voxels_labels = np.unique(region_mask)[1:]  # Removing the background label with value 0.
+    overlap_per_voxel = {}
+    infiltrated_voxels = 0
+    for li in total_voxels_labels:
+        overlap = volume[region_mask == li]
+        ratio_in_voxel = np.count_nonzero(overlap) / np.count_nonzero(volume)
+        overlap = np.round(ratio_in_voxel * 100., 2)
+        region_name = ''
+        if reference == 'Voxels':
+            region_name = '_'.join(lobes_description.loc[lobes_description['Label'] == li]['Region'].values[0].strip().split(' '))
+        overlap_per_voxel[region_name] = overlap
+        if overlap > 0:
+            infiltrated_voxels += 1
+
+    return overlap_per_voxel, infiltrated_voxels
 
 
 def compute_surgical_report(preop_filename, postop_filename, report):

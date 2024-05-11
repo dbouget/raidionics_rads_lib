@@ -178,3 +178,106 @@ def prediction_binary_dilation(prediction: np.ndarray, voxel_volume: float, arg:
         res[seg_dil == 1] = 1
 
     return res
+
+def convert_braingrid_to_mni():
+    import nibabel as nib
+    from nibabel.processing import resample_to_output
+    input_folder = '/home/dbouget/Documents/Code/Private/raidionics_rads_lib/raidionicsrads/Atlases/BrainGrid/BrainGrid_voxels'
+    output_folder = '/home/dbouget/Documents/Code/Private/raidionics_rads_lib/raidionicsrads/Atlases/BrainGrid/BrainGrid_voxels_correct'
+    input_files = []
+
+    for _, _, files in os.walk(input_folder):
+        for f in files:
+            if ".nii.gz" in f:
+                input_files.append(f)
+        break
+
+    atlas_ni = nib.load('/home/dbouget/Documents/Code/Private/raidionics_rads_lib/raidionicsrads/Atlases/mni_icbm152_nlin_sym_09a/mni_icbm152_t1_tal_nlin_sym_09a.nii')
+    atlas = atlas_ni.get_fdata()[:]
+    for f in input_files:
+        fn = os.path.join(input_folder, f)
+        region_ni = nib.load(fn)
+        region_res_ni = resample_to_output(region_ni, (1,1,1), order=0)
+        region_res = region_res_ni.get_fdata()
+        final_region_res = np.zeros(atlas.shape)
+        final_region_res[22:177, 24:211, 22:157] = region_res
+        final_region_res_ni = nib.Nifti1Image(final_region_res, atlas_ni.affine, atlas_ni.header)
+        nib.save(final_region_res_ni, os.path.join(output_folder, f))
+
+def convert_braingrid_wm_to_mni():
+    import nibabel as nib
+    from nibabel.processing import resample_to_output
+    input_folder = '/home/dbouget/Documents/Code/Private/raidionics_rads_lib/raidionicsrads/Atlases/BrainGrid/BrainGrid_white_matter_atlas'
+    output_folder = '/home/dbouget/Documents/Code/Private/raidionics_rads_lib/raidionicsrads/Atlases/BrainGrid/BrainGrid_white_matter_atlas_correct'
+    input_files = []
+
+    for _, _, files in os.walk(input_folder):
+        for f in files:
+            if ".nii" in f:
+                input_files.append(f)
+        break
+
+    atlas_ni = nib.load('/home/dbouget/Documents/Code/Private/raidionics_rads_lib/raidionicsrads/Atlases/mni_icbm152_nlin_sym_09a/mni_icbm152_t1_tal_nlin_sym_09a.nii')
+    atlas = atlas_ni.get_fdata()[:]
+    for f in input_files:
+        try:
+            fn = os.path.join(input_folder, f)
+            region_ni = nib.load(fn)
+            region_res_ni = resample_to_output(region_ni, (1, 1, 1), order=0)
+            region_res = region_res_ni.get_fdata()
+            final_region_res = np.zeros(atlas.shape)
+            final_region_res[22:177, 24:211, 22:157] = np.round(region_res)
+            final_region_res_ni = nib.Nifti1Image(np.round(final_region_res).astype('uint8'), atlas_ni.affine, atlas_ni.header)
+            nib.save(final_region_res_ni, os.path.join(output_folder, f.replace(' ', '_').replace('.trk', '')))
+        except Exception as e:
+            print("Can't convert {}".format(f))
+def create_braingrid_atlas():
+    import nibabel as nib
+    input_folder = '/home/dbouget/Documents/Code/Private/raidionics_rads_lib/raidionicsrads/Atlases/BrainGrid/BrainGrid_voxels_correct'
+    atlas_ni = nib.load('/home/dbouget/Documents/Code/Private/raidionics_rads_lib/raidionicsrads/Atlases/mni_icbm152_nlin_sym_09a/mni_icbm152_t1_tal_nlin_sym_09a.nii')
+    atlas = atlas_ni.get_fdata()[:]
+
+    braingrid_atlas = np.zeros(atlas.shape).astype('uint8')
+    index = 1
+    for a in range(1, 5):
+        for c in range(1, 4):
+            for s in range(1, 5):
+                file_fn = os.path.join(input_folder, "A"+str(a)+"C"+str(c)+"S"+str(s)+".nii.gz")
+                region_ni = nib.load(file_fn)
+                region_res = region_ni.get_fdata()[:]
+                braingrid_atlas[region_res > 0.99] = index
+                index += 1
+
+    braingrid_atlas_ni = nib.Nifti1Image(braingrid_atlas, atlas_ni.affine, atlas_ni.header)
+    nib.save(braingrid_atlas_ni, os.path.join(input_folder, "braingrid_atlas.nii.gz"))
+
+def create_braingrid_whitematter_atlas():
+    import nibabel as nib
+    import pandas as pd
+    input_folder = '/home/dbouget/Documents/Code/Private/raidionics_rads_lib/raidionicsrads/Atlases/BrainGrid/White_matter_atlas'
+    atlas_ni = nib.load('/home/dbouget/Documents/Code/Private/raidionics_rads_lib/raidionicsrads/Atlases/mni_icbm152_nlin_sym_09a/mni_icbm152_t1_tal_nlin_sym_09a.nii')
+    atlas = atlas_ni.get_fdata()[:]
+
+    input_files = []
+
+    for _, _, files in os.walk(input_folder):
+        for f in files:
+            if ".nii.gz" in f:
+                input_files.append(f)
+        break
+
+    braingrid_atlas = np.zeros(atlas.shape).astype('uint8')
+    index = 1
+    descriptions = []
+    for f in input_files:
+        file_fn = os.path.join(input_folder, f)
+        region_ni = nib.load(file_fn)
+        region_res = region_ni.get_fdata()[:]
+        braingrid_atlas[region_res == 1] = index
+        descriptions.append([index, f.split('.')[0]])
+        index += 1
+
+    braingrid_atlas_ni = nib.Nifti1Image(braingrid_atlas, atlas_ni.affine, atlas_ni.header)
+    nib.save(braingrid_atlas_ni, os.path.join(input_folder, "braingrid_white_matter_atlas.nii.gz"))
+    descriptions_df = pd.DataFrame(descriptions, columns=['Label', 'Region'])
+    descriptions_df.to_csv('/home/dbouget/Documents/Code/Private/raidionics_rads_lib/raidionicsrads/Atlases/BrainGrid/braingrid_subcortical_structures_description.csv', index=False)
