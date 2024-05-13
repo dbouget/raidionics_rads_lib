@@ -78,11 +78,11 @@ class FeaturesComputationStep(AbstractPipelineStep):
             report._tumor_type = self._patient_parameters.get_annotation(annotation_uid=anno_uid).get_annotation_subtype_str()
             updated_report = compute_neuro_report(report_filename_input, report)
             if self._report_space != 'Patient':
-                # Including the tumor volume in original patient space, quick fix
+                # Including the tumor volume in original patient space, quick fix for now
                 patient_anno_fn = self._patient_parameters.get_annotation(annotation_uid=anno_uid).get_usable_input_filepath()
                 patient_anno = nib.load(patient_anno_fn).get_fdata()[:]
                 volume = np.count_nonzero(patient_anno) * np.prod(nib.load(patient_anno_fn).header.get_zooms()[0:3]) * 1e-3
-                updated_report._statistics['Main']['Overall'].original_space_tumor_volume = volume
+                updated_report._statistics['Main']['Overall'].original_space_tumor_volume = np.round(volume, 2)
             self._patient_parameters.include_reporting(report_uid, updated_report)
             updated_report.to_txt()
             updated_report.to_csv()

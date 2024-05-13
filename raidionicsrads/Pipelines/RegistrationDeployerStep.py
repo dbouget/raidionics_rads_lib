@@ -16,6 +16,9 @@ from ..Utils.DataStructures.RegistrationStructure import Registration
 
 
 class RegistrationDeployerStep(AbstractPipelineStep):
+    """
+    @TODO. Same issues to handle as in the main RegistrationStep.
+    """
     _patient_parameters = None
     _moving_volume_uid = None
     _fixed_volume_uid = None
@@ -44,7 +47,7 @@ class RegistrationDeployerStep(AbstractPipelineStep):
         try:
             self._patient_parameters = patient_parameters
 
-            if ResourcesConfiguration.getInstance().predictions_use_registered_data:
+            if ResourcesConfiguration.getInstance().predictions_use_registered_data and self._step_json["fixed"]["sequence"] != "MNI":
                 return
 
             self._registration_instance = self._patient_parameters.get_registration_by_json(fixed=self._step_json["fixed"],
@@ -64,7 +67,7 @@ class RegistrationDeployerStep(AbstractPipelineStep):
         @TODO3. Have to deal with neuro/mediastinum, or more use-cases
         """
         try:
-            if ResourcesConfiguration.getInstance().predictions_use_registered_data:
+            if ResourcesConfiguration.getInstance().predictions_use_registered_data and self._step_json["fixed"]["sequence"] != "MNI":
                 return self._patient_parameters
 
             if self._moving_volume_uid != 'MNI' and self._direction == 'forward':
@@ -165,7 +168,7 @@ class RegistrationDeployerStep(AbstractPipelineStep):
                     fixed=fixed_filepath,
                     interpolation='nearestNeighbor',
                     label='Subcortical-structures/' + os.path.basename(raw_filename).split('.')[0].replace('_mni', ''))
-                new_fp = os.path.join(dump_folder, self._fixed_volume_uid + '_' + s + '_atlas' + elem + '.nii.gz')
+                new_fp = os.path.join(dump_folder, self._fixed_volume_uid + '_' + s + '_atlas_' + elem + '.nii.gz')
                 shutil.copyfile(fp, new_fp)
 
             overall_mask_filename = ResourcesConfiguration.getInstance().subcortical_structures['MNI'][s]['Mask']
@@ -174,6 +177,20 @@ class RegistrationDeployerStep(AbstractPipelineStep):
                 fixed=fixed_filepath,
                 interpolation='nearestNeighbor',
                 label='Subcortical-structures/' + s)
+
+            new_fp = os.path.join(dump_folder, self._fixed_volume_uid + '_' + s + '_atlas_overall_mask.nii.gz')
+            shutil.copyfile(fp, new_fp)
+
+        dump_folder = os.path.join(self._patient_parameters.get_radiological_volume(volume_uid=self._moving_volume_uid).get_output_folder(),
+                                   'Braingrid-structures')
+        os.makedirs(dump_folder, exist_ok=True)
+        for s in ResourcesConfiguration.getInstance().neuro_features_braingrid:
+            overall_mask_filename = ResourcesConfiguration.getInstance().braingrid_structures['MNI'][s]['Mask']
+            fp = self._registration_runner.apply_registration_inverse_transform(
+                moving=overall_mask_filename,
+                fixed=fixed_filepath,
+                interpolation='nearestNeighbor',
+                label='Braingrid-structures/' + s)
 
             new_fp = os.path.join(dump_folder, self._fixed_volume_uid + '_' + s + '_atlas.nii.gz')
             shutil.copyfile(fp, new_fp)
