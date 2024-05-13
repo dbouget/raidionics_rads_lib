@@ -82,7 +82,7 @@ class FeaturesComputationStep(AbstractPipelineStep):
                 patient_anno_fn = self._patient_parameters.get_annotation(annotation_uid=anno_uid).get_usable_input_filepath()
                 patient_anno = nib.load(patient_anno_fn).get_fdata()[:]
                 volume = np.count_nonzero(patient_anno) * np.prod(nib.load(patient_anno_fn).header.get_zooms()[0:3]) * 1e-3
-                updated_report._statistics['Main']['Overall'].original_space_tumor_volume = volume
+                updated_report._statistics['Main']['Overall'].original_space_tumor_volume = np.round(volume, 2)
             self._patient_parameters.include_reporting(report_uid, updated_report)
             updated_report.to_txt()
             updated_report.to_csv()

@@ -15,6 +15,10 @@ from ..Utils.DataStructures.RegistrationStructure import Registration
 
 
 class RegistrationStep(AbstractPipelineStep):
+    """
+    @TODO. Have to improve the different use-cases, and properly deal with potentially more than one atlas.
+    @TODO. Should there be two flags (one for the co-registration between sequences, and one for the co-registration towards an atlas?
+    """
     _patient_parameters = None  # Placeholder for all patient related data
     _moving_volume_uid = None  # Internal unique identifier for the radiological volume to register
     _fixed_volume_uid = None  # Internal unique identifier for the radiological volume to use as registration target
@@ -43,11 +47,11 @@ class RegistrationStep(AbstractPipelineStep):
 
     def setup(self, patient_parameters):
         """
-        @TODO. Have to improve the different use-cases, and properly deal with potentially more than one atlas.
+
         """
         self._patient_parameters = patient_parameters
         try:
-            if ResourcesConfiguration.getInstance().predictions_use_registered_data:
+            if ResourcesConfiguration.getInstance().predictions_use_registered_data and self._step_json["fixed"]["sequence"] != 'MNI':
                 return
 
             moving_volume_uid = self._patient_parameters.get_radiological_volume_uid(timestamp=self._step_json["moving"]["timestamp"],
@@ -78,7 +82,7 @@ class RegistrationStep(AbstractPipelineStep):
             raise ValueError("[RegistrationStep] Setting up process failed.")
 
     def execute(self):
-        if ResourcesConfiguration.getInstance().predictions_use_registered_data:
+        if ResourcesConfiguration.getInstance().predictions_use_registered_data and self._step_json["fixed"]["sequence"] != 'MNI':
             return self._patient_parameters
 
         fmf, mmf = self.__registration_preprocessing()
