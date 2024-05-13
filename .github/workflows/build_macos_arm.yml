@@ -38,7 +38,7 @@ jobs:
         uses: "gabrielfalcao/pyenv-action@v18"
         with:
             default: "3.10"
-            command: pip3 install -U pip3 wheel setuptools
+            command: pip3 install -U pip3 wheel
 
       - name: Collect submodules
         uses: actions/checkout@v4
@@ -60,7 +60,9 @@ jobs:
           mv ${{github.workspace}}/downloads/install ${{github.workspace}}/raidionicsrads/ANTs/
 
       - name: Built wheel for ${{matrix.TARGET}}
-        run: ${{matrix.CMD_BUILD}}
+        run: |
+          pip3 install setuptools
+          ${{matrix.CMD_BUILD}}
 
       - name: Upload Python wheel
         uses: actions/upload-artifact@v4
