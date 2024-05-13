@@ -38,7 +38,7 @@ jobs:
         uses: "gabrielfalcao/pyenv-action@v18"
         with:
             default: "3.9"
-            command: pip3 install -U pip3 wheel setuptools==69.1.1
+            command: pip3 install -U pip3 wheel setuptools
 
       - name: Collect submodules
         uses: actions/checkout@v4
