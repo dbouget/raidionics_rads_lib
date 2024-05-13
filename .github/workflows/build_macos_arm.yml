@@ -60,9 +60,7 @@ jobs:
           mv ${{github.workspace}}/downloads/install ${{github.workspace}}/raidionicsrads/ANTs/
 
       - name: Built wheel for ${{matrix.TARGET}}
-        run: |
-          pip3 install setuptools
-          ${{matrix.CMD_BUILD}}
+        run: ${{matrix.CMD_BUILD}}
 
       - name: Upload Python wheel
         uses: actions/upload-artifact@v4
