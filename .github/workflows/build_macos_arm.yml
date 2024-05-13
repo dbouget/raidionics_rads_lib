@@ -37,7 +37,7 @@ jobs:
           PKG_CONFIG_PATH: "/usr/local/opt/zlib/lib/pkgconfig"
         uses: "gabrielfalcao/pyenv-action@v18"
         with:
-            default: "3.9"
+            default: "3.10"
             command: pip3 install -U pip3 wheel setuptools
 
       - name: Collect submodules
