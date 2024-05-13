@@ -77,7 +77,7 @@ class NeuroReportingStructure:
         try:
             filename = os.path.join(self._output_folder, "neuro_clinical_report.txt")
             logging.info("Exporting neuro-parameters to text in {}.".format(filename))
-            pfile = open(filename, 'a')
+            pfile = open(filename, 'w')
             pfile.write('########### Raidionics clinical report ###########\n')
             pfile.write('Tumor type: {}\n'.format(self._tumor_type))
             pfile.write('Tumor multifocality: {}\n'.format(self._tumor_multifocal))
@@ -278,17 +278,17 @@ class NeuroReportingStructure:
             for t in self._statistics['Main']['Overall'].mni_space_cortical_structures_overlap.keys():
                 for r in self._statistics['Main']['Overall'].mni_space_cortical_structures_overlap[t].keys():
                     values.extend([self._statistics['Main']['Overall'].mni_space_cortical_structures_overlap[t][r]])
-                    column_names.extend([r.split('.')[0].lower().strip() + '_overlap'])
+                    column_names.extend([t + '_' + r.split('.')[0].lower().strip() + '_overlap'])
 
             for t in self._statistics['Main']['Overall'].mni_space_subcortical_structures_overlap.keys():
                 for r in self._statistics['Main']['Overall'].mni_space_subcortical_structures_overlap[t].keys():
                     values.extend([self._statistics['Main']['Overall'].mni_space_subcortical_structures_overlap[t][r]])
-                    column_names.extend([t + r.split('.')[0][:-4] + '_overlap'])
+                    column_names.extend([t + '_' + r.split('.')[0][:-4] + '_overlap'])
 
             for t in self._statistics['Main']['Overall'].mni_space_subcortical_structures_distance.keys():
                 for r in self._statistics['Main']['Overall'].mni_space_subcortical_structures_overlap[t].keys():
                     values.extend([self._statistics['Main']['Overall'].mni_space_subcortical_structures_distance[t][r]])
-                    column_names.extend([t + r.split('.')[0][:-4] + '_distance'])
+                    column_names.extend([t + '_' + r.split('.')[0][:-4] + '_distance'])
 
             if len(ResourcesConfiguration.getInstance().neuro_features_braingrid) != 0:
                 values.extend([self._statistics['Main']['Overall'].mni_space_braingrid_infiltration_count])
@@ -296,7 +296,7 @@ class NeuroReportingStructure:
                 for t in self._statistics['Main']['Overall'].mni_space_braingrid_infiltration_overlap.keys():
                     for r in self._statistics['Main']['Overall'].mni_space_braingrid_infiltration_overlap[t].keys():
                         values.extend([self._statistics['Main']['Overall'].mni_space_braingrid_infiltration_overlap[t][r]])
-                        column_names.extend([t + r.split('.')[0][:-4] + '_overlap'])
+                        column_names.extend([t + '_' + r.split('.')[0][:-4] + '_overlap'])
 
             values_df = pd.DataFrame(np.asarray(values).reshape((1, len(values))), columns=column_names)
             values_df.to_csv(filename, index=False)

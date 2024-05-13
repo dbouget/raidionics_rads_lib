@@ -2,6 +2,7 @@ import json
 import traceback
 import logging
 import numpy as np
+import nibabel as nib
 from .AbstractPipelineStep import AbstractPipelineStep
 from ..Utils.configuration_parser import ResourcesConfiguration
 from ..Utils.ReportingStructures.NeuroReportingStructure import NeuroReportingStructure
@@ -44,6 +45,10 @@ class FeaturesComputationStep(AbstractPipelineStep):
         return self._patient_parameters
 
     def __run_neuro_reporting(self):
+        """
+        @TODO. The self._report_space will not handle properly the Atlas files, should have another flag inside the
+        compute_neuro_report method to open the original MNI space files or back-registered files in patient space!
+        """
         try:
             uid = self._patient_parameters.get_radiological_volume_uid(timestamp=self._step_json["input"]["timestamp"],
                                                                        sequence=self._step_json["input"]["sequence"])
@@ -72,6 +77,12 @@ class FeaturesComputationStep(AbstractPipelineStep):
                                              output_folder=ResourcesConfiguration.getInstance().output_folder)
             report._tumor_type = self._patient_parameters.get_annotation(annotation_uid=anno_uid).get_annotation_subtype_str()
             updated_report = compute_neuro_report(report_filename_input, report)
+            if self._report_space != 'Patient':
+                # Including the tumor volume in original patient space, quick fix
+                patient_anno_fn = self._patient_parameters.get_annotation(annotation_uid=anno_uid).get_usable_input_filepath()
+                patient_anno = nib.load(patient_anno_fn).get_fdata()[:]
+                volume = np.count_nonzero(patient_anno) * np.prod(nib.load(patient_anno_fn).header.get_zooms()[0:3]) * 1e-3
+                updated_report._statistics['Main']['Overall'].original_space_tumor_volume = volume
             self._patient_parameters.include_reporting(report_uid, updated_report)
             updated_report.to_txt()
             updated_report.to_csv()
