@@ -60,6 +60,7 @@ class ResourcesConfiguration:
 
         self.neuro_features_cortical_structures = []
         self.neuro_features_subcortical_structures = []
+        self.neuro_features_braingrid = []
 
     def set_environment(self, config_path=None):
         self.home_path = ''
@@ -84,6 +85,7 @@ class ResourcesConfiguration:
         self.__set_neuro_cortical_structures_parameters()
         self.__set_neuro_resection_maps_parameters()
         self.__set_neuro_subcortical_structures_parameters()
+        self.__set_neuro_braingrid_parameters()
 
     def __set_neuro_atlases_parameters(self):
         self.mni_atlas_filepath_T1 = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
@@ -310,6 +312,82 @@ class ResourcesConfiguration:
                 readable_name = '_'.join(n.split('.')[0].split('_')[:-1])
                 self.subcortical_structures['MNI']['BCB']['Singular'][readable_name] = str(substruc_fn)
 
+        self.subcortical_structures['MNI']['BrainGrid'] = {}
+        self.subcortical_structures['MNI']['BrainGrid']['Mask'] = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
+                                                                         'Atlases/BrainGrid/White_matter_atlas/braingrid_subcortical_structures_overall_mask.nii.gz')
+        self.subcortical_structures['MNI']['BrainGrid']['Description'] = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
+                                                                                'Atlases/BrainGrid/White_matter_atlas/braingrid_subcortical_structures_description.csv')
+        self.subcortical_structures['MNI']['BrainGrid']['Singular'] = {}
+        substruc_folder = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
+                                       'Atlases/BrainGrid/White_matter_atlas/StandAlone')
+        substruc_names = []
+        for _, _, files in os.walk(substruc_folder):
+            for f in files:
+                substruc_names.append(f)
+            break
+        substruc_names = sorted(substruc_names, key=str.lower)
+        for n in substruc_names:
+            substruc_fn = os.path.join(substruc_folder, n)
+            readable_name = '_'.join(n.split('.')[0].split('_')[:-1])
+            self.subcortical_structures['MNI']['BrainGrid']['Singular'][readable_name] = substruc_fn
+
+        if os.name == 'nt':
+            script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'BrainGrid', 'White_matter_atlas',
+                                                                                        'braingrid_subcortical_structures_overall_mask.nii.gz'))
+            filepath = PurePath()
+            for x in script_path_parts:
+                filepath = filepath.joinpath(x)
+            self.subcortical_structures['MNI']['BrainGrid']['Mask'] = str(filepath)
+
+            script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'BrainGrid', 'White_matter_atlas',
+                                                                                        'braingrid_subcortical_structures_description.csv'))
+            filepath = PurePath()
+            for x in script_path_parts:
+                filepath = filepath.joinpath(x)
+            self.subcortical_structures['MNI']['BrainGrid']['Description'] = str(filepath)
+
+            script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'BrainGrid',
+                                                                                        'White_matter_atlas',
+                                                                                        'StandAlone'))
+            filepath = PurePath()
+            for x in script_path_parts:
+                filepath = filepath.joinpath(x)
+            substruc_names = []
+            for _, _, files in os.walk(filepath):
+                for f in files:
+                    substruc_names.append(f)
+                break
+            substruc_names = sorted(substruc_names, key=str.lower)
+            for n in substruc_names:
+                substruc_fn = os.path.join(substruc_folder, n)
+                readable_name = '_'.join(n.split('.')[0].split('_')[:-1])
+                self.subcortical_structures['MNI']['BrainGrid']['Singular'][readable_name] = str(substruc_fn)
+
+    def __set_neuro_braingrid_parameters(self):
+        self.braingrid_structures = {}
+        self.braingrid_structures['MNI'] = {}
+        self.braingrid_structures['MNI']['Voxels'] = {}
+        self.braingrid_structures['MNI']['Voxels']['Mask'] = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
+                                                                         'Atlases/BrainGrid/Voxels/braingrid_voxels_atlas.nii.gz')
+        self.braingrid_structures['MNI']['Voxels']['Description'] = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
+                                                                                'Atlases/BrainGrid/Voxels/BG_regions_description.csv')
+
+        if os.name == 'nt':
+            script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'BrainGrid', 'Voxels',
+                                                                                        'braingrid_voxels_atlas.nii.gz'))
+            filepath = PurePath()
+            for x in script_path_parts:
+                filepath = filepath.joinpath(x)
+            self.braingrid_structures['MNI']['Voxels']['Mask'] = str(filepath)
+
+            script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'BrainGrid', 'Voxels',
+                                                                                        'BG_regions_description.csv'))
+            filepath = PurePath()
+            for x in script_path_parts:
+                filepath = filepath.joinpath(x)
+            self.braingrid_structures['MNI']['Voxels']['Description'] = str(filepath)
+
+
     def __parse_default_parameters(self):
         eligible_tasks = ['neuro_diagnosis', 'mediastinum_diagnosis']
 
@@ -410,7 +488,9 @@ class ResourcesConfiguration:
         if self.config.has_option('Neuro', 'subcortical_features'):
             if self.config['Neuro']['subcortical_features'].split('#')[0].strip() != '':
                 self.neuro_features_subcortical_structures = [x.strip() for x in self.config['Neuro']['subcortical_features'].split('#')[0].strip().split(',')]
-
+        if self.config.has_option('Neuro', 'braingrid_features'):
+            if self.config['Neuro']['braingrid_features'].split('#')[0].strip() != '':
+                self.neuro_features_braingrid = [x.strip() for x in self.config['Neuro']['braingrid_features'].split('#')[0].strip().split(',')]
     def __parse_runtime_mediastinum_parameters(self):
         if self.config.has_option('Mediastinum', 'lungs_segmentation_filename'):
             if self.config['Mediastinum']['lungs_segmentation_filename'].split('#')[0].strip() != '':

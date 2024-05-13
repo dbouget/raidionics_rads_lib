@@ -77,7 +77,7 @@ class NeuroReportingStructure:
         try:
             filename = os.path.join(self._output_folder, "neuro_clinical_report.txt")
             logging.info("Exporting neuro-parameters to text in {}.".format(filename))
-            pfile = open(filename, 'a')
+            pfile = open(filename, 'w')
             pfile.write('########### Raidionics clinical report ###########\n')
             pfile.write('Tumor type: {}\n'.format(self._tumor_type))
             pfile.write('Tumor multifocality: {}\n'.format(self._tumor_multifocal))
@@ -124,6 +124,17 @@ class NeuroReportingStructure:
                     if tracts_ordered[r] != -1.:
                         tract_name = ' '.join(r.lower().replace('main', '').replace('mni', '').split('.')[0].split('_'))
                         pfile.write('    - {}: {}mm away\n'.format(tract_name, np.round(tracts_ordered[r], 2)))
+
+            if len(ResourcesConfiguration.getInstance().neuro_features_braingrid) != 0:
+                pfile.write('\nBrainGrid infiltration\n')
+                pfile.write('Total infiltrated regions: {}\n'.format(self._statistics['Main']['Overall'].mni_space_braingrid_infiltration_count))
+                for t in self._statistics['Main']['Overall'].mni_space_braingrid_infiltration_overlap.keys():
+                    pfile.write('  * {} atlas\n'.format(t))
+                    voxels_ordered = collections.OrderedDict(sorted(self._statistics['Main']['Overall'].mni_space_braingrid_infiltration_overlap[t].items(), key=operator.itemgetter(1), reverse=True))
+                    for r in voxels_ordered.keys():
+                        if voxels_ordered[r] != 0:
+                            voxel_name = ' '.join(r.lower().replace('main', '').split('_')[:])
+                            pfile.write('    - {}: {}%\n'.format(voxel_name, voxels_ordered[r]))
 
             # Parameters for each tumor element
             # if self.tumor_multifocal:
@@ -189,6 +200,15 @@ class NeuroReportingStructure:
                     param_json['Main']['Total']['SubcorticalStructures'][t]['Overlap'][ov] = self._statistics['Main']['Overall'].mni_space_subcortical_structures_overlap[t][ov]
                 for di in self._statistics['Main']['Overall'].mni_space_subcortical_structures_distance[t].keys():
                     param_json['Main']['Total']['SubcorticalStructures'][t]['Distance'][di] = self._statistics['Main']['Overall'].mni_space_subcortical_structures_distance[t][di]
+
+            if len(ResourcesConfiguration.getInstance().neuro_features_braingrid) != 0:
+                param_json['Main']['Total']['BrainGrid'] = {}
+                param_json['Main']['Total']['BrainGrid']['Infiltration count'] = self._statistics['Main']['Overall'].mni_space_braingrid_infiltration_count
+                for t in self._statistics['Main']['Overall'].mni_space_braingrid_infiltration_overlap.keys():
+                    param_json['Main']['Total']['BrainGrid'][t] = {}
+                    for r in self._statistics['Main']['Overall'].mni_space_braingrid_infiltration_overlap[t].keys():
+                        param_json['Main']['Total']['BrainGrid'][t][r] = \
+                        self._statistics['Main']['Overall'].mni_space_braingrid_infiltration_overlap[t][r]
 
             # Parameters for each tumor element
             # if self.tumor_multifocal:
@@ -258,17 +278,25 @@ class NeuroReportingStructure:
             for t in self._statistics['Main']['Overall'].mni_space_cortical_structures_overlap.keys():
                 for r in self._statistics['Main']['Overall'].mni_space_cortical_structures_overlap[t].keys():
                     values.extend([self._statistics['Main']['Overall'].mni_space_cortical_structures_overlap[t][r]])
-                    column_names.extend([r.split('.')[0].lower().strip() + '_overlap'])
+                    column_names.extend([t + '_' + r.split('.')[0].lower().strip() + '_overlap'])
 
             for t in self._statistics['Main']['Overall'].mni_space_subcortical_structures_overlap.keys():
                 for r in self._statistics['Main']['Overall'].mni_space_subcortical_structures_overlap[t].keys():
                     values.extend([self._statistics['Main']['Overall'].mni_space_subcortical_structures_overlap[t][r]])
-                    column_names.extend([t + r.split('.')[0][:-4] + '_overlap'])
+                    column_names.extend([t + '_' + r.split('.')[0][:-4] + '_overlap'])
 
             for t in self._statistics['Main']['Overall'].mni_space_subcortical_structures_distance.keys():
                 for r in self._statistics['Main']['Overall'].mni_space_subcortical_structures_overlap[t].keys():
                     values.extend([self._statistics['Main']['Overall'].mni_space_subcortical_structures_distance[t][r]])
-                    column_names.extend([t + r.split('.')[0][:-4] + '_distance'])
+                    column_names.extend([t + '_' + r.split('.')[0][:-4] + '_distance'])
+
+            if len(ResourcesConfiguration.getInstance().neuro_features_braingrid) != 0:
+                values.extend([self._statistics['Main']['Overall'].mni_space_braingrid_infiltration_count])
+                column_names.extend(['Total infiltrated voxels (BrainGrid)'])
+                for t in self._statistics['Main']['Overall'].mni_space_braingrid_infiltration_overlap.keys():
+                    for r in self._statistics['Main']['Overall'].mni_space_braingrid_infiltration_overlap[t].keys():
+                        values.extend([self._statistics['Main']['Overall'].mni_space_braingrid_infiltration_overlap[t][r]])
+                        column_names.extend([t + '_' + r.split('.')[0][:-4] + '_overlap'])
 
             values_df = pd.DataFrame(np.asarray(values).reshape((1, len(values))), columns=column_names)
             values_df.to_csv(filename, index=False)
@@ -306,3 +334,5 @@ class TumorStatistics:
         self.mni_space_cortical_structures_overlap = {}
         self.mni_space_subcortical_structures_overlap = {}
         self.mni_space_subcortical_structures_distance = {}
+        self.mni_space_braingrid_infiltration_overlap = {}
+        self.mni_space_braingrid_infiltration_count = -1
