@@ -328,7 +328,7 @@ class ResourcesConfiguration:
         substruc_names = sorted(substruc_names, key=str.lower)
         for n in substruc_names:
             substruc_fn = os.path.join(substruc_folder, n)
-            readable_name = '_'.join(n.split('.')[0].split('_')[:-1])
+            readable_name = n.split('.')[0]
             self.subcortical_structures['MNI']['BrainGrid']['Singular'][readable_name] = substruc_fn
 
         if os.name == 'nt':
@@ -360,7 +360,7 @@ class ResourcesConfiguration:
             substruc_names = sorted(substruc_names, key=str.lower)
             for n in substruc_names:
                 substruc_fn = os.path.join(substruc_folder, n)
-                readable_name = '_'.join(n.split('.')[0].split('_')[:-1])
+                readable_name = n.split('.')[0]
                 self.subcortical_structures['MNI']['BrainGrid']['Singular'][readable_name] = str(substruc_fn)
 
     def __set_neuro_braingrid_parameters(self):

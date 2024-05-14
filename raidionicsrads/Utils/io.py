@@ -83,6 +83,22 @@ def generate_subcortical_structures_labels_for_slicer(atlas_name):
     return new_values_df
 
 
+def generate_braingrid_structures_labels_for_slicer(atlas_name):
+    """
+    """
+    struct_description_df = pd.read_csv(ResourcesConfiguration.getInstance().braingrid_structures['MNI'][atlas_name]['Description'])
+    struct_description_df_sorted = struct_description_df.sort_values(by=['Label'], ascending=True)
+    new_values = []
+    for index, row in struct_description_df_sorted.iterrows():
+        label = row['Label']
+        if label == label:
+            structure_name = row['Region'].strip()
+            new_values.append([label, structure_name])
+
+    new_values_df = pd.DataFrame(new_values, columns=['label', 'text'])
+    return new_values_df
+
+
 def neuro_cleanup(patient_parameters):
     # @TODO. Should dump it differently/arrange filenames for re-use in either Raidionics or 3DSlicer.
     # Could maybe have the same structure as for Raidionics, and only adjust for a Slicer use.

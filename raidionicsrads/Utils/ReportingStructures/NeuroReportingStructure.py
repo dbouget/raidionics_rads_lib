@@ -7,7 +7,7 @@ import json
 import pandas as pd
 import collections
 from ..configuration_parser import ResourcesConfiguration
-from ..io import generate_cortical_structures_labels_for_slicer, generate_subcortical_structures_labels_for_slicer
+from ..io import generate_cortical_structures_labels_for_slicer, generate_subcortical_structures_labels_for_slicer, generate_braingrid_structures_labels_for_slicer
 
 
 class NeuroReportingStructure:
@@ -283,12 +283,18 @@ class NeuroReportingStructure:
             for t in self._statistics['Main']['Overall'].mni_space_subcortical_structures_overlap.keys():
                 for r in self._statistics['Main']['Overall'].mni_space_subcortical_structures_overlap[t].keys():
                     values.extend([self._statistics['Main']['Overall'].mni_space_subcortical_structures_overlap[t][r]])
-                    column_names.extend([t + '_' + r.split('.')[0][:-4] + '_overlap'])
+                    if t == "MNI":
+                        column_names.extend([t + '_' + r.split('.')[0][:-4] + '_overlap'])
+                    else:
+                        column_names.extend([t + '_' + r.split('.')[0] + '_overlap'])
 
             for t in self._statistics['Main']['Overall'].mni_space_subcortical_structures_distance.keys():
                 for r in self._statistics['Main']['Overall'].mni_space_subcortical_structures_overlap[t].keys():
                     values.extend([self._statistics['Main']['Overall'].mni_space_subcortical_structures_distance[t][r]])
-                    column_names.extend([t + '_' + r.split('.')[0][:-4] + '_distance'])
+                    if t == "MNI":
+                        column_names.extend([t + '_' + r.split('.')[0][:-4] + '_distance'])
+                    else:
+                        column_names.extend([t + '_' + r.split('.')[0] + '_distance'])
 
             if len(ResourcesConfiguration.getInstance().neuro_features_braingrid) != 0:
                 values.extend([self._statistics['Main']['Overall'].mni_space_braingrid_infiltration_count])
@@ -296,7 +302,7 @@ class NeuroReportingStructure:
                 for t in self._statistics['Main']['Overall'].mni_space_braingrid_infiltration_overlap.keys():
                     for r in self._statistics['Main']['Overall'].mni_space_braingrid_infiltration_overlap[t].keys():
                         values.extend([self._statistics['Main']['Overall'].mni_space_braingrid_infiltration_overlap[t][r]])
-                        column_names.extend([t + '_' + r.split('.')[0][:-4] + '_overlap'])
+                        column_names.extend([t + '_' + r.split('.')[0] + '_overlap'])
 
             values_df = pd.DataFrame(np.asarray(values).reshape((1, len(values))), columns=column_names)
             values_df.to_csv(filename, index=False)
@@ -314,6 +320,11 @@ class NeuroReportingStructure:
         atlases = ResourcesConfiguration.getInstance().neuro_features_subcortical_structures #['BCB']  # 'BrainLab'
         for a in atlases:
             df = generate_subcortical_structures_labels_for_slicer(atlas_name=a)
+            output_filename = os.path.join(atlas_desc_dir, a + '_description.csv')
+            df.to_csv(output_filename)
+        atlases = ResourcesConfiguration.getInstance().neuro_features_braingrid
+        for a in atlases:
+            df = generate_braingrid_structures_labels_for_slicer(atlas_name=a)
             output_filename = os.path.join(atlas_desc_dir, a + '_description.csv')
             df.to_csv(output_filename)
 
