@@ -283,12 +283,18 @@ class NeuroReportingStructure:
             for t in self._statistics['Main']['Overall'].mni_space_subcortical_structures_overlap.keys():
                 for r in self._statistics['Main']['Overall'].mni_space_subcortical_structures_overlap[t].keys():
                     values.extend([self._statistics['Main']['Overall'].mni_space_subcortical_structures_overlap[t][r]])
-                    column_names.extend([t + '_' + r.split('.')[0][:-4] + '_overlap'])
+                    if t == "MNI":
+                        column_names.extend([t + '_' + r.split('.')[0][:-4] + '_overlap'])
+                    else:
+                        column_names.extend([t + '_' + r.split('.')[0] + '_overlap'])
 
             for t in self._statistics['Main']['Overall'].mni_space_subcortical_structures_distance.keys():
                 for r in self._statistics['Main']['Overall'].mni_space_subcortical_structures_overlap[t].keys():
                     values.extend([self._statistics['Main']['Overall'].mni_space_subcortical_structures_distance[t][r]])
-                    column_names.extend([t + '_' + r.split('.')[0][:-4] + '_distance'])
+                    if t == "MNI":
+                        column_names.extend([t + '_' + r.split('.')[0][:-4] + '_distance'])
+                    else:
+                        column_names.extend([t + '_' + r.split('.')[0] + '_distance'])
 
             if len(ResourcesConfiguration.getInstance().neuro_features_braingrid) != 0:
                 values.extend([self._statistics['Main']['Overall'].mni_space_braingrid_infiltration_count])
