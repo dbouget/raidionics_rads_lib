@@ -167,8 +167,12 @@ def compute_subcortical_structures_location(volume, category=None, reference='BC
             reg_tract[reg_tract < tract_cutoff] = 0
             reg_tract[reg_tract >= tract_cutoff] = 1
             overlap_volume = np.logical_and(reg_tract, volume).astype('uint8')
-            distances_columns.append('distance_' + tfn.split('.')[0][:-4] + '_' + category)
-            overlaps_columns.append('overlap_' + tfn.split('.')[0][:-4] + '_' + category)
+            if reference == "BCB":
+                distances_columns.append('distance_' + tfn.split('.')[0][:-4] + '_' + category)
+                overlaps_columns.append('overlap_' + tfn.split('.')[0][:-4] + '_' + category)
+            else:
+                distances_columns.append('distance_' + tfn.split('.')[0] + '_' + category)
+                overlaps_columns.append('overlap_' + tfn.split('.')[0] + '_' + category)
             if np.count_nonzero(overlap_volume) != 0:
                 distances[tfn] = dist
                 overlaps[tfn] = (np.count_nonzero(overlap_volume) / np.count_nonzero(volume)) * 100.
