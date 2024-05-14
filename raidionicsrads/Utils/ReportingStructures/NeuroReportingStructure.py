@@ -296,7 +296,7 @@ class NeuroReportingStructure:
                 for t in self._statistics['Main']['Overall'].mni_space_braingrid_infiltration_overlap.keys():
                     for r in self._statistics['Main']['Overall'].mni_space_braingrid_infiltration_overlap[t].keys():
                         values.extend([self._statistics['Main']['Overall'].mni_space_braingrid_infiltration_overlap[t][r]])
-                        column_names.extend([t + '_' + r.split('.')[0][:-4] + '_overlap'])
+                        column_names.extend([t + '_' + r.split('.')[0] + '_overlap'])
 
             values_df = pd.DataFrame(np.asarray(values).reshape((1, len(values))), columns=column_names)
             values_df.to_csv(filename, index=False)
