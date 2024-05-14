@@ -7,7 +7,7 @@ import json
 import pandas as pd
 import collections
 from ..configuration_parser import ResourcesConfiguration
-from ..io import generate_cortical_structures_labels_for_slicer, generate_subcortical_structures_labels_for_slicer
+from ..io import generate_cortical_structures_labels_for_slicer, generate_subcortical_structures_labels_for_slicer, generate_braingrid_structures_labels_for_slicer
 
 
 class NeuroReportingStructure:
@@ -314,6 +314,11 @@ class NeuroReportingStructure:
         atlases = ResourcesConfiguration.getInstance().neuro_features_subcortical_structures #['BCB']  # 'BrainLab'
         for a in atlases:
             df = generate_subcortical_structures_labels_for_slicer(atlas_name=a)
+            output_filename = os.path.join(atlas_desc_dir, a + '_description.csv')
+            df.to_csv(output_filename)
+        atlases = ResourcesConfiguration.getInstance().neuro_features_braingrid
+        for a in atlases:
+            df = generate_braingrid_structures_labels_for_slicer(atlas_name=a)
             output_filename = os.path.join(atlas_desc_dir, a + '_description.csv')
             df.to_csv(output_filename)
 
