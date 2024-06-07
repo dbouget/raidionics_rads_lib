@@ -14,6 +14,8 @@ class AnnotationClassType(Enum):
 
     Brain = 0, 'Brain'
     Tumor = 1, 'Tumor'
+    Cavity = 2, 'Cavity'
+    Edema = 3, 'Edema'
 
     Lungs = 100, 'Lungs'
     Airways = 101, 'Airways'
