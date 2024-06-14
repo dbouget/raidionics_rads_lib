@@ -79,7 +79,8 @@ jobs:
           name: "Python wheel"
 
       - name: Install wheel
-        run: pip install --no-cache-dir --find-links=. raidionicsrads-*
+        run: python.exe -m
+             pip install --no-cache-dir --force-reinstall --find-links=. raidionicsrads-*
         shell: bash
 
       - name: Test CLI
