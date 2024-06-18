@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 env:
-  MACOSX_DEPLOYMENT_TARGET: 11.0
+  MACOSX_DEPLOYMENT_TARGET: 14.0
 
 jobs:
   build:
@@ -19,7 +19,7 @@ jobs:
         include:
           - os: macos-14
             TARGET: macos
-            CMD_BUILD: python setup.py bdist_wheel --plat-name macosx_11_0_arm64
+            CMD_BUILD: python setup.py bdist_wheel --plat-name macosx_14_0_arm64
 
     steps:
       - uses: actions/checkout@v4
