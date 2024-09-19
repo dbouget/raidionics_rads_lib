@@ -99,7 +99,10 @@ class RegistrationDeployerStep(AbstractPipelineStep):
                                                                     interpolation='bSpline')
         new_fp = os.path.join(self._patient_parameters.get_radiological_volume(volume_uid=self._moving_volume_uid).get_output_folder(),
                               self._fixed_volume_uid + '_space',
-                              self._moving_volume_uid + '_registered_to_' + self._fixed_volume_uid + '.nii.gz')
+                              self._moving_volume_uid + '_Seq-' +
+                              self._patient_parameters.get_radiological_volume(volume_uid=self._moving_volume_uid)._sequence_type.name +
+                              '_TS_' + self._patient_parameters.get_radiological_volume(volume_uid=self._moving_volume_uid)._timestamp_id +
+                              '_registered_to_' + self._fixed_volume_uid + '.nii.gz')
         os.makedirs(os.path.dirname(new_fp), exist_ok=True)
         shutil.copyfile(fp, new_fp)
         self._patient_parameters.get_radiological_volume(volume_uid=self._moving_volume_uid).include_registered_volume(filepath=new_fp,

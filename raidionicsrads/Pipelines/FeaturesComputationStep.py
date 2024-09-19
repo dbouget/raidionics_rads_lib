@@ -24,6 +24,14 @@ class FeaturesComputationStep(AbstractPipelineStep):
         self.__reset()
         self._report_space = self._step_json["space"]
 
+    @property
+    def report_space(self) -> str:
+        return self._report_space
+
+    @report_space.setter
+    def report_space(self, text: str) -> None:
+        self.report_space = text
+
     def __reset(self):
         """
         All objects share class or static variables.
@@ -46,12 +54,12 @@ class FeaturesComputationStep(AbstractPipelineStep):
 
     def __run_neuro_reporting(self):
         """
-        @TODO. The self._report_space will not handle properly the Atlas files, should have another flag inside the
+        @TODO. The self.report_space will not handle properly the Atlas files, should have another flag inside the
         compute_neuro_report method to open the original MNI space files or back-registered files in patient space!
         """
         try:
-            uid = self._patient_parameters.get_radiological_volume_uid(timestamp=self._step_json["input"]["timestamp"],
-                                                                       sequence=self._step_json["input"]["sequence"])
+            uid = self._patient_parameters.get_radiological_volume_uid(timestamp=self.step_json["input"]["timestamp"],
+                                                                       sequence=self.step_json["input"]["sequence"])
             if not uid:
                 return None
             self._radiological_volume_uid = uid
@@ -63,8 +71,8 @@ class FeaturesComputationStep(AbstractPipelineStep):
                 return None
             anno_uid = anno_uid[0]
             report_filename_input = self._patient_parameters.get_annotation(annotation_uid=anno_uid).get_usable_input_filepath()
-            if self._report_space != 'Patient':
-                reg_data = self._patient_parameters.get_annotation(annotation_uid=anno_uid).get_registered_volume_info(destination_space_uid=self._report_space)
+            if self.report_space != 'Patient':
+                reg_data = self._patient_parameters.get_annotation(annotation_uid=anno_uid).get_registered_volume_info(destination_space_uid=self.report_space)
                 report_filename_input = reg_data["filepath"]
 
             non_available_uid = True
@@ -77,7 +85,7 @@ class FeaturesComputationStep(AbstractPipelineStep):
                                              output_folder=ResourcesConfiguration.getInstance().output_folder)
             report._tumor_type = self._patient_parameters.get_annotation(annotation_uid=anno_uid).get_annotation_subtype_str()
             updated_report = compute_neuro_report(report_filename_input, report)
-            if self._report_space != 'Patient':
+            if self.report_space != 'Patient':
                 # Including the tumor volume in original patient space, quick fix for now
                 patient_anno_fn = self._patient_parameters.get_annotation(annotation_uid=anno_uid).get_usable_input_filepath()
                 patient_anno = nib.load(patient_anno_fn).get_fdata()[:]
