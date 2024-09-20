@@ -1,4 +1,5 @@
 import logging
+import shutil
 import traceback
 import os
 import numpy as np
@@ -309,24 +310,36 @@ class NeuroReportingStructure:
         except Exception as e:
             logging.error("Neuro-parameters export to csv failed with {}".format(traceback.format_exc()))
 
-    def dump_descriptions(self):
+    def dump_descriptions(self) -> None:
+        """
+        Text files with a readable and comprehension description of the different labels in each atlas file are saved
+        on disk for later user (i.e., manual inspection or re-use in Raidionics).
+        In addition, and for viewing purposes in Raidionics, the actual atlas annotation files also need to be saved
+        on disk again.
+        """
         atlas_desc_dir = os.path.join(self._output_folder, 'atlas_descriptions')
         os.makedirs(atlas_desc_dir, exist_ok=True)
-        atlases = ResourcesConfiguration.getInstance().neuro_features_cortical_structures #['MNI', 'Schaefer7', 'Schaefer17', 'Harvard-Oxford']
+        atlases = ResourcesConfiguration.getInstance().neuro_features_cortical_structures
         for a in atlases:
             df = generate_cortical_structures_labels_for_slicer(atlas_name=a)
             output_filename = os.path.join(atlas_desc_dir, a + '_description.csv')
             df.to_csv(output_filename)
-        atlases = ResourcesConfiguration.getInstance().neuro_features_subcortical_structures #['BCB']  # 'BrainLab'
+            shutil.copyfile(src=ResourcesConfiguration.getInstance().cortical_structures['MNI'][a]['Mask'],
+                            dst=os.path.join(atlas_desc_dir, a + '_structures.nii.gz'))
+        atlases = ResourcesConfiguration.getInstance().neuro_features_subcortical_structures
         for a in atlases:
             df = generate_subcortical_structures_labels_for_slicer(atlas_name=a)
             output_filename = os.path.join(atlas_desc_dir, a + '_description.csv')
             df.to_csv(output_filename)
+            shutil.copyfile(src=ResourcesConfiguration.getInstance().subcortical_structures['MNI'][a]['Mask'],
+                            dst=os.path.join(atlas_desc_dir, a + '_structures.nii.gz'))
         atlases = ResourcesConfiguration.getInstance().neuro_features_braingrid
         for a in atlases:
             df = generate_braingrid_structures_labels_for_slicer(atlas_name=a)
             output_filename = os.path.join(atlas_desc_dir, a + '_description.csv')
             df.to_csv(output_filename)
+            shutil.copyfile(src=ResourcesConfiguration.getInstance().braingrid_structures['MNI'][a]['Mask'],
+                            dst=os.path.join(atlas_desc_dir, a + '_structures.nii.gz'))
 
 
 class TumorStatistics:
