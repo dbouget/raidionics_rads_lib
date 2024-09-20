@@ -325,21 +325,21 @@ class NeuroReportingStructure:
             output_filename = os.path.join(atlas_desc_dir, a + '_description.csv')
             df.to_csv(output_filename)
             shutil.copyfile(src=ResourcesConfiguration.getInstance().cortical_structures['MNI'][a]['Mask'],
-                            dst=os.path.join(atlas_desc_dir, a + '_structures.nii.gz'))
+                            dst=os.path.join(atlas_desc_dir, 'MNI_' + a + '_structures.nii.gz'))
         atlases = ResourcesConfiguration.getInstance().neuro_features_subcortical_structures
         for a in atlases:
             df = generate_subcortical_structures_labels_for_slicer(atlas_name=a)
             output_filename = os.path.join(atlas_desc_dir, a + '_description.csv')
             df.to_csv(output_filename)
             shutil.copyfile(src=ResourcesConfiguration.getInstance().subcortical_structures['MNI'][a]['Mask'],
-                            dst=os.path.join(atlas_desc_dir, a + '_structures.nii.gz'))
+                            dst=os.path.join(atlas_desc_dir, 'MNI_' + a + '_structures.nii.gz'))
         atlases = ResourcesConfiguration.getInstance().neuro_features_braingrid
         for a in atlases:
             df = generate_braingrid_structures_labels_for_slicer(atlas_name=a)
             output_filename = os.path.join(atlas_desc_dir, a + '_description.csv')
             df.to_csv(output_filename)
             shutil.copyfile(src=ResourcesConfiguration.getInstance().braingrid_structures['MNI'][a]['Mask'],
-                            dst=os.path.join(atlas_desc_dir, a + '_structures.nii.gz'))
+                            dst=os.path.join(atlas_desc_dir, 'MNI_' + a + '_structures.nii.gz'))
 
 
 class TumorStatistics:
