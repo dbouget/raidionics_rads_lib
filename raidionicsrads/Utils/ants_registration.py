@@ -5,6 +5,8 @@ import os
 import time
 import datetime
 import calendar
+import traceback
+
 import numpy as np
 import subprocess
 import shutil
@@ -121,7 +123,7 @@ class ANTsRegistration:
         return
 
     def compute_registration_cpp(self, moving, fixed, registration_method):
-        print("STARTING REGISTRATION FOR PATIENT.")
+        logging.debug("Starting registration for patient.")
 
         if registration_method == 'SyN':
             registration_method = 'sq'
@@ -170,7 +172,7 @@ class ANTsRegistration:
                 self.transform_names = ['1Warp.nii.gz', '0GenericAffine.mat']
                 self.inverse_transform_names = ['1InverseWarp.nii.gz', '0GenericAffine.mat']
         except Exception as e:
-            print('Exception caught during registration. Error message: {}'.format(e))
+            logging.error('Exception caught during registration. Error message:\n {}'.format(traceback.format_exc()))
 
     def compute_registration_python(self, moving, fixed, registration_method):
         """
@@ -209,7 +211,7 @@ class ANTsRegistration:
         Apply a registration transform onto the corresponding moving image.
         """
         optimization_method = 'Linear' if interpolation == 'linear' else 'NearestNeighbor'
-        print("Apply registration transform to input volume.")
+        logging.debug("Apply registration transform to input volume: {}.".format(moving))
         script_path = os.path.join(self.ants_apply_dir, 'antsApplyTransforms')
 
         # transform_filenames = [os.path.join(self.registration_folder, x) for x in self.transform_names]
@@ -291,7 +293,7 @@ class ANTsRegistration:
         Apply an inverse registration transform onto the corresponding moving labels.
         """
         optimization_method = 'NearestNeighbor' if interpolation == 'nearestNeighbor' else 'Linear'
-        print("Apply registration transform to input volume annotation.")
+        logging.debug("Apply registration transform to input volume annotation: {}.".format(moving))
         script_path = os.path.join(self.ants_apply_dir, 'antsApplyTransforms')
 
         # transform_filenames = [os.path.join(self.registration_folder, x) for x in self.inverse_transform_names]
@@ -341,7 +343,7 @@ class ANTsRegistration:
             output = popen.stdout.read()
             return moving_registered_filename
         except Exception as e:
-            print('Failed to apply inverse transforms on input image with {}'.format(e))
+            logging.error('Failed to apply inverse transforms on input image.\n {}'.format(traceback.format_exc()))
 
     def apply_registration_inverse_transform_python(self, moving, fixed, interpolation='nearestNeighbor', label=''):
         import ants
@@ -360,4 +362,5 @@ class ANTsRegistration:
             ants.image_write(warped_input, warped_input_filename)
             return warped_input_filename
         except Exception as e:
-            print('Exception caught during applying registration inverse transform. Error message: {}'.format(e))
+            logging.error('Exception caught during applying registration inverse transform.\n {}'.format(
+                traceback.format_exc()))
