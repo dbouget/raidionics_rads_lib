@@ -89,8 +89,7 @@ class ANTsRegistration:
                 # if os.path.exists(self.registration_folder):
                 #     shutil.rmtree(self.registration_folder)
         except Exception as e:
-            logging.error("ANTs registration instance cleaning and dumping failed with: {}.\n".format(traceback.format_exc()))
-            raise ValueError("Impossible to perform cleaning and dumping in the ANTs registration instance.\n")
+            raise NameError("Impossible to perform cleaning and dumping in the ANTs registration instance with: {}".format(e))
 
     def compute_registration(self, moving: str, fixed: str, registration_method: str) -> None:
         """
@@ -114,11 +113,13 @@ class ANTsRegistration:
         if len(self.transform_names) != 0 and len(self.inverse_transform_names) != 0:
             return
         os.makedirs(self.registration_folder, exist_ok=True)
-        if self.backend == 'python':
-            self.compute_registration_python(moving, fixed, registration_method)
-        elif self.backend == 'cpp':
-            self.compute_registration_cpp(moving, fixed, registration_method)
-
+        try:
+            if self.backend == 'python':
+                self.compute_registration_python(moving, fixed, registration_method)
+            elif self.backend == 'cpp':
+                self.compute_registration_cpp(moving, fixed, registration_method)
+        except Exception as e:
+            raise RuntimeError(e)
         self.registration_computed = True
         return
 
@@ -172,9 +173,9 @@ class ANTsRegistration:
                 self.transform_names = ['1Warp.nii.gz', '0GenericAffine.mat']
                 self.inverse_transform_names = ['1InverseWarp.nii.gz', '0GenericAffine.mat']
         except Exception as e:
-            logging.error('Exception caught during registration. Error message:\n {}'.format(traceback.format_exc()))
+            raise RuntimeError('Cpp-based ANTs registration failed with: {}'.format(e))
 
-    def compute_registration_python(self, moving, fixed, registration_method):
+    def compute_registration_python(self, moving, fixed, registration_method) -> None:
         """
         @FIXME: "antsRegistrationSyNQuick[s]" does not work across all platforms, so swapped with "SyN".
         Read docs for supported transforms: https://antspy.readthedocs.io/en/latest/_modules/ants/registration/interface.html
@@ -196,15 +197,17 @@ class ANTsRegistration:
             warped_input_filename = os.path.join(self.registration_folder, 'input_volume_to_MNI.nii.gz')
             ants.image_write(warped_input, warped_input_filename)
         except Exception as e:
-            logging.error('Python-based ANTs registration failed with: {}.\n'.format(traceback.format_exc()))
-            raise ValueError('Python-based ANTs registration failed.\n')
+            raise RuntimeError('Python-based ANTs registration failed with: {}'.format(e))
 
     def apply_registration_transform(self, moving, fixed, interpolation='nearestNeighbor'):
         os.makedirs(self.registration_folder, exist_ok=True)
-        if self.backend == 'python':
-            return self.apply_registration_transform_python(moving, fixed, interpolation)
-        elif self.backend == 'cpp':
-            return self.apply_registration_transform_cpp(moving, fixed, interpolation)
+        try:
+            if self.backend == 'python':
+                return self.apply_registration_transform_python(moving, fixed, interpolation)
+            elif self.backend == 'cpp':
+                return self.apply_registration_transform_cpp(moving, fixed, interpolation)
+        except Exception as e:
+            raise RuntimeError('{}'.format(e))
 
     def apply_registration_transform_cpp(self, moving, fixed, interpolation='NearestNeighbor'):
         """
@@ -248,7 +251,7 @@ class ANTsRegistration:
                     '-o', '{output}'.format(output=moving_registered_filename),
                     '-n', '{type}'.format(type=optimization_method))
         elif len(transform_filenames) == 0:
-            raise ValueError('List of transforms is empty.')
+            raise IndexError('List of transforms is empty.')
 
         # Or just:
         # args = "bin/bar -c somefile.xml -d text.txt -r aString -f anotherString".split()
@@ -261,8 +264,7 @@ class ANTsRegistration:
             output = popen.stdout.read()
             return moving_registered_filename
         except Exception as e:
-            logging.error('Cpp-based ANTs apply registration failed with: {}.\n'.format(traceback.format_exc()))
-            raise ValueError('Cpp-based ANTs apply registration failed.\n')
+            raise RuntimeError('Cpp-based ANTs apply registration failed with: {}'.format(e))
 
     def apply_registration_transform_python(self, moving: str, fixed: str, interpolation: str = 'nearestNeighbor') -> str:
         import ants
@@ -278,15 +280,17 @@ class ANTsRegistration:
             ants.image_write(warped_input, warped_input_filename)
             return warped_input_filename
         except Exception as e:
-            logging.error('Python-based ANTs apply registration failed with: {}.\n'.format(traceback.format_exc()))
-            raise ValueError('Python-based ANTs apply registration failed.\n')
+            raise RuntimeError('Python-based ANTs apply registration failed with: {}'.format(e))
 
     def apply_registration_inverse_transform(self, moving, fixed, interpolation='nearestNeighbor', label=''):
         os.makedirs(self.registration_folder, exist_ok=True)
-        if self.backend == 'python':
-            return self.apply_registration_inverse_transform_python(moving, fixed, interpolation, label)
-        elif self.backend == 'cpp':
-            return self.apply_registration_inverse_transform_cpp(moving, fixed, interpolation, label)
+        try:
+            if self.backend == 'python':
+                return self.apply_registration_inverse_transform_python(moving, fixed, interpolation, label)
+            elif self.backend == 'cpp':
+                return self.apply_registration_inverse_transform_cpp(moving, fixed, interpolation, label)
+        except Exception as e:
+            raise RuntimeError('{}'.format(e))
 
     def apply_registration_inverse_transform_cpp(self, moving, fixed, interpolation='NearestNeighbor', label=''):
         """
@@ -330,7 +334,7 @@ class ANTsRegistration:
                     '-o', '{output}'.format(output=moving_registered_filename),
                     '-n', '{type}'.format(type=optimization_method))
         elif len(transform_filenames) == 0:
-            raise ValueError('List of transforms is empty.')
+            raise IndexError('List of transforms is empty.')
 
         # Or just:
         # args = "bin/bar -c somefile.xml -d text.txt -r aString -f anotherString".split()
@@ -343,7 +347,7 @@ class ANTsRegistration:
             output = popen.stdout.read()
             return moving_registered_filename
         except Exception as e:
-            logging.error('Failed to apply inverse transforms on input image.\n {}'.format(traceback.format_exc()))
+            raise RuntimeError('Failed to apply inverse transforms on input image with: {}'.format(e))
 
     def apply_registration_inverse_transform_python(self, moving, fixed, interpolation='nearestNeighbor', label=''):
         import ants
@@ -362,5 +366,4 @@ class ANTsRegistration:
             ants.image_write(warped_input, warped_input_filename)
             return warped_input_filename
         except Exception as e:
-            logging.error('Exception caught during applying registration inverse transform.\n {}'.format(
-                traceback.format_exc()))
+            raise RuntimeError('Failed to apply inverse transform with: {}'.format(e))

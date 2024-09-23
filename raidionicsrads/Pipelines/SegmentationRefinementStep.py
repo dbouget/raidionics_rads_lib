@@ -135,10 +135,9 @@ class SegmentationRefinementStep(AbstractPipelineStep):
                         new_fp = os.path.join(self._working_folder, 'inputs', 'input' + str(k) + '.nii.gz')
                         shutil.copyfile(reg_fp, new_fp)
         except Exception as e:
-            logging.error("[SegmentationRefinementStep] setup failed with: {}.".format(traceback.format_exc()))
             if os.path.exists(self._working_folder):
                 shutil.rmtree(self._working_folder)
-            raise ValueError("[SegmentationRefinementStep] setup failed.")
+            raise ValueError("[SegmentationRefinementStep] setup failed with: {}.".format(e))
 
     def execute(self) -> PatientParameters:
         """
@@ -149,11 +148,16 @@ class SegmentationRefinementStep(AbstractPipelineStep):
         PatientParameters
             Updated placeholder with the results of the current step.
         """
-        if self._input_volume_uid:
-            if ResourcesConfiguration.getInstance().diagnosis_task == 'neuro_diagnosis':
-                self.__perform_neuro_segmentation()
-            else:
-                self.__perform_mediastinum_segmentation()
+        try:
+            if self._input_volume_uid:
+                if ResourcesConfiguration.getInstance().diagnosis_task == 'neuro_diagnosis':
+                    self.__perform_neuro_segmentation()
+                else:
+                    logging.warning("[SegmentationRefinementStep] No execution implemented yet for the task {}".format(
+                        ResourcesConfiguration.getInstance().diagnosis_task))
+                    pass
+        except Exception as e:
+            raise ValueError("[SegmentationRefinementStep] Step execution failed with: {}.".format(e))
         return self._patient_parameters
 
     def __perform_neuro_segmentation(self) -> None:
@@ -178,17 +182,16 @@ class SegmentationRefinementStep(AbstractPipelineStep):
                                                      voxel_volume=np.prod(seg_ni.header.get_zooms()) * 1e-3,
                                                      arg=int(self._refinement_args))
                 else:
-                    raise ValueError("[RefinementStep] The selected refinement operation is not available, with value {}".format(self._refinement_operation))
+                    raise ValueError("The selected refinement operation is not available, with value {}".format(self._refinement_operation))
 
                 res_ni = nib.Nifti1Image(res, affine=seg_ni.affine)
                 output_fn = os.path.join(self._working_folder, 'outputs', fn)
                 nib.save(res_ni, output_fn)
 
         except Exception as e:
-            logging.error("[SegmentationRefinementStep] Segmentation refinement failed with: {}.".format(traceback.format_exc()))
             if os.path.exists(self._working_folder):
                 shutil.rmtree(self._working_folder)
-            raise ValueError("[SegmentationRefinementStep] Segmentation refinement failed.")
+            raise ValueError("Segmentation refinement execution could not proceed with: {}.".format(e))
 
         try:
             # Collecting the results and associating them with the parent radiological volume.
@@ -206,21 +209,9 @@ class SegmentationRefinementStep(AbstractPipelineStep):
                 shutil.copyfile(src=seg_filename, dst=annotation_struct.raw_input_filepath)
 
         except Exception as e:
-            logging.error("[SegmentationStep] Segmentation results parsing failed with: {}.".format(traceback.format_exc()))
             if os.path.exists(self._working_folder):
                 shutil.rmtree(self._working_folder)
-            raise ValueError("[SegmentationStep] Segmentation results parsing failed.")
+            raise ValueError("Segmentation refinement results parsing failed with: {}.".format(e))
 
         if os.path.exists(self._working_folder):
             shutil.rmtree(self._working_folder)
-
-    def __perform_mediastinum_segmentation(self):
-        """
-
-        """
-        try:
-            raise ValueError("NIY")
-        except Exception as e:
-            logging.error(
-                "[SegmentationRefinementStep] Process failed with: {}.".format(traceback.format_exc()))
-            raise ValueError("[SegmentationRefinementStep] Process failed.")

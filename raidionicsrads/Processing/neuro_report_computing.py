@@ -16,96 +16,109 @@ from ..Utils.ReportingStructures.NeuroSurgicalReportingStructure import Resectio
 
 def compute_neuro_report(input_filename: str, report: NeuroReportingStructure) -> NeuroReportingStructure:
     """
+    Main method computing all elements of the clinical report for a brain use-case.
 
+    Parameters
+    ---------
+    input_filename: str
+
+    report: NeuroReportingStructure
+        Prefilled version of the report which will be further completed inside the method
+    Return
+    -------
+    Full and final version of the report, filled in with all requested parameters.
     """
-    registered_tumor_ni = load_nifti_volume(input_filename)
-    registered_tumor = registered_tumor_ni.get_fdata()[:]
+    try:
+        registered_tumor_ni = load_nifti_volume(input_filename)
+        registered_tumor = registered_tumor_ni.get_fdata()[:]
 
-    tumor_type = report._tumor_type
-    if np.count_nonzero(registered_tumor) == 0:
-        report.setup(tumor_type=tumor_type, tumor_elements=0)
+        tumor_type = report._tumor_type
+        if np.count_nonzero(registered_tumor) == 0:
+            report.setup(tumor_type=tumor_type, tumor_elements=0)
+            return report
+
+        # Cleaning the segmentation mask just in case, removing potential small and noisy areas
+        cluster_size_cutoff_in_pixels = 100
+        kernel = ball(radius=2)
+        img_ero = binary_closing(registered_tumor, structure=kernel, iterations=1)
+        tumor_clusters = measurements.label(img_ero)[0]
+        refined_image = deepcopy(tumor_clusters)
+        for c in range(1, np.max(tumor_clusters) + 1):
+            if np.count_nonzero(tumor_clusters == c) < cluster_size_cutoff_in_pixels:
+                refined_image[refined_image == c] = 0
+        refined_image[refined_image != 0] = 1
+
+        if np.count_nonzero(refined_image) == 0:
+            report.setup(tumor_type=tumor_type, tumor_elements=0)
+            return report
+
+        # Computing the tumor volume in original patient space
+        # segmentation_ni = nib.load(ResourcesConfiguration.getInstance().runtime_tumor_mask_filepath)
+        # segmentation_mask = segmentation_ni.get_fdata()[:]
+        # volume = compute_volume(volume=segmentation_mask, spacing=segmentation_ni.header.get_zooms())
+        # self.diagnosis_parameters.statistics['Main']['Overall'].original_space_tumor_volume = volume
+
+        # Assessing if the tumor is multifocal or monofocal
+        tumor_clusters = measurements.label(refined_image)[0]
+        tumor_clusters_labels = regionprops(tumor_clusters)
+        report.setup(tumor_type=tumor_type, tumor_elements=len(tumor_clusters_labels))
+        volume_reg_space = compute_volume(volume=refined_image, spacing=registered_tumor_ni.header.get_zooms())
+        report._statistics['Main']['Overall'].mni_space_tumor_volume = volume_reg_space
+
+        status, nb, dist = compute_multifocality(volume=refined_image, spacing=registered_tumor_ni.header.get_zooms(),
+                                                 volume_threshold=0.1, distance_threshold=5.0)
+        report._tumor_multifocal = status
+        report._tumor_parts = nb
+        report._tumor_multifocal_distance = dist
+
+        # Computing localisation and lateralisation for the whole tumor extent
+        brain_lateralisation_mask_ni = load_nifti_volume(
+            ResourcesConfiguration.getInstance().mni_atlas_lateralisation_mask_filepath)
+        brain_lateralisation_mask = brain_lateralisation_mask_ni.get_fdata()[:]
+        left, right, mid = compute_lateralisation(volume=refined_image, brain_mask=brain_lateralisation_mask)
+        report._statistics['Main']['Overall'].left_laterality_percentage = left
+        report._statistics['Main']['Overall'].right_laterality_percentage = right
+        report._statistics['Main']['Overall'].laterality_midline_crossing = mid
+
+        if report._tumor_type == 'Glioblastoma':
+            if report._statistics['Main']['Overall'].left_laterality_percentage >= 50.0:
+                map_filepath = ResourcesConfiguration.getInstance().mni_resection_maps['Probability']['Left']
+            else:
+                map_filepath = ResourcesConfiguration.getInstance().mni_resection_maps['Probability']['Right']
+
+            resection_probability_map_ni = nib.load(map_filepath)
+            resection_probability_map = resection_probability_map_ni.get_fdata()[:]
+            residual, resectable, average = compute_resectability_index(volume=refined_image,
+                                                                        resectability_map=resection_probability_map)
+            report._statistics['Main']['Overall'].mni_space_expected_residual_tumor_volume = residual
+            report._statistics['Main']['Overall'].mni_space_expected_resectable_tumor_volume = resectable
+            report._statistics['Main']['Overall'].mni_space_resectability_index = average
+
+        for s in ResourcesConfiguration.getInstance().neuro_features_cortical_structures:
+            overlap = compute_cortical_structures_location(volume=refined_image, reference=s)
+            report._statistics['Main']['Overall'].mni_space_cortical_structures_overlap[s] = overlap
+            # if self.from_slicer:
+            #     ordered_l = collections.OrderedDict(sorted(report._statistics['Main']['Overall'].mni_space_cortical_structures_overlap[s].items(), key=operator.itemgetter(1), reverse=True))
+            #     report._statistics['Main']['Overall'].mni_space_cortical_structures_overlap[s] = ordered_l
+        for s in ResourcesConfiguration.getInstance().neuro_features_subcortical_structures:
+            overlaps, distances = compute_subcortical_structures_location(volume=refined_image, category='Main', reference=s)
+            if False: #self.from_slicer:
+                sorted_d = collections.OrderedDict(sorted(distances.items(), key=operator.itemgetter(1), reverse=False))
+                sorted_o = collections.OrderedDict(sorted(overlaps.items(), key=operator.itemgetter(1), reverse=True))
+                report._statistics['Main']['Overall'].mni_space_subcortical_structures_overlap[s] = sorted_o
+                report._statistics['Main']['Overall'].mni_space_subcortical_structures_distance[s] = sorted_d
+            else:
+                report._statistics['Main']['Overall'].mni_space_subcortical_structures_overlap[s] = overlaps
+                report._statistics['Main']['Overall'].mni_space_subcortical_structures_distance[s] = distances
+        for s in ResourcesConfiguration.getInstance().neuro_features_braingrid:
+            overlap_per_voxel, infiltrated_voxels = compute_braingrid_voxels_infiltration(volume=refined_image,
+                                                                                           category='Main',
+                                                                                           reference=s)
+            report._statistics['Main']['Overall'].mni_space_braingrid_infiltration_overlap[s] = overlap_per_voxel
+            report._statistics['Main']['Overall'].mni_space_braingrid_infiltration_count = infiltrated_voxels
         return report
-
-    # Cleaning the segmentation mask just in case, removing potential small and noisy areas
-    cluster_size_cutoff_in_pixels = 100
-    kernel = ball(radius=2)
-    img_ero = binary_closing(registered_tumor, structure=kernel, iterations=1)
-    tumor_clusters = measurements.label(img_ero)[0]
-    refined_image = deepcopy(tumor_clusters)
-    for c in range(1, np.max(tumor_clusters) + 1):
-        if np.count_nonzero(tumor_clusters == c) < cluster_size_cutoff_in_pixels:
-            refined_image[refined_image == c] = 0
-    refined_image[refined_image != 0] = 1
-
-    if np.count_nonzero(refined_image) == 0:
-        report.setup(tumor_type=tumor_type, tumor_elements=0)
-        return report
-
-    # Computing the tumor volume in original patient space
-    # segmentation_ni = nib.load(ResourcesConfiguration.getInstance().runtime_tumor_mask_filepath)
-    # segmentation_mask = segmentation_ni.get_fdata()[:]
-    # volume = compute_volume(volume=segmentation_mask, spacing=segmentation_ni.header.get_zooms())
-    # self.diagnosis_parameters.statistics['Main']['Overall'].original_space_tumor_volume = volume
-
-    # Assessing if the tumor is multifocal or monofocal
-    tumor_clusters = measurements.label(refined_image)[0]
-    tumor_clusters_labels = regionprops(tumor_clusters)
-    report.setup(tumor_type=tumor_type, tumor_elements=len(tumor_clusters_labels))
-    volume_reg_space = compute_volume(volume=refined_image, spacing=registered_tumor_ni.header.get_zooms())
-    report._statistics['Main']['Overall'].mni_space_tumor_volume = volume_reg_space
-
-    status, nb, dist = compute_multifocality(volume=refined_image, spacing=registered_tumor_ni.header.get_zooms(),
-                                             volume_threshold=0.1, distance_threshold=5.0)
-    report._tumor_multifocal = status
-    report._tumor_parts = nb
-    report._tumor_multifocal_distance = dist
-
-    # Computing localisation and lateralisation for the whole tumor extent
-    brain_lateralisation_mask_ni = load_nifti_volume(
-        ResourcesConfiguration.getInstance().mni_atlas_lateralisation_mask_filepath)
-    brain_lateralisation_mask = brain_lateralisation_mask_ni.get_fdata()[:]
-    left, right, mid = compute_lateralisation(volume=refined_image, brain_mask=brain_lateralisation_mask)
-    report._statistics['Main']['Overall'].left_laterality_percentage = left
-    report._statistics['Main']['Overall'].right_laterality_percentage = right
-    report._statistics['Main']['Overall'].laterality_midline_crossing = mid
-
-    if report._tumor_type == 'Glioblastoma':
-        if report._statistics['Main']['Overall'].left_laterality_percentage >= 50.0:
-            map_filepath = ResourcesConfiguration.getInstance().mni_resection_maps['Probability']['Left']
-        else:
-            map_filepath = ResourcesConfiguration.getInstance().mni_resection_maps['Probability']['Right']
-
-        resection_probability_map_ni = nib.load(map_filepath)
-        resection_probability_map = resection_probability_map_ni.get_fdata()[:]
-        residual, resectable, average = compute_resectability_index(volume=refined_image,
-                                                                    resectability_map=resection_probability_map)
-        report._statistics['Main']['Overall'].mni_space_expected_residual_tumor_volume = residual
-        report._statistics['Main']['Overall'].mni_space_expected_resectable_tumor_volume = resectable
-        report._statistics['Main']['Overall'].mni_space_resectability_index = average
-
-    for s in ResourcesConfiguration.getInstance().neuro_features_cortical_structures:
-        overlap = compute_cortical_structures_location(volume=refined_image, reference=s)
-        report._statistics['Main']['Overall'].mni_space_cortical_structures_overlap[s] = overlap
-        # if self.from_slicer:
-        #     ordered_l = collections.OrderedDict(sorted(report._statistics['Main']['Overall'].mni_space_cortical_structures_overlap[s].items(), key=operator.itemgetter(1), reverse=True))
-        #     report._statistics['Main']['Overall'].mni_space_cortical_structures_overlap[s] = ordered_l
-    for s in ResourcesConfiguration.getInstance().neuro_features_subcortical_structures:
-        overlaps, distances = compute_subcortical_structures_location(volume=refined_image, category='Main', reference=s)
-        if False: #self.from_slicer:
-            sorted_d = collections.OrderedDict(sorted(distances.items(), key=operator.itemgetter(1), reverse=False))
-            sorted_o = collections.OrderedDict(sorted(overlaps.items(), key=operator.itemgetter(1), reverse=True))
-            report._statistics['Main']['Overall'].mni_space_subcortical_structures_overlap[s] = sorted_o
-            report._statistics['Main']['Overall'].mni_space_subcortical_structures_distance[s] = sorted_d
-        else:
-            report._statistics['Main']['Overall'].mni_space_subcortical_structures_overlap[s] = overlaps
-            report._statistics['Main']['Overall'].mni_space_subcortical_structures_distance[s] = distances
-    for s in ResourcesConfiguration.getInstance().neuro_features_braingrid:
-        overlap_per_voxel, infiltrated_voxels = compute_braingrid_voxels_infiltration(volume=refined_image,
-                                                                                       category='Main',
-                                                                                       reference=s)
-        report._statistics['Main']['Overall'].mni_space_braingrid_infiltration_overlap[s] = overlap_per_voxel
-        report._statistics['Main']['Overall'].mni_space_braingrid_infiltration_count = infiltrated_voxels
-    return report
+    except Exception as e:
+        raise ValueError("{}".format(e))
 
 
 def compute_cortical_structures_location(volume, reference='MNI'):

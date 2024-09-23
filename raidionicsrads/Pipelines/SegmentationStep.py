@@ -141,10 +141,9 @@ class SegmentationStep(AbstractPipelineStep):
                         new_fp = os.path.join(self._working_folder, 'inputs', 'input' + str(k) + '.nii.gz')
                         shutil.copyfile(reg_fp, new_fp)
         except Exception as e:
-            logging.error("[SegmentationStep] setup failed with: {}.".format(traceback.format_exc()))
             if os.path.exists(self._working_folder):
                 shutil.rmtree(self._working_folder)
-            raise ValueError("[SegmentationStep] setup failed.")
+            raise ValueError("[SegmentationStep] setup failed with {}.".format(e))
 
     def execute(self) -> PatientParameters:
         """
@@ -213,10 +212,9 @@ class SegmentationStep(AbstractPipelineStep):
             from raidionicsseg.fit import run_model
             run_model(seg_config_filename)
         except Exception as e:
-            logging.error("[SegmentationStep] Automatic segmentation failed with: {}.".format(traceback.format_exc()))
             if os.path.exists(self._working_folder):
                 shutil.rmtree(self._working_folder)
-            raise ValueError("[SegmentationStep] Automatic segmentation failed.")
+            raise ValueError("[SegmentationStep] Automatic segmentation failed with: {}.".format(e))
 
         try:
             # Collecting the results and associating them with the parent radiological volume.
@@ -257,10 +255,9 @@ class SegmentationStep(AbstractPipelineStep):
                     self._patient_parameters.include_annotation(anno_uid, annotation)
                     logging.info("Saved segmentation results in {}".format(final_seg_filename))
         except Exception as e:
-            logging.error("[SegmentationStep] Segmentation results parsing failed with: {}.".format(traceback.format_exc()))
             if os.path.exists(self._working_folder):
                 shutil.rmtree(self._working_folder)
-            raise ValueError("[SegmentationStep] Segmentation results parsing failed.")
+            raise ValueError("[SegmentationStep] Segmentation results parsing failed with: {}.".format(e))
 
         if os.path.exists(self._working_folder):
             shutil.rmtree(self._working_folder)
@@ -323,10 +320,9 @@ class SegmentationStep(AbstractPipelineStep):
             from raidionicsseg.fit import run_model
             run_model(seg_config_filename)
         except Exception as e:
-            logging.error("[SegmentationStep] Automatic segmentation failed with: {}.".format(traceback.format_exc()))
             if os.path.exists(self._working_folder):
                 shutil.rmtree(self._working_folder)
-            raise ValueError("[SegmentationStep] Automatic segmentation failed.")
+            raise ValueError("[SegmentationStep] Automatic segmentation failed with: {}.".format(e))
 
         try:
             # Collecting the results and associating them with the parent radiological volume.
@@ -363,11 +359,9 @@ class SegmentationStep(AbstractPipelineStep):
                     self._patient_parameters.include_annotation(anno_uid, annotation)
                     logging.info("Saved segmentation results in {}".format(final_seg_filename))
         except Exception as e:
-            logging.error(
-                "[SegmentationStep] Segmentation results parsing failed with: {}.".format(traceback.format_exc()))
             if os.path.exists(self._working_folder):
                 shutil.rmtree(self._working_folder)
-            raise ValueError("[SegmentationStep] Segmentation results parsing failed.")
+            raise ValueError("[SegmentationStep] Segmentation results parsing failed with: {}.".format(e))
 
         if os.path.exists(self._working_folder):
             shutil.rmtree(self._working_folder)

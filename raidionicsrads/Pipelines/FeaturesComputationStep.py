@@ -46,10 +46,18 @@ class FeaturesComputationStep(AbstractPipelineStep):
         self._patient_parameters = patient_parameters
 
     def execute(self):
-        if ResourcesConfiguration.getInstance().diagnosis_task == 'neuro_diagnosis':
-            self.__run_neuro_reporting()
-        else:
-            pass
+        """
+
+        """
+        try:
+            if ResourcesConfiguration.getInstance().diagnosis_task == 'neuro_diagnosis':
+                self.__run_neuro_reporting()
+            else:
+                logging.warning("[FeaturesComputationStep] No execution implemented yet for the task {}".format(
+                    ResourcesConfiguration.getInstance().diagnosis_task))
+                pass
+        except Exception as e:
+            raise ValueError("[FeaturesComputationStep] Step execution failed with: {}.".format(e))
         return self._patient_parameters
 
     def __run_neuro_reporting(self):
@@ -97,5 +105,4 @@ class FeaturesComputationStep(AbstractPipelineStep):
             updated_report.to_json()
             updated_report.dump_descriptions()
         except Exception as e:
-            logging.error("[FeaturesComputationStep] Neuro reporting failed with: {}.".format(traceback.format_exc()))
-            raise ValueError("[FeaturesComputationStep] Neuro reporting failed.")
+            raise ValueError("[FeaturesComputationStep] Neuro reporting failed with: {}.".format(e))

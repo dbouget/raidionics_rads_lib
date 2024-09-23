@@ -56,112 +56,115 @@ class PatientParameters:
         In case of stripped inputs (i.e., skull-stripped or lung-stripped), the corresponding mask should be created
         for each input
         """
-        timestamp_folders = []
-        for _, dirs, _ in os.walk(self._input_filepath):
-            for d in dirs:
-                timestamp_folders.append(d)
-            break
-
-        ts_folders_dict = {}
-        for i in timestamp_folders:
-            if re.search(r'\d+', i):  # Skipping folders without an integer inside, otherwise assuming timestamps from 0 onwards
-                ts_folders_dict[int(re.search(r'\d+', i).group())] = i
-
-        ordered_ts_folders = dict(sorted(ts_folders_dict.items(), key=lambda item: item[0], reverse=False))
-
-        for i, ts in enumerate(list(ordered_ts_folders.keys())):
-            ts_folder = os.path.join(self._input_filepath, ordered_ts_folders[ts])
-            if ResourcesConfiguration.getInstance().caller == 'raidionics':  # Specifics to cater to Raidionics
-                ts_folder = os.path.join(ts_folder, 'raw')
-            patient_files = []
-
-            timestamp_uid = "T" + str(i)
-            timestamp_instance = TimestampParameters(id=timestamp_uid, timestamp_filepath=ts_folder)
-            self._timestamps[timestamp_uid] = timestamp_instance
-
-            for _, _, files in os.walk(ts_folder):
-                for f in files:
-                    if '.'.join(f.split('.')[1:]) in ResourcesConfiguration.getInstance().get_accepted_image_formats():
-                        patient_files.append(f)
+        try:
+            timestamp_folders = []
+            for _, dirs, _ in os.walk(self._input_filepath):
+                for d in dirs:
+                    timestamp_folders.append(d)
                 break
 
-            annotation_files = []
-            for f in patient_files:
-                file_content_type = input_file_category_disambiguation(os.path.join(ts_folder, f))
-                # Generating a unique id for the radiological volume
-                if file_content_type == "Volume":
-                    base_data_uid = os.path.basename(f).strip().split('.')[0]
-                    non_available_uid = True
-                    while non_available_uid:
-                        data_uid = 'V' + str(np.random.randint(0, 10000)) + '_' + base_data_uid
-                        if data_uid not in list(self._radiological_volumes.keys()):
-                            non_available_uid = False
-                    self._radiological_volumes[data_uid] = RadiologicalVolume(uid=data_uid,
-                                                                              input_filename=os.path.join(ts_folder, f),
-                                                                              timestamp_uid=timestamp_uid)
-                elif file_content_type == "Annotation":
-                    annotation_files.append(f)
+            ts_folders_dict = {}
+            for i in timestamp_folders:
+                if re.search(r'\d+', i):  # Skipping folders without an integer inside, otherwise assuming timestamps from 0 onwards
+                    ts_folders_dict[int(re.search(r'\d+', i).group())] = i
 
-            # Iterating over the annotation files in a second time, when all the parent objects have been created
-            for f in annotation_files:
-                # Collecting the base name of the radiological volume, often before a label or annotation tag
-                base_name = os.path.basename(f).strip().split('.')[0].split('label')[0][:-1]
-                if ResourcesConfiguration.getInstance().caller == 'raidionics':
-                    base_name = os.path.basename(f).strip().split('.')[0].split('annotation')[0][:-1]
-                parent_link = [base_name in x for x in list(self._radiological_volumes.keys())]
-                if True in parent_link:
-                    parent_uid = list(self._radiological_volumes.keys())[parent_link.index(True)]
-                    non_available_uid = True
-                    while non_available_uid:
-                        data_uid = 'A' + str(np.random.randint(0, 10000)) + '_' + base_name
-                        if data_uid not in list(self._annotation_volumes.keys()):
-                            non_available_uid = False
+            ordered_ts_folders = dict(sorted(ts_folders_dict.items(), key=lambda item: item[0], reverse=False))
+
+            for i, ts in enumerate(list(ordered_ts_folders.keys())):
+                ts_folder = os.path.join(self._input_filepath, ordered_ts_folders[ts])
+                if ResourcesConfiguration.getInstance().caller == 'raidionics':  # Specifics to cater to Raidionics
+                    ts_folder = os.path.join(ts_folder, 'raw')
+                patient_files = []
+
+                timestamp_uid = "T" + str(i)
+                timestamp_instance = TimestampParameters(id=timestamp_uid, timestamp_filepath=ts_folder)
+                self._timestamps[timestamp_uid] = timestamp_instance
+
+                for _, _, files in os.walk(ts_folder):
+                    for f in files:
+                        if '.'.join(f.split('.')[1:]) in ResourcesConfiguration.getInstance().get_accepted_image_formats():
+                            patient_files.append(f)
+                    break
+
+                annotation_files = []
+                for f in patient_files:
+                    file_content_type = input_file_category_disambiguation(os.path.join(ts_folder, f))
+                    # Generating a unique id for the radiological volume
+                    if file_content_type == "Volume":
+                        base_data_uid = os.path.basename(f).strip().split('.')[0]
+                        non_available_uid = True
+                        while non_available_uid:
+                            data_uid = 'V' + str(np.random.randint(0, 10000)) + '_' + base_data_uid
+                            if data_uid not in list(self._radiological_volumes.keys()):
+                                non_available_uid = False
+                        self._radiological_volumes[data_uid] = RadiologicalVolume(uid=data_uid,
+                                                                                  input_filename=os.path.join(ts_folder, f),
+                                                                                  timestamp_uid=timestamp_uid)
+                    elif file_content_type == "Annotation":
+                        annotation_files.append(f)
+
+                # Iterating over the annotation files in a second time, when all the parent objects have been created
+                for f in annotation_files:
+                    # Collecting the base name of the radiological volume, often before a label or annotation tag
+                    base_name = os.path.basename(f).strip().split('.')[0].split('label')[0][:-1]
                     if ResourcesConfiguration.getInstance().caller == 'raidionics':
-                        class_name = os.path.basename(f).strip().split('.')[0].split('annotation')[1][1:]
+                        base_name = os.path.basename(f).strip().split('.')[0].split('annotation')[0][:-1]
+                    parent_link = [base_name in x for x in list(self._radiological_volumes.keys())]
+                    if True in parent_link:
+                        parent_uid = list(self._radiological_volumes.keys())[parent_link.index(True)]
+                        non_available_uid = True
+                        while non_available_uid:
+                            data_uid = 'A' + str(np.random.randint(0, 10000)) + '_' + base_name
+                            if data_uid not in list(self._annotation_volumes.keys()):
+                                non_available_uid = False
+                        if ResourcesConfiguration.getInstance().caller == 'raidionics':
+                            class_name = os.path.basename(f).strip().split('.')[0].split('annotation')[1][1:]
+                        else:
+                            class_name = os.path.basename(f).strip().split('.')[0].split('label')[1][1:]
+                        self._annotation_volumes[data_uid] = Annotation(uid=data_uid,
+                                                                        input_filename=os.path.join(ts_folder, f),
+                                                                        output_folder=self._radiological_volumes[parent_uid].get_output_folder(),
+                                                                        radiological_volume_uid=parent_uid,
+                                                                        annotation_class=class_name)
                     else:
-                        class_name = os.path.basename(f).strip().split('.')[0].split('label')[1][1:]
-                    self._annotation_volumes[data_uid] = Annotation(uid=data_uid,
-                                                                    input_filename=os.path.join(ts_folder, f),
-                                                                    output_folder=self._radiological_volumes[parent_uid].get_output_folder(),
-                                                                    radiological_volume_uid=parent_uid,
-                                                                    annotation_class=class_name)
-                else:
-                    # Case where the annotation does not match any radiological volume, has to be left aside
-                    pass
-        sequences_filename = os.path.join(self._input_filepath, 'mri_sequences.csv')
-        if os.path.exists(sequences_filename):
-            df = pd.read_csv(sequences_filename)
-            volume_basenames = list(df['File'].values)
-            for vn in volume_basenames:
-                volume_object = self.get_radiological_volume_by_base_filename(vn)
-                if volume_object:
-                    volume_object.set_sequence_type(df.loc[df['File'] == vn]['MRI sequence'].values[0])
-                else:
-                    logging.warning("[PatientStructure] Filename {} not matching any radiological volume volume.".format(vn))
+                        # Case where the annotation does not match any radiological volume, has to be left aside
+                        pass
+            sequences_filename = os.path.join(self._input_filepath, 'mri_sequences.csv')
+            if os.path.exists(sequences_filename):
+                df = pd.read_csv(sequences_filename)
+                volume_basenames = list(df['File'].values)
+                for vn in volume_basenames:
+                    volume_object = self.get_radiological_volume_by_base_filename(vn)
+                    if volume_object:
+                        volume_object.set_sequence_type(df.loc[df['File'] == vn]['MRI sequence'].values[0])
+                    else:
+                        logging.warning("[PatientStructure] Filename {} not matching any radiological volume volume.".format(vn))
 
-        # Setting up masks (i.e., brain or lungs) if stripped inputs are used.
-        if ResourcesConfiguration.getInstance().predictions_use_stripped_data:
-            target_type = AnnotationClassType.Brain if ResourcesConfiguration.getInstance().diagnosis_task == 'neuro_diagnosis' else AnnotationClassType.Lungs
-            for uid in self.get_all_radiological_volume_uids():
-                volume = self.get_radiological_volume(uid)
-                volume_nib = nib.load(volume.get_raw_input_filepath())
-                img_data = volume_nib.get_fdata()[:]
-                mask = np.zeros(img_data.shape)
-                mask[img_data != 0] = 1
-                mask_fn = os.path.join(volume.get_output_folder(),
-                                       os.path.basename(volume.get_raw_input_filepath()).split('.')[0] + '_label_' + str(target_type) + '.nii.gz')
+            # Setting up masks (i.e., brain or lungs) if stripped inputs are used.
+            if ResourcesConfiguration.getInstance().predictions_use_stripped_data:
+                target_type = AnnotationClassType.Brain if ResourcesConfiguration.getInstance().diagnosis_task == 'neuro_diagnosis' else AnnotationClassType.Lungs
+                for uid in self.get_all_radiological_volume_uids():
+                    volume = self.get_radiological_volume(uid)
+                    volume_nib = nib.load(volume.get_raw_input_filepath())
+                    img_data = volume_nib.get_fdata()[:]
+                    mask = np.zeros(img_data.shape)
+                    mask[img_data != 0] = 1
+                    mask_fn = os.path.join(volume.get_output_folder(),
+                                           os.path.basename(volume.get_raw_input_filepath()).split('.')[0] + '_label_' + str(target_type) + '.nii.gz')
 
-                nib.save(nib.Nifti1Image(mask, affine=volume_nib.affine), mask_fn)
-                non_available_uid = True
-                anno_uid = None
-                while non_available_uid:
-                    anno_uid = 'A' + str(np.random.randint(0, 10000))
-                    if anno_uid not in self.get_all_annotations_uids():
-                        non_available_uid = False
-                self._annotation_volumes[anno_uid] = Annotation(uid=data_uid, input_filename=mask_fn,
-                                                                output_folder=volume.get_output_folder(),
-                                                                radiological_volume_uid=uid,
-                                                                annotation_class=target_type)
+                    nib.save(nib.Nifti1Image(mask, affine=volume_nib.affine), mask_fn)
+                    non_available_uid = True
+                    anno_uid = None
+                    while non_available_uid:
+                        anno_uid = 'A' + str(np.random.randint(0, 10000))
+                        if anno_uid not in self.get_all_annotations_uids():
+                            non_available_uid = False
+                    self._annotation_volumes[anno_uid] = Annotation(uid=data_uid, input_filename=mask_fn,
+                                                                    output_folder=volume.get_output_folder(),
+                                                                    radiological_volume_uid=uid,
+                                                                    annotation_class=target_type)
+        except Exception as e:
+            raise ValueError("Patient structure setup from disk folder failed with: {}".format(e))
 
     def include_annotation(self, anno_uid, annotation):
         self._annotation_volumes[anno_uid] = annotation

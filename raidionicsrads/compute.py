@@ -1,5 +1,6 @@
 from .Utils.configuration_parser import ResourcesConfiguration
 import time
+import traceback
 import logging
 from .Utils.DataStructures.PatientStructure import PatientParameters
 from .Pipelines.PipelineStructure import Pipeline
@@ -25,10 +26,14 @@ def run_rads(config_filename: str, logging_filename: str = None) -> None:
     logging.info("Starting pipeline for file: {}.".format(ResourcesConfiguration.getInstance().pipeline_filename))
     start = time.time()
     pip = Pipeline(ResourcesConfiguration.getInstance().pipeline_filename)
-    patient_parameters = PatientParameters(id="Patient",
-                                           patient_filepath=ResourcesConfiguration.getInstance().input_folder)
+    try:
+        patient_parameters = PatientParameters(id="Patient",
+                                               patient_filepath=ResourcesConfiguration.getInstance().input_folder)
+    except Exception as e:
+        logging.error("""[Backend error] Patient data setup phase of failed with:\n{}""".format(e))
+        logging.debug("Traceback: {}.".format(traceback.format_exc()))
+        return
     patient_parameters = pip.execute(patient_parameters=patient_parameters)
-    # @TODO. Should dump it differently, or arrange filenames for re-use in Raidionics?
     logging.info('Total elapsed time for executing the pipeline: {} seconds.'.format(time.time() - start))
 
 
@@ -44,8 +49,14 @@ def run_folder_inspection(config_filename: str, logging_filename: str = None) ->
                             format="%(asctime)s ; %(name)s ; %(levelname)s ; %(message)s", datefmt='%d/%m/%Y %H.%M')
         logging.getLogger().setLevel(logging.DEBUG)
 
-    patient_parameters = PatientParameters(id="Patient",
-                                           patient_filepath=ResourcesConfiguration.getInstance().input_folder)
+    try:
+        patient_parameters = PatientParameters(id="Patient",
+                                               patient_filepath=ResourcesConfiguration.getInstance().input_folder)
+    except Exception as e:
+        logging.error("""[Backend error] Patient data setup phase of failed with:\n{}""".format(e))
+        logging.debug("Traceback: {}.".format(traceback.format_exc()))
+        return
+
     class_json = {}
     class_json["task"] = "classification"
     class_json["inputs"] = {}  # Empty input means running it on all existing data for the patient
@@ -55,9 +66,14 @@ def run_folder_inspection(config_filename: str, logging_filename: str = None) ->
     logging.info("Starting sequence classification pipeline.")
     start = time.time()
 
-    classification = ClassificationStep(class_json)
-    classification.setup(patient_parameters)
-    patient_parameters = classification.execute()
+    try:
+        classification = ClassificationStep(class_json)
+        classification.setup(patient_parameters)
+        patient_parameters = classification.execute()
+    except Exception as e:
+        logging.error("""[Backend error] Classification step setup or execution phase failed with: {}""".format(e))
+        logging.debug("Traceback: {}.".format(traceback.format_exc()))
+        return
     # @TODO. Should dump it differently, or arrange filenames for re-use in Raidionics, or return the updated
     # patient_parameters if running another real pipeline straight after.
     logging.info('Total elapsed time for executing the pipeline: {} seconds.'.format(time.time() - start))

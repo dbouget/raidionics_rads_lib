@@ -33,7 +33,7 @@ def compute_volume(volume: np.ndarray, spacing: tuple) -> float:
         volume_ml = volume_mmcube * 1e-3
         result = np.round(volume_ml, 2)
     except Exception as e:
-        logging.error('Volume computation failed.\n{}'.format(traceback.format_exc()))
+        raise ValueError('Volume computation failed with: {}'.format(e))
 
     return result
 
@@ -102,7 +102,7 @@ def compute_multifocality(volume: np.ndarray, spacing: tuple,
             if multifocal_largest_minimum_distance >= distance_threshold:
                 multifocal_status = True
     except Exception as e:
-        logging.error('Multifocality computation failed.\n{}'.format(traceback.format_exc()))
+        raise ValueError('Multifocality computation failed with: {}'.format(e))
 
     return multifocal_status, multifocal_elements, multifocal_largest_minimum_distance
 
@@ -166,7 +166,7 @@ def compute_lateralisation(volume: np.ndarray, brain_mask: np.ndarray,
         else:
             pass
     except Exception as e:
-        logging.error('Lateralisation computation failed.\n{}'.format(traceback.format_exc()))
+        raise ValueError('Lateralisation computation failed with {}'.format(e))
 
     return left_hemisphere_percentage, right_hemisphere_percentage, midline_crossing
 
@@ -204,7 +204,7 @@ def compute_resectability_index(volume: np.ndarray, resectability_map: np.ndarra
         residual_tumor_volume = (tumor_voxels_count * 1e-3) - resectable_volume
         avg_resectability = total_resectability / tumor_voxels_count
     except Exception as e:
-        logging.error('Resectability index computation failed.\n{}'.format(traceback.format_exc()))
+        raise ValueError('Resectability index computation failed with {}'.format(e))
     return residual_tumor_volume, resectable_volume, avg_resectability
 
 
