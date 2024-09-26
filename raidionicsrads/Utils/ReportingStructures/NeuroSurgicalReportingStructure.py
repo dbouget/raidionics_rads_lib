@@ -74,7 +74,7 @@ class NeuroSurgicalReportingStructure:
             pfile = open(filename, 'a')
             pfile.close()
         except Exception as e:
-            logging.error("Neuro-parameters export to text failed with {}".format(traceback.format_exc()))
+            raise RuntimeError("Neuro surgical report dump on disk as text failed with {}".format(e))
         return
 
     def to_json(self) -> None:
@@ -89,7 +89,7 @@ class NeuroSurgicalReportingStructure:
             with open(filename, 'w', newline='\n') as outfile:
                 json.dump(param_json, outfile, indent=4, sort_keys=True)
         except Exception as e:
-            logging.error("Neuro-parameters export to json failed with {}".format(traceback.format_exc()))
+            raise RuntimeError("Neuro surgical report dump on disk as json failed with {}".format(e))
 
         return
 
@@ -98,7 +98,7 @@ class NeuroSurgicalReportingStructure:
             filename = os.path.join(self._output_folder, "neuro_surgical_report.csv")
             logging.info("Exporting neuro-parameters to csv in {}.".format(filename))
         except Exception as e:
-            logging.error("Neuro-parameters export to csv failed with {}".format(traceback.format_exc()))
+            raise RuntimeError("Neuro surgical report dump on disk as csv failed with {}".format(e))
 
 
 class SurgicalStatistics:
