@@ -84,8 +84,9 @@ jobs:
             name: "Python wheel"
 
         - name: Install wheel
-          run: pip install --upgrade pip
-               pip install --default-timeout=100 --find-links=${{github.workspace}} --no-cache-dir --force-reinstall raidionicsrads-*
+          run: |
+            pip install --upgrade pip
+            pip install --default-timeout=100 --find-links=${{github.workspace}} --no-cache-dir --force-reinstall raidionicsrads-*
           shell: bash
 
         - name: Test CLI

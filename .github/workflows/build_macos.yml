@@ -17,7 +17,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: macos-11
+          - os: macos-12
             TARGET: macos
             CMD_BUILD: python setup.py bdist_wheel --plat-name macosx_10_15_x86_64
 
@@ -67,7 +67,7 @@ jobs:
     needs: build
     strategy:
       matrix:
-        os: [ macos-11, macos-12 ]
+        os: [ macos-12, macos-13]
         python-version: ["3.8", "3.9", "3.10", "3.11"]
     runs-on: ${{ matrix.os }}
 
@@ -83,7 +83,9 @@ jobs:
           name: "Python wheel"
 
       - name: Install wheel
-        run: pip install --no-cache-dir --force-reinstall --find-links=${{github.workspace}} raidionicsrads-*
+        run: |
+          pip install --upgrade pip
+          pip install --no-cache-dir --force-reinstall --find-links=${{github.workspace}} raidionicsrads-*
         shell: bash
 
       - name: Test CLI

@@ -67,8 +67,7 @@ class ClassificationStep(AbstractPipelineStep):
             df.to_csv(classification_results_filename, index=False)
             logging.info("Classification results written to {}".format(classification_results_filename))
         except Exception as e:
-            logging.error("[ClassificationStep] Automatic classification failed with: {}".format(traceback.format_exc()))
-            raise ValueError("[ClassificationStep] Automatic classification failed.")
+            raise ValueError("[ClassificationStep] Automatic classification failed with: {}.".format(e))
 
         return self._patient_parameters
 
@@ -108,8 +107,7 @@ class ClassificationStep(AbstractPipelineStep):
             from raidionicsseg.fit import run_model
             run_model(classification_config_filename)
         except Exception as e:
-            logging.error("[ClassificationStep] Automatic classification failed with: {}".format(traceback.format_exc()))
-            raise ValueError("[ClassificationStep] Automatic classification failed.")
+            raise ValueError("[ClassificationStep] Automatic classification failed with: {}.".format(e))
 
         try:
             classification_results_filename = os.path.join(os.path.join(self._working_folder, 'outputs'),
@@ -118,7 +116,6 @@ class ClassificationStep(AbstractPipelineStep):
             final_class = classification_results_df.values[classification_results_df[classification_results_df.columns[1]].idxmax(), 0]
             self._patient_parameters.get_radiological_volume(volume_uid=self._input_volume_uid).set_sequence_type(final_class)
         except Exception as e:
-            logging.error("[ClassificationStep] Classification results parsing failed with: {}".format(traceback.format_exc()))
-            raise ValueError("[ClassificationStep] Classification results parsing failed.")
+            raise ValueError("[ClassificationStep] Classification results parsing failed with: {}.".format(e))
 
         return

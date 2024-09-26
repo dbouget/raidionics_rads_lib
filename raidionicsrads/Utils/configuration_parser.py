@@ -31,7 +31,7 @@ class ResourcesConfiguration:
 
     def __setup(self):
         """
-        Definition all of attributes accessible through this singleton.
+        Definition of all attributes accessible through this singleton.
         """
         self.config_filename = None
         self.config = None

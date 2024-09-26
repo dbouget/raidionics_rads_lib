@@ -1,6 +1,7 @@
 import json
 import logging
 import time
+import traceback
 
 from aenum import Enum, unique
 from ..Utils.utilities import get_type_from_string
@@ -87,8 +88,20 @@ class Pipeline:
             logging.info("LOG: Pipeline - {desc} - Begin ({curr}/{tot})".format(desc=self._pipeline_json[str(int(s) + 1)]['description'],
                                                                                 curr=str(int(s) + 1),
                                                                                 tot=len(self._steps)))
-            self._steps[s].setup(patient_parameters)
-            patient_parameters = self._steps[s].execute()
+            try:
+                self._steps[s].setup(patient_parameters)
+            except Exception as e:
+                logging.error("""[Backend error] Setup phase of {} failed with:\n{}""".format(
+                    self._steps[s].step_json, e))
+                logging.debug("Traceback: {}.".format(traceback.format_exc()))
+                break
+            try:
+                patient_parameters = self._steps[s].execute()
+            except Exception as e:
+                logging.error("""[Backend error] Execution phase of {} failed with:\n{}""".format(
+                    self._steps[s].step_json, e))
+                logging.debug("Traceback: {}.".format(traceback.format_exc()))
+                break
             logging.info('LOG: Pipeline - {desc} - Runtime: {time} seconds.'.format(desc=self._pipeline_json[str(int(s) + 1)]['description'],
                                                                                     time=time.time() - start))
             logging.info("LOG: Pipeline - {desc} - End ({curr}/{tot})".format(desc=self._pipeline_json[str(int(s) + 1)]['description'],

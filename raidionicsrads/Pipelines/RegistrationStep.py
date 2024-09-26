@@ -78,15 +78,21 @@ class RegistrationStep(AbstractPipelineStep):
             if not os.path.exists(self._fixed_volume_filepath):
                 raise ValueError("[RegistrationStep] Registration fixed input cannot be found on disk with: {}".format(self._fixed_volume_filepath))
         except Exception as e:
-            logging.error("[RegistrationStep] Setting up process failed with {}".format(traceback.format_exc()))
-            raise ValueError("[RegistrationStep] Setting up process failed.")
+            raise ValueError("[RegistrationStep] Setting up process failed with: {}.".format(e))
 
     def execute(self):
-        if ResourcesConfiguration.getInstance().predictions_use_registered_data and self._step_json["fixed"]["sequence"] != 'MNI':
+        """
+
+        """
+        if ResourcesConfiguration.getInstance().predictions_use_registered_data and self._step_json["fixed"][
+            "sequence"] != 'MNI':
             return self._patient_parameters
 
-        fmf, mmf = self.__registration_preprocessing()
-        self.__registration(fmf, mmf)
+        try:
+            fmf, mmf = self.__registration_preprocessing()
+            self.__registration(fmf, mmf)
+        except Exception as e:
+            raise ValueError("[RegistrationStep] Process failed to run with: {}.".format(e))
 
         return self._patient_parameters
 
@@ -97,28 +103,31 @@ class RegistrationStep(AbstractPipelineStep):
         """
         fixed_masked_filepath = None
         moving_masked_filepath = None
-        if ResourcesConfiguration.getInstance().diagnosis_task == 'neuro_diagnosis':
-            if self._fixed_volume_uid:
-                brain_anno = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(self._fixed_volume_uid, AnnotationClassType.Brain)
-                if len(brain_anno) != 0:
-                    self._fixed_mask_filepath = self._patient_parameters.get_annotation(annotation_uid=brain_anno[0]).get_usable_input_filepath()
-            else:
-                self._fixed_mask_filepath = ResourcesConfiguration.getInstance().mni_atlas_brain_mask_filepath
+        try:
+            if ResourcesConfiguration.getInstance().diagnosis_task == 'neuro_diagnosis':
+                if self._fixed_volume_uid:
+                    brain_anno = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(self._fixed_volume_uid, AnnotationClassType.Brain)
+                    if len(brain_anno) != 0:
+                        self._fixed_mask_filepath = self._patient_parameters.get_annotation(annotation_uid=brain_anno[0]).get_usable_input_filepath()
+                else:
+                    self._fixed_mask_filepath = ResourcesConfiguration.getInstance().mni_atlas_brain_mask_filepath
 
-            if self._moving_volume_uid:
-                brain_anno = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(self._moving_volume_uid, AnnotationClassType.Brain)
-                if len(brain_anno) != 0:
-                    self._moving_mask_filepath = self._patient_parameters.get_annotation(annotation_uid=brain_anno[0]).get_usable_input_filepath()
-            else:
-                self._moving_mask_filepath = ResourcesConfiguration.getInstance().mni_atlas_brain_mask_filepath
+                if self._moving_volume_uid:
+                    brain_anno = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(self._moving_volume_uid, AnnotationClassType.Brain)
+                    if len(brain_anno) != 0:
+                        self._moving_mask_filepath = self._patient_parameters.get_annotation(annotation_uid=brain_anno[0]).get_usable_input_filepath()
+                else:
+                    self._moving_mask_filepath = ResourcesConfiguration.getInstance().mni_atlas_brain_mask_filepath
 
-            moving_masked_filepath = perform_brain_masking(image_filepath=self._moving_volume_filepath,
-                                                           mask_filepath=self._moving_mask_filepath,
-                                                           output_folder=self._registration_runner.registration_folder)
-            fixed_masked_filepath = perform_brain_masking(image_filepath=self._fixed_volume_filepath,
-                                                          mask_filepath=self._fixed_mask_filepath,
-                                                          output_folder=self._registration_runner.registration_folder)
-            return fixed_masked_filepath, moving_masked_filepath
+                moving_masked_filepath = perform_brain_masking(image_filepath=self._moving_volume_filepath,
+                                                               mask_filepath=self._moving_mask_filepath,
+                                                               output_folder=self._registration_runner.registration_folder)
+                fixed_masked_filepath = perform_brain_masking(image_filepath=self._fixed_volume_filepath,
+                                                              mask_filepath=self._fixed_mask_filepath,
+                                                              output_folder=self._registration_runner.registration_folder)
+                return fixed_masked_filepath, moving_masked_filepath
+        except Exception as e:
+            raise ValueError("Preprocessing step failed to proceed with: {}.".format(e))
 
     def __registration(self, fixed_filepath, moving_filepath):
         try:
@@ -126,8 +135,12 @@ class RegistrationStep(AbstractPipelineStep):
             logging.info("[RegistrationStep] Using {} ANTs backend.".format(ResourcesConfiguration.getInstance().system_ants_backend))
             if ResourcesConfiguration.getInstance().system_ants_backend == "cpp":
                 logging.info("[RegistrationStep] ANTs root located in {}.".format(ResourcesConfiguration.getInstance().ants_root))
-            self._registration_runner.compute_registration(fixed=fixed_filepath, moving=moving_filepath,
-                                                           registration_method=registration_method)
+            try:
+                self._registration_runner.compute_registration(fixed=fixed_filepath, moving=moving_filepath,
+                                                               registration_method=registration_method)
+            except Exception as e:
+                raise RuntimeError("ANTs execution code failed with: {}".format(e))
+
             non_available_uid = True
             reg_uid = None
             while non_available_uid:
@@ -147,6 +160,5 @@ class RegistrationStep(AbstractPipelineStep):
             self._patient_parameters.include_registration(reg_uid, registration)
             self._registration_runner.clear_cache()
         except Exception as e:
-            logging.error("[RegistrationStep] Registration failed with: {}.".format(traceback.format_exc()))
             self._registration_runner.clear_cache()
-            raise ValueError("[RegistrationStep] Registration failed.")
+            raise ValueError("[RegistrationStep] Registration failed with: {}.".format(e))

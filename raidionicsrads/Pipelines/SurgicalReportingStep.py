@@ -32,10 +32,15 @@ class SurgicalReportingStep(AbstractPipelineStep):
         self._patient_parameters = patient_parameters
 
     def execute(self):
-        if ResourcesConfiguration.getInstance().diagnosis_task == 'neuro_diagnosis':
-            self.__run_neuro_surgical_reporting()
-        else:
-            pass
+        try:
+            if ResourcesConfiguration.getInstance().diagnosis_task == 'neuro_diagnosis':
+                self.__run_neuro_surgical_reporting()
+            else:
+                logging.warning("[SurgicalReportingStep] No execution implemented yet for the task {}".format(
+                    ResourcesConfiguration.getInstance().diagnosis_task))
+                pass
+        except Exception as e:
+            raise ValueError("[SurgicalReportingStep] Step execution failed with: {}.".format(e))
         return self._patient_parameters
 
     def __run_neuro_surgical_reporting(self):
@@ -63,5 +68,4 @@ class SurgicalReportingStep(AbstractPipelineStep):
             self._patient_parameters.include_reporting(report_uid, report)
             report.to_json()
         except Exception as e:
-            logging.error("[SurgicalReportingStep] Neuro surgical reporting failed with: {}.".format(traceback.format_exc()))
-            raise ValueError("[SurgicalReportingStep] Neuro surgical reporting failed.")
+            raise ValueError("[SurgicalReportingStep] Neuro surgical reporting failed with: {}.".format(e))

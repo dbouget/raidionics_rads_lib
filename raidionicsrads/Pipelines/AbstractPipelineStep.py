@@ -19,6 +19,14 @@ class AbstractPipelineStep(ABC):
         self._step_json = {}
         self._step_description = None
 
+    @property
+    def step_json(self) -> dict:
+        return self._step_json
+
+    @step_json.setter
+    def step_json(self, step: dict) -> None:
+        self.step_json = step
+
     @abstractmethod
     def setup(self, patient_parameters):
         pass

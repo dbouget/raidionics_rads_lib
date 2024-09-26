@@ -16,6 +16,7 @@ from ..Pipelines.PipelineStructure import Pipeline
 
 class NeuroDiagnostics:
     """
+    @DEPRECATED?
     Performs the standardized reporting (RADS) for neuro-related applications. All parameters have been stored in
     ResourcesConfiguration from a user-defined (or software-defined) configuration file.
     @TODO1. In the future, we will need access to multiple inputs (T1, T2, FLAIR, etc...) and at different
