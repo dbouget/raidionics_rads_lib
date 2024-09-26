@@ -83,7 +83,7 @@ jobs:
           name: "Python wheel"
 
       - name: Install wheel
-        run: pip install --no-cache-dir --find-links=${{github.workspace}} raidionicsrads-*
+        run: pip install --no-cache-dir --force-reinstall --find-links=${{github.workspace}} raidionicsrads-*
         shell: bash
 
       - name: Test CLI
@@ -105,6 +105,3 @@ jobs:
 
       - name: Registration pipeline unit test with Python backend
         run: cd ${{github.workspace}}/tests && python registration_pipeline_test.py
-#
-#      - name: Registration pipeline unit test with cpp backend
-#        run: cd ${{github.workspace}}/tests && python registration_pipeline_cpp_backend_test.py

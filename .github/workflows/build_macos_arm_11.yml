@@ -1,39 +1,35 @@
-name: Build macOS ARM
+name: Build macOS ARM (macOS11)
 
 on:
-  push:
-    branches:
-      - '*'
-  pull_request:
-    branches: [master, release]
+  # Allows to run the workflow manually from the Actions tab
   workflow_dispatch:
-
-env:
-  MACOSX_DEPLOYMENT_TARGET: 14.0
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - os: macos-14
-            TARGET: macos
-            CMD_BUILD: python setup.py bdist_wheel --plat-name macosx_14_0_arm64
+    name: Build RADS lib on macOS ARM (macOS 11)
+    runs-on: self-hosted
+    env:
+       SYSTEM_VERSION_COMPAT: 0
 
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
-        run: arch -arm64 brew reinstall zlib
+        run: |
+          arch -arm64 brew reinstall zlib
 
-      - uses: actions/checkout@v4
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v5
+      - name: Setup pyenv
+        env:
+          ACTIONS_ALLOW_UNSECURE_COMMANDS: true
+          MACOSX_DEPLOYMENT_TARGET: 11.0
+          PYTHON_CONFIGURE_OPTS: "--enable-framework"
+          CFLAGS: "-Wno-implicit-function-declaration"
+          LDFLAGS: "-L/usr/local/opt/zlib/lib"
+          CPPFLAGS: "-I/usr/local/opt/zlib/include"
+          PKG_CONFIG_PATH: "/usr/local/opt/zlib/lib/pkgconfig"
+        uses: "gabrielfalcao/pyenv-action@v18"
         with:
-          python-version: "3.10"
-
-      - name: Install dependencies
-        run: python -m pip install wheel
+            default: 3.8
+            command: pip3 install -U pip3 wheel setuptools
 
       - name: Collect submodules
         uses: actions/checkout@v4
@@ -54,8 +50,8 @@ jobs:
           tar -xzf ANTsX-v2.4.3_macos_arm.tar.gz -C ${{github.workspace}}/downloads/
           mv ${{github.workspace}}/downloads/install ${{github.workspace}}/raidionicsrads/ANTs/
 
-      - name: Built wheel for ${{matrix.TARGET}}
-        run: ${{matrix.CMD_BUILD}}
+      - name: Built wheel for MacOS ARM
+        run: python3 setup.py bdist_wheel --plat-name macosx_11_0_arm64
 
       - name: Upload Python wheel
         uses: actions/upload-artifact@v4
@@ -68,15 +64,14 @@ jobs:
     needs: build
     strategy:
       matrix:
-        os: [macos-14]
-        python-version: ["3.10", "3.11"]
-    runs-on: ${{ matrix.os }}
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
+    runs-on: self-hosted
 
     steps:
-        - name: Set up Python ${{ matrix.python-version }}
-          uses: actions/setup-python@v5
+        - name: Setup pyenv for Python ${{ matrix.python-version }}
+          uses: "gabrielfalcao/pyenv-action@v18"
           with:
-            python-version: ${{ matrix.python-version }}
+            default: ${{ matrix.python-version }}
 
         - name: Download artifact
           uses: actions/download-artifact@v4
@@ -84,14 +79,11 @@ jobs:
             name: "Python wheel"
 
         - name: Install wheel
-          run: pip install --upgrade pip
-               pip install --default-timeout=100 --find-links=${{github.workspace}} --no-cache-dir --force-reinstall raidionicsrads-*
+          run: pip3 install --find-links=${{github.workspace}} --no-cache-dir --force-reinstall raidionicsrads-*
           shell: bash
 
         - name: Test CLI
-          run: |
-            python3 -m raidionicsrads --help
-            python3 -m raidionicsseg --help
+          run: python3 -m raidionicsrads --help
 
         - name: Clone repo
           uses: actions/checkout@v4
@@ -103,7 +95,12 @@ jobs:
           run: cd ${{github.workspace}}/tests && python3 reporting_pipeline_test.py
 
         - name: Reporting pipeline with BrainGrid unit test
-          run: cd ${{github.workspace}}/tests && python reporting_pipeline_braingrid_test.py
+          run: cd ${{github.workspace}}/tests && python3 reporting_pipeline_braingrid_test.py
 
         - name: Registration pipeline unit test with Python backend
           run: cd ${{github.workspace}}/tests && python3 registration_pipeline_test.py
+
+#        - name: Test with pytest
+#          run: |
+#            pip install pytest
+#            pytest --verbose tests/
