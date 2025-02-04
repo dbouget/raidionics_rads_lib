@@ -27,6 +27,10 @@ class AbstractPipelineStep(ABC):
     def step_json(self, step: dict) -> None:
         self.step_json = step
 
+    @property
+    def step_description(self) -> dict:
+        return self._step_description
+
     @abstractmethod
     def setup(self, patient_parameters):
         pass
@@ -35,5 +39,11 @@ class AbstractPipelineStep(ABC):
     def execute(self):
         pass
 
+    @abstractmethod
+    def cleanup(self):
+        pass
+
+    def get_task(self) -> str:
+        return self._step_json["task"] if "task" in self._step_json.keys() else None
     # @TODO. Should there be a step assess method, before executing the pipeline, ensuring all inputs are available
     # for all steps.

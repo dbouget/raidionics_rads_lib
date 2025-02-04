@@ -60,6 +60,9 @@ class FeaturesComputationStep(AbstractPipelineStep):
             raise ValueError("[FeaturesComputationStep] Step execution failed with: {}.".format(e))
         return self._patient_parameters
 
+    def cleanup(self):
+        pass
+
     def __run_neuro_reporting(self):
         """
         @TODO. The self.report_space will not handle properly the Atlas files, should have another flag inside the

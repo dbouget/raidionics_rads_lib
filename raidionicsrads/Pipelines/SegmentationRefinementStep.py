@@ -160,6 +160,10 @@ class SegmentationRefinementStep(AbstractPipelineStep):
             raise ValueError("[SegmentationRefinementStep] Step execution failed with: {}.".format(e))
         return self._patient_parameters
 
+    def cleanup(self):
+        if os.path.exists(self._working_folder):
+            shutil.rmtree(self._working_folder)
+
     def __perform_neuro_segmentation(self) -> None:
         """
         """

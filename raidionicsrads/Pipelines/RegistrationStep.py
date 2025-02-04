@@ -96,6 +96,9 @@ class RegistrationStep(AbstractPipelineStep):
 
         return self._patient_parameters
 
+    def cleanup(self):
+        self._registration_runner.clear_cache()
+
     def __registration_preprocessing(self):
         """
         Generating masked version of both the fixed and moving inputs, for occluding irrelevant structures.

@@ -43,6 +43,9 @@ class SurgicalReportingStep(AbstractPipelineStep):
             raise ValueError("[SurgicalReportingStep] Step execution failed with: {}.".format(e))
         return self._patient_parameters
 
+    def cleanup(self):
+        pass
+
     def __run_neuro_surgical_reporting(self):
         """
 

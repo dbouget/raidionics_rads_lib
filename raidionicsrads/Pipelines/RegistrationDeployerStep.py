@@ -80,6 +80,9 @@ class RegistrationDeployerStep(AbstractPipelineStep):
         except Exception as e:
             raise ValueError("[RegistrationDeployerStep] Registration deployment failed with: {}.".format(e))
 
+    def cleanup(self):
+        self._registration_runner.clear_output_folder()
+
     def __apply_registration(self):
         try:
             fixed_filepath = None

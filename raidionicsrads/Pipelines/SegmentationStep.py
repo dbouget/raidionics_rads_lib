@@ -161,6 +161,10 @@ class SegmentationStep(AbstractPipelineStep):
                 self.__perform_mediastinum_segmentation()
         return self._patient_parameters
 
+    def cleanup(self):
+        if os.path.exists(self._working_folder):
+            shutil.rmtree(self._working_folder)
+
     def __perform_neuro_segmentation(self) -> None:
         """
         """
@@ -180,14 +184,25 @@ class SegmentationStep(AbstractPipelineStep):
             seg_config.set('System', 'gpu_id', ResourcesConfiguration.getInstance().gpu_id)
             seg_config.set('System', 'inputs_folder', os.path.join(self._working_folder, 'inputs'))
             seg_config.set('System', 'output_folder', os.path.join(self._working_folder, 'outputs'))
-            seg_config.set('System', 'model_folder', os.path.join(ResourcesConfiguration.getInstance().model_folder,
-                                                                  self._model_name))
+            seg_config.set('System', 'model_folder',
+                           os.path.join(ResourcesConfiguration.getInstance().model_folder, self._model_name))
             seg_config.add_section('Runtime')
-            seg_config.set('Runtime', 'reconstruction_method', ResourcesConfiguration.getInstance().predictions_reconstruction_method)
+            seg_config.set('Runtime', 'reconstruction_method',
+                           ResourcesConfiguration.getInstance().predictions_reconstruction_method)
             if self._segmentation_output_type:
                 seg_config.set('Runtime', 'reconstruction_method', self._segmentation_output_type)
-            seg_config.set('Runtime', 'reconstruction_order', ResourcesConfiguration.getInstance().predictions_reconstruction_order)
-            seg_config.set('Runtime', 'use_preprocessed_data', str(ResourcesConfiguration.getInstance().predictions_use_stripped_data))
+            seg_config.set('Runtime', 'reconstruction_order',
+                           ResourcesConfiguration.getInstance().predictions_reconstruction_order)
+            seg_config.set('Runtime', 'use_preprocessed_data',
+                           str(ResourcesConfiguration.getInstance().predictions_use_stripped_data))
+            seg_config.set('Runtime', 'folds_ensembling',
+                           str(ResourcesConfiguration.getInstance().predictions_folds_ensembling))
+            seg_config.set('Runtime', 'ensembling_strategy',
+                           ResourcesConfiguration.getInstance().predictions_ensembling_strategy)
+            seg_config.set('Runtime', 'test_time_augmentation_iteration',
+                           str(ResourcesConfiguration.getInstance().predictions_test_time_augmentation_iterations))
+            seg_config.set('Runtime', 'test_time_augmentation_fusion_mode',
+                           ResourcesConfiguration.getInstance().predictions_test_time_augmentation_fusion_mode)
 
             # @TODO. Have to be slightly improved, but should be working for our use-cases for now.
             existing_brain_annotations = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(volume_uid=self._input_volume_uid,
@@ -243,7 +258,7 @@ class SegmentationStep(AbstractPipelineStep):
                     annotation = Annotation(uid=anno_uid, input_filename=final_seg_filename,
                                             output_folder=self._patient_parameters.get_radiological_volume(volume_uid=self._input_volume_uid).get_output_folder(),
                                             radiological_volume_uid=self._input_volume_uid, annotation_class=label_name)
-                    if label_name == 'Tumor':
+                    if 'Tumor' in label_name:
                         subtype = "Glioblastoma"
                         if 'Meningioma' in self._model_name:
                             subtype = "Meningioma"
@@ -258,9 +273,6 @@ class SegmentationStep(AbstractPipelineStep):
             if os.path.exists(self._working_folder):
                 shutil.rmtree(self._working_folder)
             raise ValueError("[SegmentationStep] Segmentation results parsing failed with: {}.".format(e))
-
-        if os.path.exists(self._working_folder):
-            shutil.rmtree(self._working_folder)
 
     def __perform_mediastinum_segmentation(self):
         """
@@ -285,8 +297,8 @@ class SegmentationStep(AbstractPipelineStep):
             # seg_config.set('System', 'input_filename', self._input_volume_filepath)
             seg_config.set('System', 'inputs_folder', os.path.join(self._working_folder, 'inputs'))
             seg_config.set('System', 'output_folder', os.path.join(self._working_folder, 'outputs'))
-            seg_config.set('System', 'model_folder', os.path.join(ResourcesConfiguration.getInstance().model_folder,
-                                                                  self._model_name))
+            seg_config.set('System', 'model_folder',
+                           os.path.join(ResourcesConfiguration.getInstance().model_folder, self._model_name))
             seg_config.add_section('Runtime')
             seg_config.set('Runtime', 'reconstruction_method',
                            ResourcesConfiguration.getInstance().predictions_reconstruction_method)
@@ -365,3 +377,26 @@ class SegmentationStep(AbstractPipelineStep):
 
         if os.path.exists(self._working_folder):
             shutil.rmtree(self._working_folder)
+
+    def __identify_model_from_inputs(self, base_model_path: str) -> str:
+        """
+        For each model, a subset of models has been trained based on the provided inputs.
+        The identification of the best fitting model for the current patient is performed here.
+
+        Returns
+        -------
+        str
+            The folder name on disk matching best the set of inputs for the current patient.
+        """
+        base_model_name = os.path.basename(base_model_path)
+        # Have to check first if the model is eligible (e.g., MRI_Brain is not)
+        if base_model_name.split('_')[0] == "CT" or base_model_name == "MRI_Brain":
+            return base_model_path
+        else:
+            # For eligible models, list the submodels and match to list of available inputs.
+            eligible_models = []
+            for _, dirs, _ in os.walk(base_model_path):
+                for d in dirs:
+                    eligible_models.append(d)
+                break
+

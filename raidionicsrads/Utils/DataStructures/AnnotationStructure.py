@@ -13,9 +13,10 @@ class AnnotationClassType(Enum):
     _init_ = 'value string'
 
     Brain = 0, 'Brain'
-    Tumor = 1, 'Tumor'
+    Tumor = 1, 'Tumor' # Would correspond to tumor core (contrast-enhancing tumor and necrosis/cysts)
     Cavity = 2, 'Cavity'
-    Edema = 3, 'Edema'
+    Edema = 3, 'Edema' # Should be renamed to FLAIR changes
+    TumorCE = 4, 'Contrast-enhancing tumor'
 
     Lungs = 100, 'Lungs'
     Airways = 101, 'Airways'

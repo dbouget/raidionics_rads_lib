@@ -243,6 +243,13 @@ class PatientParameters:
     def get_all_radiological_volume_uids(self) -> List[str]:
         return list(self._radiological_volumes.keys())
 
+    def get_all_radiological_volumes_for_timestamp(self, timestamp: int) -> List:
+        res_list = []
+        for v in self._radiological_volumes.keys():
+            if self._radiological_volumes[v]._timestamp_id == "T" + str(timestamp):
+                res_list.append(self._radiological_volumes[v])
+        return res_list
+
     def get_radiological_volume_uid(self, timestamp: int, sequence: str) -> str:
         for v in self._radiological_volumes.keys():
             if self._radiological_volumes[v]._timestamp_id == "T" + str(timestamp) and str(self._radiological_volumes[v]._sequence_type) == sequence:
