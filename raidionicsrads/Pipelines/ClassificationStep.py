@@ -54,16 +54,7 @@ class ClassificationStep(AbstractPipelineStep):
             else:  # Not a use-case for the moment.
                 pass
 
-            # Dumping the classification results for reloading afterwards
-            # Only/current use-case for now: MRI sequence classification.
-            classification_results_filename = os.path.join(ResourcesConfiguration.getInstance().output_folder, "mri_sequences.csv")
-            classes = []
-            for volume_uid in self._patient_parameters.get_all_radiological_volume_uids():
-                classes.append([os.path.basename(self._patient_parameters.get_radiological_volume(volume_uid).get_raw_input_filepath()),
-                                self._patient_parameters.get_radiological_volume(volume_uid).get_sequence_type_str()])
-            df = pd.DataFrame(classes, columns=['File', 'MRI sequence'])
-            df.to_csv(classification_results_filename, index=False)
-            logging.info("Classification results written to {}".format(classification_results_filename))
+            self.__process_classification_results()
         except Exception as e:
             if os.path.exists(self._working_folder):
                 shutil.rmtree(self._working_folder)
@@ -114,15 +105,43 @@ class ClassificationStep(AbstractPipelineStep):
             from raidionicsseg.fit import run_model
             run_model(classification_config_filename)
         except Exception as e:
-            raise ValueError("[ClassificationStep] Automatic classification failed with: {}.".format(e))
+            raise ValueError(f"[ClassificationStep] Automatic classification failed with: {e}.")
 
         try:
             classification_results_filename = os.path.join(os.path.join(self._working_folder, 'outputs'),
                                                            'classification-results.csv')
             classification_results_df = pd.read_csv(classification_results_filename)
             final_class = classification_results_df.values[classification_results_df[classification_results_df.columns[1]].idxmax(), 0]
-            self._patient_parameters.get_radiological_volume(volume_uid=self._input_volume_uid).set_sequence_type(final_class)
+            if self._step_json["target"][0] == "MRSequence":
+                self._patient_parameters.get_radiological_volume(volume_uid=self._input_volume_uid).set_sequence_type(final_class)
+            else:
+                raise ValueError(f"[ClassificationStep] Use-cases other than MRI sequence classification have not been"
+                                 f" implemented yet!")
         except Exception as e:
-            raise ValueError("[ClassificationStep] Classification results parsing failed with: {}.".format(e))
+            raise ValueError(f"[ClassificationStep] Classification results parsing failed with: {e}.")
 
         return
+
+    def __process_classification_results(self) -> None:
+        """
+        Dumping the classification results for reloading afterwards
+        Only/current use-case for now: MRI sequence classification.
+
+        Returns
+        -------
+
+        """
+        classification_results_filename = os.path.join(ResourcesConfiguration.getInstance().output_folder,
+                                                       self._step_json["target"][0] + "_classification_results.csv")
+        classes = []
+        if self._step_json["target"][0] == "MRSequence":
+            for volume_uid in self._patient_parameters.get_all_radiological_volume_uids():
+                classes.append([os.path.basename(
+                    self._patient_parameters.get_radiological_volume(volume_uid).get_raw_input_filepath()),
+                                self._patient_parameters.get_radiological_volume(volume_uid).get_sequence_type_str()])
+            df = pd.DataFrame(classes, columns=['File', 'MRI sequence'])
+            df.to_csv(classification_results_filename, index=False)
+        else:
+            raise ValueError(f"[ClassificationStep] Use-cases other than MRI sequence classification have not been"
+                             f" implemented yet!")
+        logging.info(f"Classification results written to {classification_results_filename}")
