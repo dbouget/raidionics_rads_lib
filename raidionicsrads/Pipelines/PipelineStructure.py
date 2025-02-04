@@ -1,10 +1,14 @@
 import json
 import logging
+import os.path
 import time
 import traceback
 
 from aenum import Enum, unique
+from raidionicsseg.Utils.configuration_parser import ConfigResources
+
 from ..Utils.utilities import get_type_from_string
+from ..Utils.configuration_parser import ResourcesConfiguration
 from .ClassificationStep import ClassificationStep
 from .SegmentationStep import SegmentationStep
 from .SegmentationRefinementStep import SegmentationRefinementStep
@@ -158,6 +162,10 @@ class Pipeline:
                     self._steps[s].step_json, e))
                 logging.debug("Traceback: {}.".format(traceback.format_exc()))
         self.__parse_pipeline_steps(pipeline=final_pipeline)
+        # Writing on disk the actual/final pipeline (for info and reuse in Raidionics)
+        executed_pipeline_fn = os.path.join(ResourcesConfiguration.getInstance().output_folder, "executed_pipeline.json")
+        with open(executed_pipeline_fn, 'w', newline='\n') as outfile:
+            json.dump(final_pipeline, outfile, indent=4)
         return patient_parameters
 
     def execute(self, patient_parameters):

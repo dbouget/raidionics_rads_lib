@@ -162,7 +162,7 @@ class SegmentationStep(AbstractPipelineStep):
         return self._patient_parameters
 
     def cleanup(self):
-        if os.path.exists(self._working_folder):
+        if self._working_folder is not None and os.path.exists(self._working_folder):
             shutil.rmtree(self._working_folder)
 
     def __perform_neuro_segmentation(self) -> None:

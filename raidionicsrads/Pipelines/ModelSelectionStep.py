@@ -24,11 +24,13 @@ class ModelSelectionStep(AbstractPipelineStep):
     _base_model_name = None  # Basename of the folder containing all the sub-models to choose from.
     _patient_parameters = None  # Overall patient parameters, updated on-the-fly
     _working_folder = None  # Temporary directory on disk to store inputs/outputs for the segmentation
+    _target_timestamp = None #
 
     def __init__(self, step_json: dict):
         super(ModelSelectionStep, self).__init__(step_json=step_json)
         self.__reset()
         self._base_model_name = self._step_json["model"]
+        self._target_timestamp = int(self._step_json["timestamp"])
         self.sequences_names_intern = ["T1-CE", "T1-w", "FLAIR", "T2", "High-resolution"]
         self.sequences_names_models = ["t1c", "t1w", "t2f", "t2w", "hr"]
 
@@ -36,6 +38,7 @@ class ModelSelectionStep(AbstractPipelineStep):
         self._base_model_name = None
         self._patient_parameters = None
         self._working_folder = None
+        self._target_timestamp = None
 
     def setup(self, patient_parameters: PatientParameters) -> None:
         """
@@ -93,7 +96,7 @@ class ModelSelectionStep(AbstractPipelineStep):
         return model_pipeline
 
     def cleanup(self):
-        if os.path.exists(self._working_folder):
+        if self._working_folder is not None and os.path.exists(self._working_folder):
             shutil.rmtree(self._working_folder)
 
     def __identify_model_from_mri_inputs(self, base_model_path: str) -> str:
@@ -120,9 +123,7 @@ class ModelSelectionStep(AbstractPipelineStep):
                     break
 
             eligible_models = sorted(eligible_models, key=len)
-            timestamp = 0
-            if "Postop" in self._base_model_name:
-                timestamp = 1
+            timestamp = self._target_timestamp
 
             existing_inputs = self._patient_parameters.get_all_radiological_volumes_for_timestamp(timestamp=timestamp)
             existing_sequences = sorted(np.unique([i.get_sequence_type_str() for i in existing_inputs]))
