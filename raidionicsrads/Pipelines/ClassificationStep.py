@@ -37,6 +37,9 @@ class ClassificationStep(AbstractPipelineStep):
     def setup(self, patient_parameters):
         self._patient_parameters = patient_parameters
 
+        if self.skip:
+            return
+
         self._working_folder = os.path.join(ResourcesConfiguration.getInstance().output_folder, "classification_tmp")
         os.makedirs(self._working_folder, exist_ok=True)
         os.makedirs(os.path.join(self._working_folder, 'inputs'), exist_ok=True)
@@ -44,6 +47,10 @@ class ClassificationStep(AbstractPipelineStep):
 
     def execute(self):
         try:
+            if self.skip:
+                logging.info(f"Classification step not executed since marked as skippable.")
+                return self._patient_parameters
+
             if len(self._step_json["inputs"].keys()) == 0:
                 for volume_uid in self._patient_parameters.get_all_radiological_volume_uids():
                     self._input_volume_uid = volume_uid

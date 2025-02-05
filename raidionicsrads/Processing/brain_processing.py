@@ -7,6 +7,7 @@ import sys, os, shutil
 import scipy.ndimage.morphology as smo
 import nibabel as nib
 import subprocess
+from skimage import measure
 from scipy.ndimage.measurements import label, find_objects
 from skimage.measure import regionprops
 from ..Utils.io import load_nifti_volume
@@ -168,3 +169,40 @@ def perform_brain_clipping(image_filepath, mask_filepath):
     :return: masked_image_filepath
     """
     pass
+
+
+def perform_brain_overlap_refinement(predictions_filepath: str, brain_mask_filepath: str):
+    """
+    In-place refinement of the predictions.
+
+    Parameters
+    ----------
+    predictions_filepath
+    brain_mask_filepath
+
+    Returns
+    -------
+
+    """
+    try:
+        pred_nib = nib.load(predictions_filepath)
+        brain_mask_nib = nib.load(brain_mask_filepath)
+        pred = pred_nib.get_fdata()[:]
+        brain_mask = brain_mask_nib.get_fdata()[:].astype('uint8')
+
+        pred_binary = np.zeros(pred.shape, dtype='uint8')
+        pred_binary[pred > 1e-3] = 1
+        cc_pred_bin = measure.label(pred_binary)
+        obj_labels = np.unique(cc_pred_bin)[1:]
+        final_pred = np.zeros(pred.shape, dtype='float32')
+        for l in range(0, len(obj_labels)):
+            obj_pred = np.zeros(pred_binary.shape, dtype='uint8')
+            obj_pred[cc_pred_bin == (l + 1)] = 1
+            overlap = np.count_nonzero(obj_pred & brain_mask) > 0
+            if overlap:
+                label_pred = np.where(cc_pred_bin == (l + 1), pred, 0).astype("float32")
+                final_pred = final_pred + label_pred
+        final_pred_nib = nib.Nifti1Image(final_pred, affine=pred_nib.affine, header=pred_nib.header)
+        nib.save(final_pred_nib, predictions_filepath)
+    except Exception as e:
+        raise ValueError("Brain overlap refinement failed with: {}.".format(e))

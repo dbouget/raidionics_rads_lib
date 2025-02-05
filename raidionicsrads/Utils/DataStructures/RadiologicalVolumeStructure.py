@@ -122,6 +122,19 @@ class RadiologicalVolume:
         elif isinstance(type, radiological_type):
             self._sequence_type = type
 
+    def is_registered_volume_included(self, destination_space_uid: str) -> bool:
+        """
+
+        Parameters
+        ----------
+        destination_space_uid
+
+        Returns
+        -------
+
+        """
+        return destination_space_uid in list(self._registered_volumes.keys())
+
     def include_registered_volume(self, filepath: str, registration_uid: str, destination_space_uid: str) -> None:
         self._registered_volumes[destination_space_uid] = {"filepath": filepath, "registration_uid": registration_uid}
 

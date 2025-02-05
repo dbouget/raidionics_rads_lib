@@ -71,15 +71,17 @@ class Pipeline:
         with open(self._input_filepath, 'r') as infile:
             self._pipeline_json = json.load(infile)
 
-        self.__parse_pipeline_steps(self._pipeline_json)
+        self.__parse_pipeline_steps(pipeline=self._pipeline_json, initial=True)
 
-    def __parse_pipeline_steps(self, pipeline: {}) -> None:
+    def __parse_pipeline_steps(self, pipeline: {}, initial: bool = True) -> None:
         self._steps = {}
         for i, s in enumerate(list(pipeline.keys())):
             task = get_type_from_string(TaskType, pipeline[s]["task"])
             step = None
             if task == TaskType.Class:
                 step = ClassificationStep(pipeline[s])
+                if pipeline[s]["target"][0] == "MRSequence" and not initial:
+                    step.skip = True
             elif task == TaskType.Seg:
                 step = SegmentationStep(pipeline[s])
             elif task == TaskType.SegRef:
@@ -101,6 +103,8 @@ class Pipeline:
 
     def setup(self, patient_parameters) -> None:
         """
+        @TODO. Should not consider all classification tasks the same, the initial exception is only for the sequence
+        classification which is mandatory for further disambiguation in model selection...
         @TODO. How to propagate down the probabilities/thresholding decision for the segmentation models (is it
         enough with the main_config.ini parameter?
 
@@ -133,6 +137,10 @@ class Pipeline:
                     try:
                         if self._steps[s].get_task() == str(TaskType.Class):
                             patient_parameters = self._steps[s].execute()
+                            final_count = final_count + 1
+                            final_count_str = str(final_count)
+                            final_pipeline[final_count_str] = {}
+                            final_pipeline[final_count_str] = self._steps[s].step_json
                         else:
                             task_optimal_pipeline = self._steps[s].execute()
                             for top in task_optimal_pipeline.keys():
@@ -161,7 +169,8 @@ class Pipeline:
                 logging.error("""[Backend error] setup phase of {} failed with:\n{}""".format(
                     self._steps[s].step_json, e))
                 logging.debug("Traceback: {}.".format(traceback.format_exc()))
-        self.__parse_pipeline_steps(pipeline=final_pipeline)
+        self.__parse_pipeline_steps(pipeline=final_pipeline, initial=False)
+
         # Writing on disk the actual/final pipeline (for info and reuse in Raidionics)
         executed_pipeline_fn = os.path.join(ResourcesConfiguration.getInstance().output_folder, "executed_pipeline.json")
         with open(executed_pipeline_fn, 'w', newline='\n') as outfile:

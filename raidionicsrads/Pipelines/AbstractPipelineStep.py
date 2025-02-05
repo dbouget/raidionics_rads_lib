@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 class AbstractPipelineStep(ABC):
     _step_json = {}
     _step_description = None
+    _skip = False
 
     def __init__(self, step_json: dict) -> None:
         self.__reset()
@@ -18,6 +19,7 @@ class AbstractPipelineStep(ABC):
         """
         self._step_json = {}
         self._step_description = None
+        self._skip = False
 
     @property
     def step_json(self) -> dict:
@@ -25,11 +27,19 @@ class AbstractPipelineStep(ABC):
 
     @step_json.setter
     def step_json(self, step: dict) -> None:
-        self.step_json = step
+        self._step_json = step
 
     @property
     def step_description(self) -> dict:
         return self._step_description
+
+    @property
+    def skip(self) -> bool:
+        return self._skip
+
+    @skip.setter
+    def skip(self, state: bool) -> None:
+        self._skip = state
 
     @abstractmethod
     def setup(self, patient_parameters):

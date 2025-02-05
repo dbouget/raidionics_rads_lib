@@ -47,13 +47,17 @@ class RegistrationStep(AbstractPipelineStep):
 
     def setup(self, patient_parameters):
         """
-
+        @TODO. Should check if the transforms folder do not already exist (if another model needed the same registration
+        before). In such case, the step can be skipped and the transforms files will be reused in the RegistrationDeployerStep?
         """
         self._patient_parameters = patient_parameters
         try:
             if ResourcesConfiguration.getInstance().predictions_use_registered_data and self._step_json["fixed"]["sequence"] != 'MNI':
                 return
 
+            if self._patient_parameters.get_registration_by_json(fixed=self._step_json["fixed"],
+                                                                 moving=self._step_json["moving"]) is not None:
+                return
             moving_volume_uid = self._patient_parameters.get_radiological_volume_uid(timestamp=self._step_json["moving"]["timestamp"],
                                                                                      sequence=self._step_json["moving"]["sequence"])
             if moving_volume_uid != "-1":
@@ -86,6 +90,12 @@ class RegistrationStep(AbstractPipelineStep):
         """
         if ResourcesConfiguration.getInstance().predictions_use_registered_data and self._step_json["fixed"][
             "sequence"] != 'MNI':
+            logging.info("Skipping registration - not necessary since using co-registered inputs")
+            return self._patient_parameters
+
+        if self._patient_parameters.get_registration_by_json(fixed=self._step_json["fixed"],
+                                                             moving=self._step_json["moving"]) is not None:
+            logging.info("Skipping registration - already existing")
             return self._patient_parameters
 
         try:

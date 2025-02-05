@@ -85,6 +85,10 @@ class RegistrationDeployerStep(AbstractPipelineStep):
 
     def __apply_registration(self):
         try:
+            if self._patient_parameters.get_radiological_volume(volume_uid=self._moving_volume_uid).is_registered_volume_included(destination_space_uid=self._fixed_volume_uid):
+                logging.info(f"Registered radiological volume already existing -- skipping the step")
+                return
+
             fixed_filepath = None
             if self._fixed_volume_uid == 'MNI':
                 fixed_filepath = ResourcesConfiguration.getInstance().mni_atlas_filepath_T1
@@ -122,6 +126,9 @@ class RegistrationDeployerStep(AbstractPipelineStep):
 
             for anno in self._patient_parameters.get_all_annotations_uids_radiological_volume(volume_uid=self._moving_volume_uid):
                 annotation = self._patient_parameters.get_annotation(annotation_uid=anno)
+                if annotation.is_registered_volume_included(destination_space_uid=self._fixed_volume_uid):
+                    logging.info(f"Registered annotation already existing -- skipping the step")
+                    return
                 moving_filepath = annotation.get_usable_input_filepath()
 
                 fp = self._registration_runner.apply_registration_transform(moving=moving_filepath, fixed=fixed_filepath,
