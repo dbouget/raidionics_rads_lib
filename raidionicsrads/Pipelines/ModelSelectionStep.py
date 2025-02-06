@@ -1,5 +1,7 @@
 import os
 import shutil
+from copy import deepcopy
+
 import numpy as np
 import nibabel as nib
 import logging
@@ -20,17 +22,24 @@ class ModelSelectionStep(AbstractPipelineStep):
     For each model, a subset of models has been trained based on the provided inputs.
     The identification of the best fitting model for the current patient is performed here and the corresponding
     pipeline json file is generated matching the required inputs.
+
+    @TODO. Should this step be generalized in case the targeted input or timestamp has to be adjusted on-the-fly
+    from the default pipeline.json found on disk?
+    from the default pipeline.json found on disk?
     """
     _base_model_name = None  # Basename of the folder containing all the sub-models to choose from.
     _patient_parameters = None  # Overall patient parameters, updated on-the-fly
     _working_folder = None  # Temporary directory on disk to store inputs/outputs for the segmentation
-    _target_timestamp = None #
+    _target_timestamp = None # Timestamp for the inputs to run the model on (if on-the-fly adaptation is needed)
+    _predictions_format = None
 
     def __init__(self, step_json: dict):
         super(ModelSelectionStep, self).__init__(step_json=step_json)
         self.__reset()
-        self._base_model_name = self._step_json["model"]
-        self._target_timestamp = int(self._step_json["timestamp"])
+        step_keys = list(self._step_json.keys())
+        self._base_model_name = self._step_json["model"] if "model" in step_keys else None
+        self._target_timestamp = int(self._step_json["timestamp"]) if "timestamp" in step_keys else None
+        self._predictions_format = self._step_json["format"] if "format" in step_keys else None
         self.sequences_names_intern = ["T1-CE", "T1-w", "FLAIR", "T2", "High-resolution"]
         self.sequences_names_models = ["t1c", "t1w", "t2f", "t2w", "hr"]
 
@@ -39,6 +48,15 @@ class ModelSelectionStep(AbstractPipelineStep):
         self._patient_parameters = None
         self._working_folder = None
         self._target_timestamp = None
+        self._predictions_format = None
+
+    @property
+    def target_timestamp(self) -> int:
+        return self._target_timestamp
+
+    @target_timestamp.setter
+    def target_timestamp(self, ts: int) -> None:
+        self._target_timestamp = ts
 
     def setup(self, patient_parameters: PatientParameters) -> None:
         """
@@ -55,7 +73,7 @@ class ModelSelectionStep(AbstractPipelineStep):
         os.makedirs(self._working_folder, exist_ok=True)
         try:
             base_model_path = os.path.join(ResourcesConfiguration.getInstance().model_folder, self._base_model_name)
-            if not os.path.exists(base_model_path) or not os.path.isdir(base_model_path):
+            if self._base_model_name is None or not os.path.exists(base_model_path) or not os.path.isdir(base_model_path):
                 raise ValueError("Provided input model directory does not exist on disk with value {}".format(base_model_path))
         except Exception as e:
             if os.path.exists(self._working_folder):
@@ -89,6 +107,23 @@ class ModelSelectionStep(AbstractPipelineStep):
         model_pipeline = None
         with open(model_pipeline_fn, 'r') as infile:
             model_pipeline = json.load(infile)
+        # @TODO. Same issue for the brain model that can segment over any MR sequence, have to find a way to adjust the
+        # value on-the-fly here (most likely only use-case when coming from Raidionics). Or should Raidionics deal with it?
+
+        if self.target_timestamp is not None:
+            # If the timestamp is left unspecified (i.e., for some generic models (brain, flair changes), it should be
+            # modified inside the pipeline based on self.timestamp.
+            adjusted_model_pipeline = deepcopy(model_pipeline)
+            for st in list(model_pipeline.keys()):
+                if model_pipeline[st]["task"] in ["Segmentation", "Segmentation refinement"]:
+                    for i in list(model_pipeline[st]["inputs"].keys()):
+                        if model_pipeline[st]["inputs"][i]["timestamp"] == -1:
+                            adjusted_model_pipeline[st]["inputs"][i]["timestamp"] = self.target_timestamp
+                        if model_pipeline[st]["inputs"][i]["space"]["timestamp"] == -1:
+                            adjusted_model_pipeline[st]["inputs"][i]["space"]["timestamp"] = self.target_timestamp
+                    if "format" not in list(model_pipeline[st].keys()):
+                        adjusted_model_pipeline[st]["format"] = self._predictions_format
+            model_pipeline = adjusted_model_pipeline
 
         if os.path.exists(self._working_folder):
             shutil.rmtree(self._working_folder)
@@ -123,7 +158,7 @@ class ModelSelectionStep(AbstractPipelineStep):
                     break
 
             eligible_models = sorted(eligible_models, key=len)
-            timestamp = self._target_timestamp
+            timestamp = self.target_timestamp
 
             existing_inputs = self._patient_parameters.get_all_radiological_volumes_for_timestamp(timestamp=timestamp)
             existing_sequences = sorted(np.unique([i.get_sequence_type_str() for i in existing_inputs]))

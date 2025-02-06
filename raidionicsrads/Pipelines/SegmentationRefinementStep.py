@@ -54,6 +54,8 @@ class SegmentationRefinementStep(AbstractPipelineStep):
         @TODO. The setup was copied from the segmentation step, needs proper adaptation to the requirements here.
         Should it be enforced only a single input (i.e., brain_overlap refinement only for tumor-CE on T1-CE, and not
         on FLAIR changes AND tumor-CE on two different MR scans as input?
+        @TODO2. Should we have another refinement that adjusts multiple annotations (cavity, tumor ce, flair changes)
+        in case there are overlap between the different predictions?
 
         Parameters
         ----------

@@ -15,7 +15,7 @@ class AnnotationClassType(Enum):
     Brain = 0, 'Brain'
     Tumor = 1, 'Tumor' # Would correspond to tumor core (contrast-enhancing tumor and necrosis/cysts)
     Cavity = 2, 'Cavity'
-    Edema = 3, 'Edema' # Should be renamed to FLAIR changes
+    FLAIRChanges = 3, 'FLAIR/T2 changes (nonenhancing progression)'
     TumorCE = 4, 'Contrast-enhancing tumor'
 
     Lungs = 100, 'Lungs'
@@ -119,6 +119,9 @@ class Annotation:
 
     def get_annotation_type_str(self) -> str:
         return str(self._annotation_type)
+
+    def get_annotation_type_name(self) -> str:
+        return self._annotation_type.name
 
     def set_annotation_type(self, type: str) -> None:
         """

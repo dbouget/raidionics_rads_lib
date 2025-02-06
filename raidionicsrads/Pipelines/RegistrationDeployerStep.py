@@ -135,7 +135,7 @@ class RegistrationDeployerStep(AbstractPipelineStep):
                                                                             interpolation='nearestNeighbor')
                 new_fp = os.path.join(self._patient_parameters.get_radiological_volume(volume_uid=self._moving_volume_uid).get_output_folder(),
                                       self._fixed_volume_uid + '_space',
-                                      self._moving_volume_uid + '_label_' + annotation.get_annotation_type_str() + '_registered_to_' + self._fixed_volume_uid + '.nii.gz')
+                                      self._moving_volume_uid + '_label_' + annotation.get_annotation_type_name() + '_registered_to_' + self._fixed_volume_uid + '.nii.gz')
                 os.makedirs(os.path.dirname(new_fp), exist_ok=True)
                 shutil.copyfile(fp, new_fp)
                 annotation.include_registered_volume(filepath=new_fp,

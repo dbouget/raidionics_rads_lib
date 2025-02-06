@@ -8,6 +8,7 @@ from ..Utils.configuration_parser import ResourcesConfiguration
 from ..Utils.ReportingStructures.NeuroReportingStructure import NeuroReportingStructure
 from ..Processing.neuro_report_computing import compute_neuro_report
 from ..Utils.DataStructures.AnnotationStructure import AnnotationClassType
+from ..Utils.utilities import get_type_from_enum_name
 
 
 class FeaturesComputationStep(AbstractPipelineStep):
@@ -18,11 +19,13 @@ class FeaturesComputationStep(AbstractPipelineStep):
     _radiological_volume_uid = None
     _report_space = None
     _report = None
+    _target = None
 
     def __init__(self, step_json: dict) -> None:
         super(FeaturesComputationStep, self).__init__(step_json=step_json)
         self.__reset()
         self._report_space = self._step_json["space"]
+        self._target = self._step_json["target"]
 
     @property
     def report_space(self) -> str:
@@ -31,6 +34,14 @@ class FeaturesComputationStep(AbstractPipelineStep):
     @report_space.setter
     def report_space(self, text: str) -> None:
         self.report_space = text
+
+    @property
+    def target(self) -> str:
+        return self._target
+
+    @target.setter
+    def target(self, target: str) -> None:
+        self._target = target
 
     def __reset(self):
         """
@@ -41,6 +52,7 @@ class FeaturesComputationStep(AbstractPipelineStep):
         self._radiological_volume_uid = None
         self._report_space = None
         self._report = None
+        self._target = None
 
     def setup(self, patient_parameters):
         self._patient_parameters = patient_parameters
@@ -76,8 +88,9 @@ class FeaturesComputationStep(AbstractPipelineStep):
             self._radiological_volume_uid = uid
 
             # @TODO. Send the proper annotation file, registered to MNI, but for now assuming it's the Tumor annotation
+            # @TODO2. What if we want to report for the TumorCE, Tumor Core, Whole tumor, how to make it adjustable?
             anno_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(volume_uid=self._radiological_volume_uid,
-                                                                                                   annotation_class=AnnotationClassType.Tumor)
+                                                                                                   annotation_class=get_type_from_enum_name(AnnotationClassType, self.target))
             if len(anno_uid) == 0:
                 return None
             anno_uid = anno_uid[0]

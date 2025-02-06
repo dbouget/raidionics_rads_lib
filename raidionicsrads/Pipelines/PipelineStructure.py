@@ -164,7 +164,7 @@ class Pipeline:
                     final_count = final_count + 1
                     final_count_str = str(final_count)
                     final_pipeline[final_count_str] = {}
-                    final_pipeline[final_count_str] = self._steps[s]
+                    final_pipeline[final_count_str] = self._steps[s].step_json
             except Exception as e:
                 logging.error("""[Backend error] setup phase of {} failed with:\n{}""".format(
                     self._steps[s].step_json, e))
