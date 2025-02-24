@@ -243,6 +243,9 @@ class SegmentationStep(AbstractPipelineStep):
             for s in generated_segmentations:
                 label_name = s.split('_')[1].split('.')[0]
                 if label_name in self._segmentation_targets:
+                    # @TODO. If multiple models generate the same output class, how to deal with it internally?
+                    # E.g., the issue with the cavity/necrosis disambiguation, how to hold multiple tumor segmentations
+                    # before performing some kind of refinement?
                     seg_filename = os.path.join(os.path.join(self._working_folder, 'outputs'), s)
                     final_seg_filename = os.path.join(self._patient_parameters.get_radiological_volume(volume_uid=self._input_volume_uid).get_output_folder(),
                                                       os.path.basename(self._patient_parameters.get_radiological_volume(volume_uid=self._input_volume_uid).get_raw_input_filepath()).split('.')[0] + '_annotation-' + label_name + '.nii.gz')

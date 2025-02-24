@@ -12,7 +12,7 @@ from ..Utils.io import load_nifti_volume
 from .AbstractPipelineStep import AbstractPipelineStep
 from ..Utils.DataStructures.PatientStructure import PatientParameters
 from ..Utils.DataStructures.AnnotationStructure import Annotation, AnnotationClassType, BrainTumorType
-from ..Processing.brain_processing import perform_brain_overlap_refinement
+from ..Processing.brain_processing import perform_brain_overlap_refinement, perform_segmentation_global_consistency_refinement
 
 
 class SegmentationRefinementStep(AbstractPipelineStep):
@@ -150,6 +150,8 @@ class SegmentationRefinementStep(AbstractPipelineStep):
                 brain_mask_filepath = self._patient_parameters.get_annotation(
                     annotation_uid=brain_annotation_uid).get_usable_input_filepath()
                 perform_brain_overlap_refinement(predictions_filepath=predictions_filepath, brain_mask_filepath=brain_mask_filepath)
+            elif self.refinement_operation == "global_context":
+                perform_segmentation_global_consistency_refinement(annotation_files=self._patient_parameters.get_all_annotations_radiological_volume(volume_uid=self._input_volume_uid))
             else:
                 raise ValueError("The selected refinement operation is not available, with value {}".format(self.refinement_operation))
         except Exception as e:

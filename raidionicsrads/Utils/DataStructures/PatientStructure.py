@@ -272,6 +272,13 @@ class PatientParameters:
     def get_annotation(self, annotation_uid: str) -> Annotation:
         return self._annotation_volumes[annotation_uid]
 
+    def get_all_annotations_radiological_volume(self, volume_uid: str) -> List[Annotation]:
+        res = []
+        for v in self._annotation_volumes.keys():
+            if self._annotation_volumes[v]._radiological_volume_uid == volume_uid:
+                res.append(self._annotation_volumes[v])
+        return res
+
     def get_all_annotations_uids_radiological_volume(self, volume_uid: str) -> List[str]:
         res = []
         for v in self._annotation_volumes.keys():

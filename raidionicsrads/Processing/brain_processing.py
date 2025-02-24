@@ -7,9 +7,12 @@ import sys, os, shutil
 import scipy.ndimage.morphology as smo
 import nibabel as nib
 import subprocess
+from typing import List
 from skimage import measure
 from scipy.ndimage.measurements import label, find_objects
 from skimage.measure import regionprops
+
+from ..Utils.DataStructures.AnnotationStructure import AnnotationClassType
 from ..Utils.io import load_nifti_volume
 from ..Utils.configuration_parser import ResourcesConfiguration
 from ..Utils.segmentation_parser import collect_segmentation_model_parameters
@@ -206,3 +209,48 @@ def perform_brain_overlap_refinement(predictions_filepath: str, brain_mask_filep
         nib.save(final_pred_nib, predictions_filepath)
     except Exception as e:
         raise ValueError("Brain overlap refinement failed with: {}.".format(e))
+
+def perform_segmentation_global_consistency_refinement(annotation_files: List):
+    tumorcore_anno_fn = None
+    tumorcore_anno_nib = None
+    tumorcore_anno = None
+    tumor_ce_anno_fn = None
+    tumor_ce_anno_nib = None
+    tumor_ce_anno = None
+    cavity_anno_fn = None
+    cavity_anno_nib = None
+    cavity_anno = None
+    flair_changes_anno_fn = None
+    flair_changes_anno_nib = None
+    flair_changes_anno = None
+    necrosis_cyst_anno = None
+
+    for a in annotation_files:
+        if a.get_annotation_type_enum() == AnnotationClassType.Tumor:
+            tumorcore_anno_fn = a.get_usable_input_filepath()
+            tumorcore_anno_nib = nib.load(tumorcore_anno_fn)
+            tumorcore_anno = tumorcore_anno_nib.get_fdata()[:]
+        elif a.get_annotation_type_enum() == AnnotationClassType.Cavity:
+            cavity_anno_fn = a.get_usable_input_filepath()
+            cavity_anno_nib = nib.load(cavity_anno_fn)
+            cavity_anno = cavity_anno_nib.get_fdata()[:]
+        elif a.get_annotation_type_enum() == AnnotationClassType.TumorCE:
+            tumor_ce_anno_fn = a.get_usable_input_filepath()
+            tumor_ce_anno_nib = nib.load(tumor_ce_anno_fn)
+            tumor_ce_anno = tumor_ce_anno_nib.get_fdata()[:]
+        elif a.get_annotation_type_enum() == AnnotationClassType.FLAIRChanges:
+            flair_changes_anno_fn = a.get_usable_input_filepath()
+            flair_changes_anno_nib = nib.load(flair_changes_anno_fn)
+            flair_changes_anno = flair_changes_anno_nib.get_fdata()[:]
+
+    if tumorcore_anno is not None and tumor_ce_anno is not None:
+        necrosis_cyst_anno = tumorcore_anno - tumor_ce_anno
+
+    if cavity_anno is not None and tumorcore_anno is not None:
+        # @TODO. Is there a smart way to find when cavity/necrosis is encompassed inside tumor-ce, as a way to
+        # differenciate between cavity and necrosis?
+        tumorcore_anno = tumorcore_anno - cavity_anno
+
+    if tumorcore_anno is not None:
+        nib.save(nib.Nifti1Image(tumorcore_anno, tumorcore_anno_nib.affine, tumorcore_anno_nib.header),
+                 tumorcore_anno_fn)
