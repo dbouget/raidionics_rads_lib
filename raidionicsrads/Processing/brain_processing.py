@@ -1,5 +1,6 @@
 import configparser
 import logging
+import math
 import traceback
 from pathlib import PurePath
 import numpy as np
@@ -11,6 +12,7 @@ from typing import List
 from skimage import measure
 from scipy.ndimage.measurements import label, find_objects
 from skimage.measure import regionprops
+from scipy.ndimage.measurements import center_of_mass
 
 from ..Utils.DataStructures.AnnotationStructure import AnnotationClassType
 from ..Utils.io import load_nifti_volume
@@ -243,6 +245,75 @@ def perform_segmentation_global_consistency_refinement(annotation_files: List):
             flair_changes_anno_nib = nib.load(flair_changes_anno_fn)
             flair_changes_anno = flair_changes_anno_nib.get_fdata()[:]
 
+    uncertain_cav_necro = np.abs(tumorcore_anno - tumor_ce_anno)
+    nib.save(nib.Nifti1Image(uncertain_cav_necro, affine=tumorcore_anno_nib.affine, header=tumorcore_anno_nib.header),
+             "/home/dnbouget/work/dnbouget/Studies/UnitTests/raidionics_rads_lib/outputs/uncertain_cav_necro_labels.nii.gz")
+    tc_labels, tc_candidates = select_candidates(tumorcore_anno)
+    tce_labels, tce_candidates = select_candidates(tumor_ce_anno)
+    cav_labels, cav_candidates = select_candidates(cavity_anno)
+
+    if True:
+        nib.save(nib.Nifti1Image(tc_labels, affine=tumorcore_anno_nib.affine, header=tumorcore_anno_nib.header),
+                 "/home/dnbouget/work/dnbouget/Studies/UnitTests/raidionics_rads_lib/outputs/tumorcore_labels.nii.gz")
+        nib.save(nib.Nifti1Image(tce_labels, affine=tumorcore_anno_nib.affine, header=tumorcore_anno_nib.header),
+                 "/home/dnbouget/work/dnbouget/Studies/UnitTests/raidionics_rads_lib/outputs/tumorce_labels.nii.gz")
+        nib.save(nib.Nifti1Image(cav_labels, affine=tumorcore_anno_nib.affine, header=tumorcore_anno_nib.header),
+                 "/home/dnbouget/work/dnbouget/Studies/UnitTests/raidionics_rads_lib/outputs/cavity_labels.nii.gz")
+
+    tc_coms = []
+    tce_coms = []
+    cav_coms = []
+    for c in tc_candidates:
+        com = center_of_mass(tc_labels == c.label)
+        tc_coms.append(com)
+
+    for c in tce_candidates:
+        com = center_of_mass(tce_labels == c.label)
+        tce_coms.append(com)
+
+    for c in cav_candidates:
+        com = center_of_mass(cav_labels == c.label)
+        cav_coms.append(com)
+
+    # To separate preoperatively the tumor from an old surgical cavity, we should compare the overlap between the
+    # tumor core prediction and cavity prediction.
+    # If there is an overlap, we should compare that connected component with the tumorce prediction and use the com somehow?
+    clean_cavity = np.zeros(cavity_anno.shape)
+    for c, cc in enumerate(cav_candidates):
+        eligible = False
+        for t, tt in enumerate(tc_candidates):
+            vol_c = np.zeros(cav_labels.shape) #cav_labels[c.label]
+            vol_t = np.zeros(tc_labels.shape) #tc_labels[t.label]
+            # vol_c[vol_c != 0] = 1
+            # vol_t[vol_t != 0] = 1
+            vol_c[cav_labels == cc.label] = 1
+            vol_t[tc_labels == tt.label] = 1
+            overlap = compute_dice(vol_c, vol_t)
+            nib.save(nib.Nifti1Image(vol_c, affine=tumorcore_anno_nib.affine, header=tumorcore_anno_nib.header),
+                     "/home/dnbouget/work/dnbouget/Studies/UnitTests/raidionics_rads_lib/outputs/cav_cand" + str(cc.label) + ".nii.gz")
+            nib.save(nib.Nifti1Image(vol_t, affine=tumorcore_anno_nib.affine, header=tumorcore_anno_nib.header),
+                     "/home/dnbouget/work/dnbouget/Studies/UnitTests/raidionics_rads_lib/outputs/tumorcore_cand" + str(tt.label) + ".nii.gz")
+            if overlap != 0.:
+                com_cav = cav_coms[c]
+                for tc, tcc in enumerate(tce_candidates):
+                    com_tce = tce_coms[tc]
+                    distance = math.sqrt(math.pow(com_cav[0] - com_tce[0], 2) + math.pow(com_cav[1] - com_tce[1], 2) + math.pow(com_cav[2] - com_tce[2], 2))
+                    iou = compute_3d_iou(cc.bbox, tcc.bbox)
+                    if distance < 30. or iou > 0.20:
+                        eligible = True
+        if not eligible:
+            # @TODO. Should populate the cavity mask with it
+            clean_cavity[cav_labels == cc.label] = 1
+    # @TODO. Subtract the clean cavity mask from tumor mask to make it clean!
+    final_tumorcore = np.zeros(tumorcore_anno.shape)
+    final_tumorcore[(clean_cavity == 0) & (tumorcore_anno == 1)] = 1
+
+    if True:
+        nib.save(nib.Nifti1Image(final_tumorcore, affine=tumorcore_anno_nib.affine, header=tumorcore_anno_nib.header),
+                 "/home/dnbouget/work/dnbouget/Studies/UnitTests/raidionics_rads_lib/outputs/final_tumorcore_labels.nii.gz")
+        nib.save(nib.Nifti1Image(clean_cavity, affine=tumorcore_anno_nib.affine, header=tumorcore_anno_nib.header),
+                 "/home/dnbouget/work/dnbouget/Studies/UnitTests/raidionics_rads_lib/outputs/cleancavity_labels.nii.gz")
+
     if tumorcore_anno is not None and tumor_ce_anno is not None:
         necrosis_cyst_anno = tumorcore_anno - tumor_ce_anno
 
@@ -254,3 +325,71 @@ def perform_segmentation_global_consistency_refinement(annotation_files: List):
     if tumorcore_anno is not None:
         nib.save(nib.Nifti1Image(tumorcore_anno, tumorcore_anno_nib.affine, tumorcore_anno_nib.header),
                  tumorcore_anno_fn)
+
+
+def select_candidates(input_array):
+    """
+    Perform a connected components analysis to identify the stand-alone objects in both the ground truth and
+    binarized prediction volumes. Objects with a number of voxels below the limit set in self.tiny_objects_removal_threshold
+    are discarded, in both instances. Safe way to handle potential noise in the ground truth, especially if a
+    third-party software (e.g. 3DSlicer) was used.
+    """
+    from scipy.ndimage import measurements
+    from skimage.measure import regionprops
+    from copy import deepcopy
+
+    if input_array is None:
+        return None, None
+
+    # Cleaning the too small objects that might be noise in the ground truth
+    labels = measurements.label(input_array)[0]
+    refined_image = deepcopy(labels)
+    for c in range(1, np.max(labels)+1):
+        if np.count_nonzero(labels == c) < 50:
+            refined_image[refined_image == c] = 0
+    refined_image[refined_image != 0] = 1
+    labels = measurements.label(refined_image)[0]
+    candidates = regionprops(labels)
+
+    return labels, candidates
+
+def compute_dice(volume1, volume2):
+    dice = 0.
+    if np.sum(volume1[volume2 == 1]) != 0:
+        dice = (np.sum(volume1[volume2 == 1]) * 2.0) / (np.sum(volume1) + np.sum(volume2))
+    return dice
+
+
+import numpy as np
+
+
+def compute_3d_iou(box1, box2):
+    """
+    Compute Intersection over Union (IoU) between two 3D bounding boxes.
+
+    box1, box2: (x_min, y_min, z_min, x_max, y_max, z_max)
+    """
+    # Compute intersection box
+    x_min_inter = max(box1[0], box2[0])
+    y_min_inter = max(box1[1], box2[1])
+    z_min_inter = max(box1[2], box2[2])
+    x_max_inter = min(box1[3], box2[3])
+    y_max_inter = min(box1[4], box2[4])
+    z_max_inter = min(box1[5], box2[5])
+
+    # Compute intersection volume
+    inter_dim_x = max(0, x_max_inter - x_min_inter)
+    inter_dim_y = max(0, y_max_inter - y_min_inter)
+    inter_dim_z = max(0, z_max_inter - z_min_inter)
+    intersection_volume = inter_dim_x * inter_dim_y * inter_dim_z
+
+    # Compute volume of each bounding box
+    vol_box1 = (box1[3] - box1[0]) * (box1[4] - box1[1]) * (box1[5] - box1[2])
+    vol_box2 = (box2[3] - box2[0]) * (box2[4] - box2[1]) * (box2[5] - box2[2])
+
+    # Compute union volume
+    union_volume = vol_box1 + vol_box2 - intersection_volume
+
+    # Compute IoU
+    iou = intersection_volume / union_volume if union_volume > 0 else 0
+    return iou

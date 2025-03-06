@@ -123,6 +123,10 @@ class ModelSelectionStep(AbstractPipelineStep):
                             adjusted_model_pipeline[st]["inputs"][i]["space"]["timestamp"] = self.target_timestamp
                     if "format" not in list(model_pipeline[st].keys()):
                         adjusted_model_pipeline[st]["format"] = self._predictions_format
+                elif model_pipeline[st]["task"] in ["Registration", "Apply registration"]:
+                    adjusted_model_pipeline[st]["moving"]["timestamp"] = self.target_timestamp
+                    adjusted_model_pipeline[st]["fixed"]["timestamp"] = self.target_timestamp
+
             model_pipeline = adjusted_model_pipeline
 
         if os.path.exists(self._working_folder):

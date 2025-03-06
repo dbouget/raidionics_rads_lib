@@ -92,6 +92,8 @@ class SegmentationRefinementStep(AbstractPipelineStep):
                         if len(anno_uids) == 0:
                             raise ValueError("No annotation for {}.".format(input_json))
                         elif len(anno_uids) > 1:
+                            #@TODO. Assuming the last one is to refine? In case a structure is segmented multiple times
+                            # before some kind of refinement?
                             raise ValueError("Too many annotations for {}.".format(input_json))
                         anno_uid = anno_uids[0]
                         self._input_annotation_uid = anno_uid

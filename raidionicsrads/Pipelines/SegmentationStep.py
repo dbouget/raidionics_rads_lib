@@ -248,7 +248,7 @@ class SegmentationStep(AbstractPipelineStep):
                     # before performing some kind of refinement?
                     seg_filename = os.path.join(os.path.join(self._working_folder, 'outputs'), s)
                     final_seg_filename = os.path.join(self._patient_parameters.get_radiological_volume(volume_uid=self._input_volume_uid).get_output_folder(),
-                                                      os.path.basename(self._patient_parameters.get_radiological_volume(volume_uid=self._input_volume_uid).get_raw_input_filepath()).split('.')[0] + '_annotation-' + label_name + '.nii.gz')
+                                                      os.path.basename(self._patient_parameters.get_radiological_volume(volume_uid=self._input_volume_uid).get_raw_input_filepath()).split('.')[0] + '_annotation-' + label_name  + '_' + self._step_json["model"].split('/')[0] + '.nii.gz')
                     if not os.path.exists(seg_filename):
                         raise ValueError("Segmentation results file could not be found on disk at {}".format(seg_filename))
                     shutil.move(seg_filename, final_seg_filename)

@@ -117,6 +117,9 @@ class ClassificationStep(AbstractPipelineStep):
         try:
             classification_results_filename = os.path.join(os.path.join(self._working_folder, 'outputs'),
                                                            'classification-results.csv')
+            shutil.copyfile(classification_results_filename,
+                            os.path.join(ResourcesConfiguration.getInstance().output_folder,
+                                         self._step_json["target"][0] + '_classification_results_raw.csv'))
             classification_results_df = pd.read_csv(classification_results_filename)
             final_class = classification_results_df.values[classification_results_df[classification_results_df.columns[1]].idxmax(), 0]
             if self._step_json["target"][0] == "MRSequence":
