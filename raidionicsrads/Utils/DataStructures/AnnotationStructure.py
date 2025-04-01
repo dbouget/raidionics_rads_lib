@@ -92,10 +92,12 @@ class Annotation:
         self._annotation_subtype = None
         self._registered_volumes = {}
 
-    def get_unique_id(self) -> str:
+    @property
+    def unique_id(self) -> str:
         return self._unique_id
 
-    def get_output_folder(self) -> str:
+    @property
+    def output_folder(self) -> str:
         return self._output_folder
 
     @property
@@ -108,8 +110,13 @@ class Annotation:
     #     # @TODO. To check, might not want to give the option to change input filepath?
     #     self.__init_from_scratch()
 
-    def get_usable_input_filepath(self) -> str:
+    @property
+    def usable_input_filepath(self) -> str:
         return self._usable_input_filepath
+
+    @property
+    def radiological_volume_uid(self) -> str:
+        return self._radiological_volume_uid
 
     def get_parent_radiological_volume_uid(self) -> str:
         return self._radiological_volume_uid
@@ -160,6 +167,10 @@ class Annotation:
         ctype = get_type_from_string(type, value)
         if ctype != -1:
             self._annotation_subtype = ctype
+
+    @property
+    def registered_volumes(self) -> dict:
+        return self._registered_volumes
 
     def is_registered_volume_included(self, destination_space_uid: str) -> bool:
         """

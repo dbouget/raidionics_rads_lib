@@ -82,14 +82,14 @@ class SegmentationStep(AbstractPipelineStep):
                         if len(anno_uids) == 0:
                             raise ValueError("No annotation for {}.".format(input_json))
                         anno_uid = anno_uids[0]
-                        input_fp = self._patient_parameters.get_annotation(annotation_uid=anno_uid).get_usable_input_filepath()
+                        input_fp = self._patient_parameters.get_annotation(annotation_uid=anno_uid).usable_input_filepath
                         if not os.path.exists(input_fp):
                             raise ValueError("No annotation file on disk for {}.".format(input_fp))
                         new_fp = os.path.join(self._working_folder, 'inputs', 'input' + str(k) + '.nii.gz')
                         shutil.copyfile(input_fp, new_fp)
                     else:
                         if volume_uid != "-1":
-                            input_fp = self._patient_parameters.get_radiological_volume(volume_uid=volume_uid).get_usable_input_filepath()
+                            input_fp = self._patient_parameters.get_radiological_volume(volume_uid=volume_uid).usable_input_filepath
                             if not os.path.exists(input_fp):
                                 raise ValueError("No radiological volume file on disk for {}.".format(input_fp))
                             new_fp = os.path.join(self._working_folder, 'inputs', 'input' + str(k) + '.nii.gz')
@@ -129,7 +129,7 @@ class SegmentationStep(AbstractPipelineStep):
                         shutil.copyfile(input_fp, new_fp)
                     # Use-case where the provided inputs are already co-registered
                     elif ResourcesConfiguration.getInstance().predictions_use_registered_data:
-                        input_fp = self._patient_parameters.get_radiological_volume(volume_uid=volume_uid).get_usable_input_filepath()
+                        input_fp = self._patient_parameters.get_radiological_volume(volume_uid=volume_uid).usable_input_filepath
                         if not os.path.exists(input_fp):
                             raise ValueError("No radiological volume file on disk for {}.".format(input_fp))
                         new_fp = os.path.join(self._working_folder, 'inputs', 'input' + str(k) + '.nii.gz')
@@ -210,7 +210,7 @@ class SegmentationStep(AbstractPipelineStep):
             if len(existing_brain_annotations) != 0:
                 seg_config.add_section('Neuro')
                 seg_config.set('Neuro', 'brain_segmentation_filename',
-                               self._patient_parameters.get_annotation(annotation_uid=existing_brain_annotations[0]).get_usable_input_filepath())
+                               self._patient_parameters.get_annotation(annotation_uid=existing_brain_annotations[0]).usable_input_filepath)
             seg_config_filename = os.path.join(os.path.join(self._working_folder, 'inputs'), 'seg_config.ini')
             with open(seg_config_filename, 'w') as outfile:
                 seg_config.write(outfile)
@@ -247,8 +247,8 @@ class SegmentationStep(AbstractPipelineStep):
                     # E.g., the issue with the cavity/necrosis disambiguation, how to hold multiple tumor segmentations
                     # before performing some kind of refinement?
                     seg_filename = os.path.join(os.path.join(self._working_folder, 'outputs'), s)
-                    final_seg_filename = os.path.join(self._patient_parameters.get_radiological_volume(volume_uid=self._input_volume_uid).get_output_folder(),
-                                                      os.path.basename(self._patient_parameters.get_radiological_volume(volume_uid=self._input_volume_uid).get_raw_input_filepath()).split('.')[0] + '_annotation-' + label_name  + '_' + self._step_json["model"].split('/')[0] + '.nii.gz')
+                    final_seg_filename = os.path.join(self._patient_parameters.get_radiological_volume(volume_uid=self._input_volume_uid).output_folder,
+                                                      os.path.basename(self._patient_parameters.get_radiological_volume(volume_uid=self._input_volume_uid).raw_input_filepath).split('.')[0] + '_annotation-' + label_name  + '_' + self._step_json["model"].split('/')[0] + '.nii.gz')
                     if not os.path.exists(seg_filename):
                         raise ValueError("Segmentation results file could not be found on disk at {}".format(seg_filename))
                     shutil.move(seg_filename, final_seg_filename)
@@ -259,7 +259,7 @@ class SegmentationStep(AbstractPipelineStep):
                         if anno_uid not in self._patient_parameters.get_all_annotations_uids():
                             non_available_uid = False
                     annotation = Annotation(uid=anno_uid, input_filename=final_seg_filename,
-                                            output_folder=self._patient_parameters.get_radiological_volume(volume_uid=self._input_volume_uid).get_output_folder(),
+                                            output_folder=self._patient_parameters.get_radiological_volume(volume_uid=self._input_volume_uid).output_folder,
                                             radiological_volume_uid=self._input_volume_uid, annotation_class=label_name)
                     if 'Tumor' in label_name:
                         subtype = "Glioblastoma"
@@ -318,7 +318,7 @@ class SegmentationStep(AbstractPipelineStep):
                 seg_config.add_section('Mediastinum')
                 seg_config.set('Mediastinum', 'lungs_segmentation_filename',
                                self._patient_parameters.get_annotation(
-                                   annotation_uid=existing_lungs_annotations[0]).get_usable_input_filepath())
+                                   annotation_uid=existing_lungs_annotations[0]).usable_input_filepath)
             seg_config_filename = os.path.join(os.path.join(self._working_folder, 'inputs'), 'seg_config.ini')
             with open(seg_config_filename, 'w') as outfile:
                 seg_config.write(outfile)
@@ -353,9 +353,9 @@ class SegmentationStep(AbstractPipelineStep):
                 if label_name in self._segmentation_targets:
                     seg_filename = os.path.join(os.path.join(self._working_folder, 'outputs'), s)
                     final_seg_filename = os.path.join(self._patient_parameters.get_radiological_volume(
-                        volume_uid=self._input_volume_uid).get_output_folder(),
+                        volume_uid=self._input_volume_uid).output_folder,
                                                       os.path.basename(self._patient_parameters.get_radiological_volume(
-                                                          volume_uid=self._input_volume_uid).get_raw_input_filepath()).split(
+                                                          volume_uid=self._input_volume_uid).raw_input_filepath).split(
                                                           '.')[0] + '_annotation-' + label_name + '.nii.gz')
                     if not os.path.exists(seg_filename):
                         raise ValueError(
@@ -369,7 +369,7 @@ class SegmentationStep(AbstractPipelineStep):
                             non_available_uid = False
                     annotation = Annotation(uid=anno_uid, input_filename=final_seg_filename,
                                             output_folder=self._patient_parameters.get_radiological_volume(
-                                                volume_uid=self._input_volume_uid).get_output_folder(),
+                                                volume_uid=self._input_volume_uid).output_folder,
                                             radiological_volume_uid=self._input_volume_uid, annotation_class=label_name)
                     self._patient_parameters.include_annotation(anno_uid, annotation)
                     logging.info("Saved segmentation results in {}".format(final_seg_filename))

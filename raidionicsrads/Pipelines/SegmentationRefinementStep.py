@@ -144,16 +144,28 @@ class SegmentationRefinementStep(AbstractPipelineStep):
                 #                                  voxel_volume=np.prod(seg_ni.header.get_zooms()) * 1e-3,
                 #                                  arg=int(self._refinement_args))
             elif self.refinement_operation == "brain_overlap":
-                predictions_filepath = self._patient_parameters.get_annotation(annotation_uid=self._input_annotation_uid).get_usable_input_filepath()
+                predictions_filepath = self._patient_parameters.get_annotation(annotation_uid=self._input_annotation_uid).usable_input_filepath
                 brain_annotation_uids = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(volume_uid=self._input_volume_uid, annotation_class=AnnotationClassType.Brain)
                 if len(brain_annotation_uids) == 0 or len(brain_annotation_uids) > 1:
                     raise ValueError(f"The brain annotation could not be retrieved for performing segmentation refinement.")
                 brain_annotation_uid = brain_annotation_uids[0]
                 brain_mask_filepath = self._patient_parameters.get_annotation(
-                    annotation_uid=brain_annotation_uid).get_usable_input_filepath()
+                    annotation_uid=brain_annotation_uid).usable_input_filepath
                 perform_brain_overlap_refinement(predictions_filepath=predictions_filepath, brain_mask_filepath=brain_mask_filepath)
             elif self.refinement_operation == "global_context":
-                perform_segmentation_global_consistency_refinement(annotation_files=self._patient_parameters.get_all_annotations_radiological_volume(volume_uid=self._input_volume_uid))
+                annotation_files = {}
+                for a in self._patient_parameters.get_all_annotations_radiological_volume(volume_uid=self._input_volume_uid):
+                    annotation_files[a.get_annotation_type_str()] = a.usable_input_filepath
+                for v in self._patient_parameters.get_all_radiological_volumes_for_timestamp(timestamp=self._step_json["inputs"]["0"]["timestamp"]):
+                    if v.unique_id != self._input_volume_uid:
+                        linked_annos = self._patient_parameters.get_all_annotations_radiological_volume(v.unique_id)
+                        for anno in linked_annos:
+                            if self._input_volume_uid in list(anno.registered_volumes.keys()):
+                                if anno.get_annotation_type_str() not in list(annotation_files.keys()):
+                                    annotation_files[anno.get_annotation_type_str()] = anno.registered_volumes[self._input_volume_uid]["filepath"]
+
+                perform_segmentation_global_consistency_refinement(annotation_files=annotation_files,
+                                                                   timestamp=self._step_json["inputs"]["0"]["timestamp"])
             else:
                 raise ValueError("The selected refinement operation is not available, with value {}".format(self.refinement_operation))
         except Exception as e:

@@ -10,7 +10,7 @@ from scipy.ndimage import binary_closing
 from ..Processing.tumor_features_computation import *
 from ..Utils.io import load_nifti_volume
 from ..Utils.configuration_parser import ResourcesConfiguration
-from ..Utils.ReportingStructures.NeuroReportingStructure import NeuroReportingStructure
+from ..Utils.ReportingStructures.NeuroReportingStructure import *
 from ..Utils.ReportingStructures.NeuroSurgicalReportingStructure import ResectionCategoryType
 
 
@@ -120,6 +120,57 @@ def compute_neuro_report(input_filename: str, report: NeuroReportingStructure) -
     except Exception as e:
         raise ValueError("{}".format(e))
 
+def compute_structure_statistics(input_mask: nib.Nifti1Image) -> NeuroStructureStatistics:
+    """
+
+    Return
+    -------
+
+    """
+    try:
+        result = NeuroStructureStatistics()
+        input_array = input_mask.get_fdata()[:]
+
+        # Cleaning the segmentation mask just in case, removing potential small and noisy areas
+        cluster_size_cutoff_in_pixels = 100
+        kernel = ball(radius=2)
+        img_ero = binary_closing(input_array, structure=kernel, iterations=1)
+        tumor_clusters = measurements.label(img_ero)[0]
+        refined_image = deepcopy(tumor_clusters)
+        for c in range(1, np.max(tumor_clusters) + 1):
+            if np.count_nonzero(tumor_clusters == c) < cluster_size_cutoff_in_pixels:
+                refined_image[refined_image == c] = 0
+        refined_image[refined_image != 0] = 1
+
+        result.volume = compute_volume(volume=refined_image, spacing=input_mask.header.get_zooms())
+
+        status, nb, dist = compute_multifocality(volume=refined_image, spacing=input_mask.header.get_zooms(),
+                                                 volume_threshold=0.1, distance_threshold=5.0)
+        result.multifocality = NeuroMultifocalityStatistics(status=status, parts=nb, distance=dist)
+
+        # Computing localisation features
+        brain_lateralisation_mask_ni = load_nifti_volume(
+            ResourcesConfiguration.getInstance().mni_atlas_lateralisation_mask_filepath)
+        brain_lateralisation_mask = brain_lateralisation_mask_ni.get_fdata()[:]
+        left, right, crossing = compute_lateralisation(volume=refined_image, brain_mask=brain_lateralisation_mask)
+        result.location = NeuroLocationStatistics(left=left, right=right, crossing=crossing)
+
+        for s in ResourcesConfiguration.getInstance().neuro_features_cortical_structures:
+            overlaps = compute_cortical_structures_location(volume=refined_image, reference=s)
+            result.cortical = NeuroCorticalStatistics(overlap=overlaps, distance=None)
+        for s in ResourcesConfiguration.getInstance().neuro_features_subcortical_structures:
+            overlaps, distances = compute_subcortical_structures_location(volume=refined_image,
+                                                                          category='Main', reference=s)
+            result.subcortical = NeuroSubCorticalStatistics(overlap=overlaps, distance=distances)
+        for s in ResourcesConfiguration.getInstance().neuro_features_braingrid:
+            overlap_per_voxel, infiltrated_voxels = compute_braingrid_voxels_infiltration(volume=refined_image,
+                                                                                           category='Main',
+                                                                                           reference=s)
+            result.infiltration = NeuroInfiltrationStatistics(overlap=overlap_per_voxel, count=infiltrated_voxels)
+
+        return result
+    except Exception as e:
+        raise ValueError(f"Structure features computation failed with: {e}")
 
 def compute_cortical_structures_location(volume, reference='MNI'):
     logging.debug("Computing cortical structures location with {}.".format(reference))

@@ -77,7 +77,7 @@ class NeuroDiagnosisParameters:
             pfile.write('  * Largest distance between components: {} (mm)\n'.format(np.round(self.tumor_multifocal_distance, 2)))
 
             pfile.write('\nVolumes\n')
-            pfile.write('  * Original space: {} (ml)\n'.format(np.round(self.statistics['Main']['Overall'].original_space_tumor_volume, 2)))
+            pfile.write('  * Original space: {} (ml)\n'.format(np.round(self.statistics['Main']['Overall'].original_space_volume, 2)))
             pfile.write('  * MNI space: {} (ml)\n'.format(self.statistics['Main']['Overall'].mni_space_tumor_volume))
 
             pfile.write('\nLaterality\n')
@@ -152,7 +152,7 @@ class NeuroDiagnosisParameters:
             #     param_json['Main']['CenterOfMass']['Lobe'].append([l, self.statistics['Main']['CoM'].mni_space_cortical_structures_overlap[l]])
 
             param_json['Main']['Total'] = {}
-            param_json['Main']['Total']['Volume original (ml)'] = self.statistics['Main']['Overall'].original_space_tumor_volume
+            param_json['Main']['Total']['Volume original (ml)'] = self.statistics['Main']['Overall'].original_space_volume
             param_json['Main']['Total']['Volume in MNI (ml)'] = self.statistics['Main']['Overall'].mni_space_tumor_volume
             param_json['Main']['Total']['Left laterality (%)'] = self.statistics['Main']['Overall'].left_laterality_percentage
             param_json['Main']['Total']['Right laterality (%)'] = self.statistics['Main']['Overall'].right_laterality_percentage
@@ -230,7 +230,7 @@ class NeuroDiagnosisParameters:
             values = [self.tumor_multifocal, self.tumor_parts, np.round(self.tumor_multifocal_distance, 2)]
             column_names = ['Multifocality', 'Tumor parts nb', 'Multifocal distance (mm)']
 
-            values.extend([self.statistics['Main']['Overall'].original_space_tumor_volume, self.statistics['Main']['Overall'].mni_space_tumor_volume])
+            values.extend([self.statistics['Main']['Overall'].original_space_volume, self.statistics['Main']['Overall'].mni_space_tumor_volume])
             column_names.extend(['Volume original (ml)', 'Volume in MNI (ml)'])
 
             values.extend([self.statistics['Main']['Overall'].left_laterality_percentage,

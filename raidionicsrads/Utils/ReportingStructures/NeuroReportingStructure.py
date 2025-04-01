@@ -11,29 +11,277 @@ from ..configuration_parser import ResourcesConfiguration
 from ..io import generate_cortical_structures_labels_for_slicer, generate_subcortical_structures_labels_for_slicer, generate_braingrid_structures_labels_for_slicer
 
 
+class NeuroMultifocalityStatistics:
+    _multifocality = None
+    _nb_parts = None
+    _max_distance = None
+    def __init__(self, status: bool = None, parts: int = None, distance: float = None):
+        self._multifocality = status
+        self._nb_parts = parts
+        self._max_distance = distance
+
+    @property
+    def multifocality(self) -> bool:
+        return self._multifocality
+
+    @multifocality.setter
+    def multifocality(self, value: bool) -> None:
+        self._multifocality = value
+
+    @property
+    def nb_parts(self) -> int:
+        return self._nb_parts
+
+    @nb_parts.setter
+    def nb_parts(self, value: int) -> None:
+        self._nb_parts = value
+
+    @property
+    def max_distance(self) -> float:
+        return self._max_distance
+
+    @max_distance.setter
+    def max_distance(self, value: float) -> None:
+        self._max_distance = value
+
+class NeuroLocationStatistics:
+    _left_laterality_percentage = None
+    _right_laterality_percentage = None
+    _laterality_midline_crossing = None
+
+    def __init__(self, left: float = None, right: float = None, crossing: bool = None):
+        self._left_laterality_percentage = left
+        self._right_laterality_percentage = right
+        self._laterality_midline_crossing = crossing
+
+    @property
+    def left_laterality_percentage(self) -> float:
+        return self._left_laterality_percentage
+
+    @left_laterality_percentage.setter
+    def left_laterality_percentage(self, value: float) -> None:
+        self._left_laterality_percentage = value
+
+    @property
+    def right_laterality_percentage(self) -> float:
+        return self._right_laterality_percentage
+
+    @right_laterality_percentage.setter
+    def right_laterality_percentage(self, value: float) -> None:
+        self._right_laterality_percentage = value
+
+    @property
+    def laterality_midline_crossing(self) -> bool:
+        return self._laterality_midline_crossing
+
+    @laterality_midline_crossing.setter
+    def laterality_midline_crossing(self, value: bool) -> None:
+        self._laterality_midline_crossing = value
+
+
+class NeuroResectabilityStatistics:
+    _expected_resectable_tumor_volume = None
+    _expected_residual_tumor_volume = None
+    _resectability_index = None
+
+    def __init__(self, resectable: float = None, residual: float = None, index: float = None):
+        self._expected_resectable_tumor_volume = resectable
+        self._expected_residual_tumor_volume = residual
+        self._resectability_index = index
+
+    @property
+    def expected_resectable_tumor_volume(self) -> float:
+        return self._expected_resectable_tumor_volume
+
+    @expected_resectable_tumor_volume.setter
+    def expected_resectable_tumor_volume(self, value: float) -> None:
+        self._expected_resectable_tumor_volume = value
+
+    @property
+    def expected_residual_tumor_volume(self) -> float:
+        return self._expected_residual_tumor_volume
+
+    @expected_residual_tumor_volume.setter
+    def expected_residual_tumor_volume(self, value: float) -> None:
+        self._expected_residual_tumor_volume = value
+
+    @property
+    def resectability_index(self) -> float:
+        return self._resectability_index
+
+    @resectability_index.setter
+    def resectability_index(self, value: float) -> None:
+        self._resectability_index = value
+
+
+class NeuroCorticalStatistics:
+    _cortical_structures_overlap = None
+    _cortical_structures_distance = None
+
+    def __init__(self, overlap: {} = None, distance: {} = None):
+        self._cortical_structures_overlap = overlap
+        self._cortical_structures_distance = distance
+
+    @property
+    def cortical_structures_overlap(self) -> {}:
+        return self._cortical_structures_overlap
+
+    @cortical_structures_overlap.setter
+    def cortical_structures_overlap(self, value: {}) -> None:
+        self._cortical_structures_overlap = value
+
+    @property
+    def cortical_structures_distance(self) -> {}:
+        return self._cortical_structures_distance
+
+    @cortical_structures_distance.setter
+    def cortical_structures_distance(self, value: {}) -> None:
+        self._cortical_structures_distance = value
+
+
+class NeuroSubCorticalStatistics:
+    _subcortical_structures_overlap = None
+    _subcortical_structures_distance = None
+
+    def __init__(self, overlap: {} = None, distance: {} = None):
+        self._subcortical_structures_overlap = overlap
+        self._subcortical_structures_distance = distance
+
+    @property
+    def subcortical_structures_overlap(self) -> {}:
+        return self._subcortical_structures_overlap
+
+    @subcortical_structures_overlap.setter
+    def subcortical_structures_overlap(self, value: {}) -> None:
+        self._subcortical_structures_overlap = value
+
+    @property
+    def subcortical_structures_distance(self) -> {}:
+        return self._subcortical_structures_distance
+
+    @subcortical_structures_distance.setter
+    def subcortical_structures_distance(self, value: {}) -> None:
+        self._subcortical_structures_distance = value
+
+class NeuroInfiltrationStatistics:
+    _overlap = None
+    _count = None
+
+    def __init__(self, overlap: {} = None, count: int = None):
+        self._overlap = overlap
+        self._count = count
+
+    @property
+    def overlap(self) -> {}:
+        return self._overlap
+
+    @overlap.setter
+    def overlap(self, value: {}) -> None:
+        self._overlap = value
+
+    @property
+    def count(self) -> {}:
+        return self._count
+
+    @count.setter
+    def count(self, value: {}) -> None:
+        self._count = value
+
+
+class NeuroStructureStatistics:
+    """
+    Specific class for holding the computed characteristics/features.
+    """
+    _volume = None
+    _multifocality = None
+    _location = None
+    _resectability = None
+    _cortical = None
+    _subcortical = None
+    _infiltration = None
+
+    def __init__(self):
+        self._volume = None
+        self._multifocality = NeuroMultifocalityStatistics()
+        self._location = NeuroLocationStatistics()
+        self._resectability = NeuroResectabilityStatistics()
+        self._cortical = NeuroCorticalStatistics()
+        self._subcortical = NeuroSubCorticalStatistics()
+        self._infiltration = NeuroInfiltrationStatistics()
+
+    @property
+    def volume(self) -> float:
+        return self._volume
+
+    @volume.setter
+    def volume(self, value: float) -> None:
+        self._volume = value
+
+    @property
+    def multifocality(self) -> NeuroLocationStatistics:
+        return self._multifocality
+
+    @multifocality.setter
+    def multifocality(self, value: NeuroMultifocalityStatistics) -> None:
+        self._multifocality = value
+
+    @property
+    def location(self) -> NeuroLocationStatistics:
+        return self._location
+
+    @location.setter
+    def location(self, value: NeuroLocationStatistics) -> None:
+        self._location = value
+
+    @property
+    def resectability(self) -> NeuroResectabilityStatistics:
+        return self._resectability
+
+    @resectability.setter
+    def resectability(self, value: NeuroResectabilityStatistics) -> None:
+        self._resectability = value
+
+    @property
+    def cortical(self) -> NeuroCorticalStatistics:
+        return self._cortical
+
+    @cortical.setter
+    def cortical(self, value: NeuroCorticalStatistics) -> None:
+        self._cortical = value
+
+    @property
+    def subcortical(self) -> NeuroSubCorticalStatistics:
+        return self._subcortical
+
+    @subcortical.setter
+    def subcortical(self, value: NeuroSubCorticalStatistics) -> None:
+        self._subcortical = value
+
+    @property
+    def infiltration(self) -> NeuroInfiltrationStatistics:
+        return self._infiltration
+
+    @infiltration.setter
+    def infiltration(self, value: NeuroInfiltrationStatistics) -> None:
+        self._infiltration = value
+
 class NeuroReportingStructure:
     """
-    Reporting at a single timestamp with characteristics/features for the tumor.
+    Reporting at a single timestamp with characteristics/features for the different structures.
     """
     _unique_id = None  # Internal unique identifier for the report
-    _radiological_volume_uid = None  # Parent CT/MRI volume to which the report is attached
+    _timestamp = None  # Timestamp attached to the report
     _output_folder = None
-    _tumor_type = None  # Type of brain tumor identified
-    _tumor_multifocal = False  # Boolean status about multifocality
-    _tumor_parts = 0  #
-    _tumor_multifocal_distance = -1.  #
+    _tumor_type = None  # Type of CNS tumor identified
     _statistics = {}
 
-    def __init__(self, id: str, parent_uid: str, output_folder: str):
+    def __init__(self, id: str, output_folder: str, timestamp: str):
         """
         """
         self.__reset()
         self._unique_id = id
-        self._radiological_volume_uid = parent_uid
         self._output_folder = output_folder
-        self._statistics['Main'] = {}
-        self._statistics['Main']['Overall'] = TumorStatistics()
-        self._statistics['Main']['CoM'] = TumorStatistics()
+        self._timestamp = timestamp
 
     def __reset(self):
         """
@@ -41,32 +289,41 @@ class NeuroReportingStructure:
         An instance or non-static variables are different for different objects (every object has a copy).
         """
         self._unique_id = None
-        self._radiological_volume_uid = None
         self._output_folder = None
         self._tumor_type = None
-        self._tumor_multifocal = False
-        self._tumor_parts = 0
-        self._tumor_multifocal_distance = -1.
         self._statistics = {}
 
-    def setup(self, tumor_type: str, tumor_elements: int) -> None:
-        self._tumor_type = tumor_type
-        self._tumor_parts = tumor_elements
-        if tumor_elements > 1:
-            self._tumor_multifocal = True
-        else:
-            self._tumor_multifocal = False
+    @property
+    def unique_id(self) -> str:
+        return self._unique_id
 
-        if self._tumor_multifocal:
-            for p in range(tumor_elements):
-                self._statistics[str(p+1)] = {}
-                self._statistics[str(p+1)]['Overall'] = TumorStatistics()
-                self._statistics[str(p+1)]['CoM'] = TumorStatistics()
+    @property
+    def output_folder(self) -> str:
+        return self._output_folder
+
+    @property
+    def statistics(self) -> dict:
+        return self._statistics
+
+    @statistics.setter
+    def statistics(self, value: dict) -> None:
+        self._statistics = value
+
+    def include_statistics(self, structure: str, space: str, statistics: NeuroStructureStatistics):
+        if structure not in list(self.statistics.keys()):
+            self.statistics[structure] = {}
+        self.statistics[structure][space] = statistics
+
+    def to_disk(self) -> None:
+        self.to_txt()
+        self.to_csv()
+        self.to_json()
+        self.dump_descriptions()
 
     def to_txt(self) -> None:
         """
 
-        Exporting the computed tumor characteristics and standardized report in filename.
+        Exporting the computed standardized characteristics report in filename.
 
         Parameters
         ----------
@@ -76,18 +333,27 @@ class NeuroReportingStructure:
         None
         """
         try:
-            filename = os.path.join(self._output_folder, "neuro_clinical_report.txt")
-            logging.info("Exporting neuro-parameters to text in {}.".format(filename))
+            filename = os.path.join(self._output_folder, "reporting",
+                                    "T" + str(self._timestamp), "neuro_clinical_report.txt")
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
+
+            logging.info(f"Exporting standardized report for timestamp T{self._timestamp} to text in {filename}.")
             pfile = open(filename, 'w')
-            pfile.write('########### Raidionics clinical report ###########\n')
+            pfile.write('########### Raidionics standardized report for T{} ###########\n'.format(self._timestamp))
             pfile.write('Tumor type: {}\n'.format(self._tumor_type))
+
+            pfile.write('\nVolumes\n')
+            for s in self.statistics.keys():
+                pfile.write('  * {}: {}ml\n'.format(s, self.statistics[s]["MNI"].volume))
+            for s in self.statistics.keys():
+                pass
             pfile.write('Tumor multifocality: {}\n'.format(self._tumor_multifocal))
             pfile.write('  * Number tumor parts: {}\n'.format(self._tumor_parts))
             pfile.write('  * Largest distance between components: {} (mm)\n'.format(np.round(self._tumor_multifocal_distance, 2)))
 
             pfile.write('\nVolumes\n')
-            if self._statistics['Main']['Overall'].original_space_tumor_volume:
-                pfile.write('  * Original space: {} (ml)\n'.format(np.round(self._statistics['Main']['Overall'].original_space_tumor_volume, 2)))
+            if self._statistics['Main']['Overall'].original_space_volume:
+                pfile.write('  * Original space: {} (ml)\n'.format(np.round(self._statistics['Main']['Overall'].original_space_volume, 2)))
             if self._statistics['Main']['Overall'].mni_space_tumor_volume:
                 pfile.write('  * MNI space: {} (ml)\n'.format(self._statistics['Main']['Overall'].mni_space_tumor_volume))
 
@@ -175,7 +441,7 @@ class NeuroReportingStructure:
             #     param_json['Main']['CenterOfMass']['Lobe'].append([l, self.statistics['Main']['CoM'].mni_space_cortical_structures_overlap[l]])
 
             param_json['Main']['Total'] = {}
-            param_json['Main']['Total']['Volume original (ml)'] = self._statistics['Main']['Overall'].original_space_tumor_volume
+            param_json['Main']['Total']['Volume original (ml)'] = self._statistics['Main']['Overall'].original_space_volume
             param_json['Main']['Total']['Volume in MNI (ml)'] = self._statistics['Main']['Overall'].mni_space_tumor_volume
             param_json['Main']['Total']['Left laterality (%)'] = self._statistics['Main']['Overall'].left_laterality_percentage
             param_json['Main']['Total']['Right laterality (%)'] = self._statistics['Main']['Overall'].right_laterality_percentage
@@ -266,7 +532,7 @@ class NeuroReportingStructure:
             values = [self._tumor_multifocal, self._tumor_parts, np.round(self._tumor_multifocal_distance, 2)]
             column_names = ['Multifocality', 'Tumor parts nb', 'Multifocal distance (mm)']
 
-            values.extend([self._statistics['Main']['Overall'].original_space_tumor_volume, self._statistics['Main']['Overall'].mni_space_tumor_volume])
+            values.extend([self._statistics['Main']['Overall'].original_space_volume, self._statistics['Main']['Overall'].mni_space_tumor_volume])
             column_names.extend(['Volume original (ml)', 'Volume in MNI (ml)'])
 
             values.extend([self._statistics['Main']['Overall'].left_laterality_percentage,
@@ -347,21 +613,3 @@ class NeuroReportingStructure:
         except Exception as e:
             raise RuntimeError("Neuro-parameters atlas descriptions dump failed with {}".format(e))
 
-class TumorStatistics:
-    """
-    Specific class for holding the computed tumor characteristics/features.
-    """
-    def __init__(self):
-        self.left_laterality_percentage = None
-        self.right_laterality_percentage = None
-        self.laterality_midline_crossing = None
-        self.original_space_tumor_volume = None
-        self.mni_space_tumor_volume = None
-        self.mni_space_expected_resectable_tumor_volume = None
-        self.mni_space_expected_residual_tumor_volume = None
-        self.mni_space_resectability_index = None
-        self.mni_space_cortical_structures_overlap = {}
-        self.mni_space_subcortical_structures_overlap = {}
-        self.mni_space_subcortical_structures_distance = {}
-        self.mni_space_braingrid_infiltration_overlap = {}
-        self.mni_space_braingrid_infiltration_count = -1

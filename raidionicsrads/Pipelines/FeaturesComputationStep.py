@@ -6,7 +6,7 @@ import nibabel as nib
 from .AbstractPipelineStep import AbstractPipelineStep
 from ..Utils.configuration_parser import ResourcesConfiguration
 from ..Utils.ReportingStructures.NeuroReportingStructure import NeuroReportingStructure
-from ..Processing.neuro_report_computing import compute_neuro_report
+from ..Processing.neuro_report_computing import *
 from ..Utils.DataStructures.AnnotationStructure import AnnotationClassType
 from ..Utils.utilities import get_type_from_enum_name
 
@@ -19,13 +19,13 @@ class FeaturesComputationStep(AbstractPipelineStep):
     _radiological_volume_uid = None
     _report_space = None
     _report = None
-    _target = None
+    _targets = None
 
     def __init__(self, step_json: dict) -> None:
         super(FeaturesComputationStep, self).__init__(step_json=step_json)
         self.__reset()
         self._report_space = self._step_json["space"]
-        self._target = self._step_json["target"]
+        self._targets = self._step_json["target"]
 
     @property
     def report_space(self) -> str:
@@ -36,12 +36,12 @@ class FeaturesComputationStep(AbstractPipelineStep):
         self.report_space = text
 
     @property
-    def target(self) -> str:
-        return self._target
+    def targets(self) -> str:
+        return self._targets
 
-    @target.setter
-    def target(self, target: str) -> None:
-        self._target = target
+    @targets.setter
+    def targets(self, targets: str) -> None:
+        self._targets = targets
 
     def __reset(self):
         """
@@ -52,9 +52,12 @@ class FeaturesComputationStep(AbstractPipelineStep):
         self._radiological_volume_uid = None
         self._report_space = None
         self._report = None
-        self._target = None
+        self._targets = None
 
     def setup(self, patient_parameters):
+        """
+        Verify that the requirements are met for executing the step
+        """
         self._patient_parameters = patient_parameters
 
     def execute(self):
@@ -76,6 +79,42 @@ class FeaturesComputationStep(AbstractPipelineStep):
         pass
 
     def __run_neuro_reporting(self):
+        non_available_uid = True
+        report_uid = None
+        while non_available_uid:
+            report_uid = 'RADS' + str(np.random.randint(0, 10000))
+            if report_uid not in self._patient_parameters.get_all_reportings_uids():
+                non_available_uid = False
+        report = NeuroReportingStructure(id=report_uid,
+                                         output_folder=ResourcesConfiguration.getInstance().output_folder,
+                                         timestamp=self.step_json["timestamp"])
+        for t in self.targets:
+            structure_nib = None
+            if t in [x.name for x in list(AnnotationClassType)]:
+                annotation_filepath = None
+                struct_annotations = self._patient_parameters.get_all_annotations_for_timestamp_and_structure(
+                    timestamp=self.step_json["timestamp"], structure=t)
+                if self.report_space == "Patient":
+                    annotation_filepath = struct_annotations[0].usable_input_filepath
+                else:
+                    annotation_filepath = struct_annotations[0].registered_volumes[self.report_space]["filepath"]
+
+                if annotation_filepath is None:
+                    logging.error("No structure filepath found on disk.")
+                else:
+                    structure_nib = nib.load(annotation_filepath)
+            else:
+                # @TODO. Have to manually assemble the combined structure
+                pass
+
+            if structure_nib is None:
+                logging.error(f"No segmentation file found nor assembled for structure: {t}")
+                continue
+            else:
+                res = compute_structure_statistics(input_mask=structure_nib)
+                report.include_statistics(structure=t, statistics=res, space=self.report_space)
+        report.to_disk()
+    def __run_neuro_reporting_old(self):
         """
         @TODO. The self.report_space will not handle properly the Atlas files, should have another flag inside the
         compute_neuro_report method to open the original MNI space files or back-registered files in patient space!
@@ -94,7 +133,7 @@ class FeaturesComputationStep(AbstractPipelineStep):
             if len(anno_uid) == 0:
                 return None
             anno_uid = anno_uid[0]
-            report_filename_input = self._patient_parameters.get_annotation(annotation_uid=anno_uid).get_usable_input_filepath()
+            report_filename_input = self._patient_parameters.get_annotation(annotation_uid=anno_uid).usable_input_filepath
             if self.report_space != 'Patient':
                 reg_data = self._patient_parameters.get_annotation(annotation_uid=anno_uid).get_registered_volume_info(destination_space_uid=self.report_space)
                 report_filename_input = reg_data["filepath"]
@@ -111,10 +150,10 @@ class FeaturesComputationStep(AbstractPipelineStep):
             updated_report = compute_neuro_report(report_filename_input, report)
             if self.report_space != 'Patient':
                 # Including the tumor volume in original patient space, quick fix for now
-                patient_anno_fn = self._patient_parameters.get_annotation(annotation_uid=anno_uid).get_usable_input_filepath()
+                patient_anno_fn = self._patient_parameters.get_annotation(annotation_uid=anno_uid).usable_input_filepath
                 patient_anno = nib.load(patient_anno_fn).get_fdata()[:]
                 volume = np.count_nonzero(patient_anno) * np.prod(nib.load(patient_anno_fn).header.get_zooms()[0:3]) * 1e-3
-                updated_report._statistics['Main']['Overall'].original_space_tumor_volume = np.round(volume, 2)
+                updated_report._statistics['Main']['Overall'].original_space_volume = np.round(volume, 2)
             self._patient_parameters.include_reporting(report_uid, updated_report)
             updated_report.to_txt()
             updated_report.to_csv()

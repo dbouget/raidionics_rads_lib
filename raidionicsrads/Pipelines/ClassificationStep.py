@@ -34,16 +34,24 @@ class ClassificationStep(AbstractPipelineStep):
         self._input_volume_uid = None
         self._input_volume_filepath = None
 
+    @property
+    def working_folder(self) -> str:
+        return self._working_folder
+
+    @working_folder.setter
+    def working_folder(self, f: str) -> None:
+        self._working_folder = f
+
     def setup(self, patient_parameters):
         self._patient_parameters = patient_parameters
 
         if self.skip:
             return
 
-        self._working_folder = os.path.join(ResourcesConfiguration.getInstance().output_folder, "classification_tmp")
-        os.makedirs(self._working_folder, exist_ok=True)
-        os.makedirs(os.path.join(self._working_folder, 'inputs'), exist_ok=True)
-        os.makedirs(os.path.join(self._working_folder, 'outputs'), exist_ok=True)
+        self.working_folder = os.path.join(ResourcesConfiguration.getInstance().output_folder, "classification_tmp")
+        os.makedirs(self.working_folder, exist_ok=True)
+        os.makedirs(os.path.join(self.working_folder, 'inputs'), exist_ok=True)
+        os.makedirs(os.path.join(self.working_folder, 'outputs'), exist_ok=True)
 
     def execute(self):
         try:
@@ -54,8 +62,8 @@ class ClassificationStep(AbstractPipelineStep):
             if len(self._step_json["inputs"].keys()) == 0:
                 for volume_uid in self._patient_parameters.get_all_radiological_volume_uids():
                     self._input_volume_uid = volume_uid
-                    self._input_volume_filepath = self._patient_parameters.get_radiological_volume(volume_uid=volume_uid).get_usable_input_filepath()
-                    new_fp = os.path.join(self._working_folder, 'inputs', 'input0.nii.gz')
+                    self._input_volume_filepath = self._patient_parameters.get_radiological_volume(volume_uid=volume_uid).usable_input_filepath
+                    new_fp = os.path.join(self.working_folder, 'inputs', 'input0.nii.gz')
                     shutil.copyfile(self._input_volume_filepath, new_fp)
                     self.__perform_classification()
             else:  # Not a use-case for the moment.
@@ -63,18 +71,18 @@ class ClassificationStep(AbstractPipelineStep):
 
             self.__process_classification_results()
         except Exception as e:
-            if os.path.exists(self._working_folder):
-                shutil.rmtree(self._working_folder)
+            if os.path.exists(self.working_folder):
+                shutil.rmtree(self.working_folder)
             raise ValueError("[ClassificationStep] Automatic classification failed with: {}.".format(e))
 
-        if os.path.exists(self._working_folder):
-            shutil.rmtree(self._working_folder)
+        if os.path.exists(self.working_folder):
+            shutil.rmtree(self.working_folder)
 
         return self._patient_parameters
 
     def cleanup(self):
-        if self._working_folder is not None and os.path.exists(self._working_folder):
-            shutil.rmtree(self._working_folder)
+        if self.working_folder is not None and os.path.exists(self.working_folder):
+            shutil.rmtree(self.working_folder)
 
     def __perform_classification(self) -> None:
         """
@@ -86,8 +94,8 @@ class ClassificationStep(AbstractPipelineStep):
             classification_config = configparser.ConfigParser()
             classification_config.add_section('System')
             classification_config.set('System', 'gpu_id', ResourcesConfiguration.getInstance().gpu_id)
-            classification_config.set('System', 'inputs_folder', os.path.join(self._working_folder, 'inputs'))
-            classification_config.set('System', 'output_folder', os.path.join(self._working_folder, 'outputs'))
+            classification_config.set('System', 'inputs_folder', os.path.join(self.working_folder, 'inputs'))
+            classification_config.set('System', 'output_folder', os.path.join(self.working_folder, 'outputs'))
             classification_config.set('System', 'model_folder',
                                       os.path.join(ResourcesConfiguration.getInstance().model_folder, self._model_name))
             classification_config.add_section('Runtime')
@@ -95,7 +103,7 @@ class ClassificationStep(AbstractPipelineStep):
             classification_config.set('Runtime', 'reconstruction_order', 'resample_first')
             classification_config.add_section('Neuro')
             classification_config.set('Neuro', 'brain_segmentation_filename', '')
-            classification_config_filename = os.path.join(os.path.join(self._working_folder, 'inputs'),
+            classification_config_filename = os.path.join(os.path.join(self.working_folder, 'inputs'),
                                                           'classification_config.ini')
             with open(classification_config_filename, 'w') as outfile:
                 classification_config.write(outfile)
@@ -115,7 +123,7 @@ class ClassificationStep(AbstractPipelineStep):
             raise ValueError(f"[ClassificationStep] Automatic classification failed with: {e}.")
 
         try:
-            classification_results_filename = os.path.join(os.path.join(self._working_folder, 'outputs'),
+            classification_results_filename = os.path.join(os.path.join(self.working_folder, 'outputs'),
                                                            'classification-results.csv')
             shutil.copyfile(classification_results_filename,
                             os.path.join(ResourcesConfiguration.getInstance().output_folder,
@@ -147,7 +155,7 @@ class ClassificationStep(AbstractPipelineStep):
         if self._step_json["target"][0] == "MRSequence":
             for volume_uid in self._patient_parameters.get_all_radiological_volume_uids():
                 classes.append([os.path.basename(
-                    self._patient_parameters.get_radiological_volume(volume_uid).get_raw_input_filepath()),
+                    self._patient_parameters.get_radiological_volume(volume_uid).raw_input_filepath),
                                 self._patient_parameters.get_radiological_volume(volume_uid).get_sequence_type_str()])
             df = pd.DataFrame(classes, columns=['File', 'MRI sequence'])
             df.to_csv(classification_results_filename, index=False)

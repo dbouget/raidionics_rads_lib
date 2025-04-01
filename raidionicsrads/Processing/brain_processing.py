@@ -212,7 +212,7 @@ def perform_brain_overlap_refinement(predictions_filepath: str, brain_mask_filep
     except Exception as e:
         raise ValueError("Brain overlap refinement failed with: {}.".format(e))
 
-def perform_segmentation_global_consistency_refinement(annotation_files: List):
+def perform_segmentation_global_consistency_refinement(annotation_files: dict, timestamp: str):
     tumorcore_anno_fn = None
     tumorcore_anno_nib = None
     tumorcore_anno = None
@@ -227,104 +227,120 @@ def perform_segmentation_global_consistency_refinement(annotation_files: List):
     flair_changes_anno = None
     necrosis_cyst_anno = None
 
-    for a in annotation_files:
-        if a.get_annotation_type_enum() == AnnotationClassType.Tumor:
-            tumorcore_anno_fn = a.get_usable_input_filepath()
+    for a in list(annotation_files.keys()):
+        if a == str(AnnotationClassType.Tumor):
+            tumorcore_anno_fn = annotation_files[a]
             tumorcore_anno_nib = nib.load(tumorcore_anno_fn)
             tumorcore_anno = tumorcore_anno_nib.get_fdata()[:]
-        elif a.get_annotation_type_enum() == AnnotationClassType.Cavity:
-            cavity_anno_fn = a.get_usable_input_filepath()
+        elif a == str(AnnotationClassType.Cavity):
+            cavity_anno_fn = annotation_files[a]
             cavity_anno_nib = nib.load(cavity_anno_fn)
             cavity_anno = cavity_anno_nib.get_fdata()[:]
-        elif a.get_annotation_type_enum() == AnnotationClassType.TumorCE:
-            tumor_ce_anno_fn = a.get_usable_input_filepath()
+        elif a == str(AnnotationClassType.TumorCE):
+            tumor_ce_anno_fn = annotation_files[a]
             tumor_ce_anno_nib = nib.load(tumor_ce_anno_fn)
             tumor_ce_anno = tumor_ce_anno_nib.get_fdata()[:]
-        elif a.get_annotation_type_enum() == AnnotationClassType.FLAIRChanges:
-            flair_changes_anno_fn = a.get_usable_input_filepath()
+        elif a == str(AnnotationClassType.FLAIRChanges):
+            flair_changes_anno_fn = annotation_files[a]
             flair_changes_anno_nib = nib.load(flair_changes_anno_fn)
             flair_changes_anno = flair_changes_anno_nib.get_fdata()[:]
 
-    uncertain_cav_necro = np.abs(tumorcore_anno - tumor_ce_anno)
-    nib.save(nib.Nifti1Image(uncertain_cav_necro, affine=tumorcore_anno_nib.affine, header=tumorcore_anno_nib.header),
-             "/home/dnbouget/work/dnbouget/Studies/UnitTests/raidionics_rads_lib/outputs/uncertain_cav_necro_labels.nii.gz")
-    tc_labels, tc_candidates = select_candidates(tumorcore_anno)
-    tce_labels, tce_candidates = select_candidates(tumor_ce_anno)
-    cav_labels, cav_candidates = select_candidates(cavity_anno)
+    if timestamp == 1:
+        refined_tumorce = np.zeros(tumor_ce_anno.shape).astype("uint8")
+        refined_tumorce[(tumor_ce_anno != 0) & (cavity_anno == 0)] = 1
 
-    if True:
-        nib.save(nib.Nifti1Image(tc_labels, affine=tumorcore_anno_nib.affine, header=tumorcore_anno_nib.header),
-                 "/home/dnbouget/work/dnbouget/Studies/UnitTests/raidionics_rads_lib/outputs/tumorcore_labels.nii.gz")
-        nib.save(nib.Nifti1Image(tce_labels, affine=tumorcore_anno_nib.affine, header=tumorcore_anno_nib.header),
-                 "/home/dnbouget/work/dnbouget/Studies/UnitTests/raidionics_rads_lib/outputs/tumorce_labels.nii.gz")
-        nib.save(nib.Nifti1Image(cav_labels, affine=tumorcore_anno_nib.affine, header=tumorcore_anno_nib.header),
-                 "/home/dnbouget/work/dnbouget/Studies/UnitTests/raidionics_rads_lib/outputs/cavity_labels.nii.gz")
+        combined_anno = np.zeros(tumor_ce_anno.shape).astype("uint8")
+        combined_anno[flair_changes_anno == 1] = 1
+        combined_anno[cavity_anno == 1] = 2
+        combined_anno[refined_tumorce == 1] = 3
+        nib.save(nib.Nifti1Image(refined_tumorce, affine=tumor_ce_anno_nib.affine, header=tumor_ce_anno_nib.header),
+                 "/home/dnbouget/work/dnbouget/Studies/UnitTests/raidionics_rads_lib/outputs/refined_tumor_ce.nii.gz")
+        nib.save(nib.Nifti1Image(combined_anno, affine=tumor_ce_anno_nib.affine, header=tumor_ce_anno_nib.header),
+                 "/home/dnbouget/work/dnbouget/Studies/UnitTests/raidionics_rads_lib/outputs/combined_masks.nii.gz")
+        # @TODO. How to deal with the results, simply replace in destination for existing ones and the others?
+        nib.save(nib.Nifti1Image(refined_tumorce, affine=tumor_ce_anno_nib.affine, header=tumor_ce_anno_nib.header),
+                 tumor_ce_anno_fn)
+    elif timestamp == 0:
+        uncertain_cav_necro = np.abs(tumorcore_anno - tumor_ce_anno)
+        nib.save(nib.Nifti1Image(uncertain_cav_necro, affine=tumorcore_anno_nib.affine, header=tumorcore_anno_nib.header),
+                 "/home/dnbouget/work/dnbouget/Studies/UnitTests/raidionics_rads_lib/outputs/uncertain_cav_necro_labels.nii.gz")
+        tc_labels, tc_candidates = select_candidates(tumorcore_anno)
+        tce_labels, tce_candidates = select_candidates(tumor_ce_anno)
+        cav_labels, cav_candidates = select_candidates(cavity_anno)
 
-    tc_coms = []
-    tce_coms = []
-    cav_coms = []
-    for c in tc_candidates:
-        com = center_of_mass(tc_labels == c.label)
-        tc_coms.append(com)
+        if True:
+            nib.save(nib.Nifti1Image(tc_labels, affine=tumorcore_anno_nib.affine, header=tumorcore_anno_nib.header),
+                     "/home/dnbouget/work/dnbouget/Studies/UnitTests/raidionics_rads_lib/outputs/tumorcore_labels.nii.gz")
+            nib.save(nib.Nifti1Image(tce_labels, affine=tumorcore_anno_nib.affine, header=tumorcore_anno_nib.header),
+                     "/home/dnbouget/work/dnbouget/Studies/UnitTests/raidionics_rads_lib/outputs/tumorce_labels.nii.gz")
+            nib.save(nib.Nifti1Image(cav_labels, affine=tumorcore_anno_nib.affine, header=tumorcore_anno_nib.header),
+                     "/home/dnbouget/work/dnbouget/Studies/UnitTests/raidionics_rads_lib/outputs/cavity_labels.nii.gz")
 
-    for c in tce_candidates:
-        com = center_of_mass(tce_labels == c.label)
-        tce_coms.append(com)
+        tc_coms = []
+        tce_coms = []
+        cav_coms = []
+        for c in tc_candidates:
+            com = center_of_mass(tc_labels == c.label)
+            tc_coms.append(com)
 
-    for c in cav_candidates:
-        com = center_of_mass(cav_labels == c.label)
-        cav_coms.append(com)
+        for c in tce_candidates:
+            com = center_of_mass(tce_labels == c.label)
+            tce_coms.append(com)
 
-    # To separate preoperatively the tumor from an old surgical cavity, we should compare the overlap between the
-    # tumor core prediction and cavity prediction.
-    # If there is an overlap, we should compare that connected component with the tumorce prediction and use the com somehow?
-    clean_cavity = np.zeros(cavity_anno.shape)
-    for c, cc in enumerate(cav_candidates):
-        eligible = False
-        for t, tt in enumerate(tc_candidates):
-            vol_c = np.zeros(cav_labels.shape) #cav_labels[c.label]
-            vol_t = np.zeros(tc_labels.shape) #tc_labels[t.label]
-            # vol_c[vol_c != 0] = 1
-            # vol_t[vol_t != 0] = 1
-            vol_c[cav_labels == cc.label] = 1
-            vol_t[tc_labels == tt.label] = 1
-            overlap = compute_dice(vol_c, vol_t)
-            nib.save(nib.Nifti1Image(vol_c, affine=tumorcore_anno_nib.affine, header=tumorcore_anno_nib.header),
-                     "/home/dnbouget/work/dnbouget/Studies/UnitTests/raidionics_rads_lib/outputs/cav_cand" + str(cc.label) + ".nii.gz")
-            nib.save(nib.Nifti1Image(vol_t, affine=tumorcore_anno_nib.affine, header=tumorcore_anno_nib.header),
-                     "/home/dnbouget/work/dnbouget/Studies/UnitTests/raidionics_rads_lib/outputs/tumorcore_cand" + str(tt.label) + ".nii.gz")
-            if overlap != 0.:
-                com_cav = cav_coms[c]
-                for tc, tcc in enumerate(tce_candidates):
-                    com_tce = tce_coms[tc]
-                    distance = math.sqrt(math.pow(com_cav[0] - com_tce[0], 2) + math.pow(com_cav[1] - com_tce[1], 2) + math.pow(com_cav[2] - com_tce[2], 2))
-                    iou = compute_3d_iou(cc.bbox, tcc.bbox)
-                    if distance < 30. or iou > 0.20:
-                        eligible = True
-        if not eligible:
-            # @TODO. Should populate the cavity mask with it
-            clean_cavity[cav_labels == cc.label] = 1
-    # @TODO. Subtract the clean cavity mask from tumor mask to make it clean!
-    final_tumorcore = np.zeros(tumorcore_anno.shape)
-    final_tumorcore[(clean_cavity == 0) & (tumorcore_anno == 1)] = 1
+        for c in cav_candidates:
+            com = center_of_mass(cav_labels == c.label)
+            cav_coms.append(com)
 
-    if True:
-        nib.save(nib.Nifti1Image(final_tumorcore, affine=tumorcore_anno_nib.affine, header=tumorcore_anno_nib.header),
-                 "/home/dnbouget/work/dnbouget/Studies/UnitTests/raidionics_rads_lib/outputs/final_tumorcore_labels.nii.gz")
-        nib.save(nib.Nifti1Image(clean_cavity, affine=tumorcore_anno_nib.affine, header=tumorcore_anno_nib.header),
-                 "/home/dnbouget/work/dnbouget/Studies/UnitTests/raidionics_rads_lib/outputs/cleancavity_labels.nii.gz")
+        # To separate preoperatively the tumor from an old surgical cavity, we should compare the overlap between the
+        # tumor core prediction and cavity prediction.
+        # If there is an overlap, we should compare that connected component with the tumorce prediction and use the com somehow?
+        clean_cavity = np.zeros(cavity_anno.shape)
+        for c, cc in enumerate(cav_candidates):
+            eligible = False
+            for t, tt in enumerate(tc_candidates):
+                vol_c = np.zeros(cav_labels.shape) #cav_labels[c.label]
+                vol_t = np.zeros(tc_labels.shape) #tc_labels[t.label]
+                # vol_c[vol_c != 0] = 1
+                # vol_t[vol_t != 0] = 1
+                vol_c[cav_labels == cc.label] = 1
+                vol_t[tc_labels == tt.label] = 1
+                overlap = compute_dice(vol_c, vol_t)
+                nib.save(nib.Nifti1Image(vol_c, affine=tumorcore_anno_nib.affine, header=tumorcore_anno_nib.header),
+                         "/home/dnbouget/work/dnbouget/Studies/UnitTests/raidionics_rads_lib/outputs/cav_cand" + str(cc.label) + ".nii.gz")
+                nib.save(nib.Nifti1Image(vol_t, affine=tumorcore_anno_nib.affine, header=tumorcore_anno_nib.header),
+                         "/home/dnbouget/work/dnbouget/Studies/UnitTests/raidionics_rads_lib/outputs/tumorcore_cand" + str(tt.label) + ".nii.gz")
+                if overlap != 0.:
+                    com_cav = cav_coms[c]
+                    for tc, tcc in enumerate(tce_candidates):
+                        com_tce = tce_coms[tc]
+                        distance = math.sqrt(math.pow(com_cav[0] - com_tce[0], 2) + math.pow(com_cav[1] - com_tce[1], 2) + math.pow(com_cav[2] - com_tce[2], 2))
+                        iou = compute_3d_iou(cc.bbox, tcc.bbox)
+                        if distance < 30. or iou > 0.20:
+                            eligible = True
+            if not eligible:
+                # @TODO. Should populate the cavity mask with it
+                clean_cavity[cav_labels == cc.label] = 1
+        # @TODO. Subtract the clean cavity mask from tumor mask to make it clean!
+        final_tumorcore = np.zeros(tumorcore_anno.shape)
+        final_tumorcore[(clean_cavity == 0) & (tumorcore_anno == 1)] = 1
 
-    if tumorcore_anno is not None and tumor_ce_anno is not None:
-        necrosis_cyst_anno = tumorcore_anno - tumor_ce_anno
+        if True:
+            nib.save(nib.Nifti1Image(final_tumorcore, affine=tumorcore_anno_nib.affine, header=tumorcore_anno_nib.header),
+                     "/home/dnbouget/work/dnbouget/Studies/UnitTests/raidionics_rads_lib/outputs/final_tumorcore_labels.nii.gz")
+            nib.save(nib.Nifti1Image(clean_cavity, affine=tumorcore_anno_nib.affine, header=tumorcore_anno_nib.header),
+                     "/home/dnbouget/work/dnbouget/Studies/UnitTests/raidionics_rads_lib/outputs/cleancavity_labels.nii.gz")
 
-    if cavity_anno is not None and tumorcore_anno is not None:
-        # @TODO. Is there a smart way to find when cavity/necrosis is encompassed inside tumor-ce, as a way to
-        # differenciate between cavity and necrosis?
-        tumorcore_anno = tumorcore_anno - cavity_anno
+        if tumorcore_anno is not None and tumor_ce_anno is not None:
+            necrosis_cyst_anno = tumorcore_anno - tumor_ce_anno
 
-    if tumorcore_anno is not None:
-        nib.save(nib.Nifti1Image(tumorcore_anno, tumorcore_anno_nib.affine, tumorcore_anno_nib.header),
-                 tumorcore_anno_fn)
+        if cavity_anno is not None and tumorcore_anno is not None:
+            # @TODO. Is there a smart way to find when cavity/necrosis is encompassed inside tumor-ce, as a way to
+            # differenciate between cavity and necrosis?
+            tumorcore_anno = tumorcore_anno - cavity_anno
+
+        if tumorcore_anno is not None:
+            nib.save(nib.Nifti1Image(tumorcore_anno, tumorcore_anno_nib.affine, tumorcore_anno_nib.header),
+                     tumorcore_anno_fn)
 
 
 def select_candidates(input_array):

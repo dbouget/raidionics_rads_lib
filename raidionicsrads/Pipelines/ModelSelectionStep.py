@@ -74,11 +74,11 @@ class ModelSelectionStep(AbstractPipelineStep):
         try:
             base_model_path = os.path.join(ResourcesConfiguration.getInstance().model_folder, self._base_model_name)
             if self._base_model_name is None or not os.path.exists(base_model_path) or not os.path.isdir(base_model_path):
-                raise ValueError("Provided input model directory does not exist on disk with value {}".format(base_model_path))
+                raise ValueError(f"Provided input model directory does not exist on disk with value {base_model_path}")
         except Exception as e:
             if os.path.exists(self._working_folder):
                 shutil.rmtree(self._working_folder)
-            raise ValueError("[ModelSelectionStep] setup failed with {}.".format(e))
+            raise ValueError(f"[ModelSelectionStep] setup failed with: {e}.")
 
     def execute(self) -> {}:
         """
@@ -99,10 +99,10 @@ class ModelSelectionStep(AbstractPipelineStep):
         except Exception as e:
             if os.path.exists(self._working_folder):
                 shutil.rmtree(self._working_folder)
-            raise ValueError("[ModelSelectionStep] failed with {}.".format(e))
+            raise ValueError(f"[ModelSelectionStep] failed with: {e}.")
 
         if model_name is None:
-            raise ValueError(f"[ModelSelectionStep] failed, no model could be selected .")
+            raise ValueError(f"[ModelSelectionStep] failed, no model could be selected.")
         model_pipeline_fn = os.path.join(ResourcesConfiguration.getInstance().model_folder, model_name, "pipeline.json")
         model_pipeline = None
         with open(model_pipeline_fn, 'r') as infile:

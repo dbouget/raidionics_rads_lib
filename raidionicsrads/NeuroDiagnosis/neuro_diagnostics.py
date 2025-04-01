@@ -357,7 +357,7 @@ class NeuroDiagnostics:
         segmentation_ni = nib.load(ResourcesConfiguration.getInstance().runtime_tumor_mask_filepath)
         segmentation_mask = segmentation_ni.get_fdata()[:]
         volume = compute_volume(volume=segmentation_mask, spacing=segmentation_ni.header.get_zooms())
-        self.diagnosis_parameters.statistics['Main']['Overall'].original_space_tumor_volume = volume
+        self.diagnosis_parameters.statistics['Main']['Overall'].original_space_volume = volume
         volume = compute_volume(volume=refined_image, spacing=registered_tumor_ni.header.get_zooms())
         self.diagnosis_parameters.statistics['Main']['Overall'].mni_space_tumor_volume = volume
 
