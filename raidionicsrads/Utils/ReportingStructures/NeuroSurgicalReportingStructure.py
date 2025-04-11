@@ -28,6 +28,54 @@ class ResectionCategoryType(Enum):
         return self.string
 
 
+class SurgicalStatistics:
+    """
+    Specific class for holding the surgical report features
+    """
+    _tumor_volume_preop = None
+    _tumor_volume_postop = None
+    _extent_of_resection = None
+    _resection_category = None
+
+    def __init__(self, volume_pre: float = None, volume_post: float = None, eor: float = None, category: str = None):
+        self._tumor_volume_preop = volume_pre
+        self._tumor_volume_postop = volume_post
+        self._extent_of_resection = eor
+        self._resection_category = category
+
+    @property
+    def tumor_volume_preop(self) -> float:
+        return self._tumor_volume_preop
+
+    @tumor_volume_preop.setter
+    def tumor_volume_preop(self, value: float) -> None:
+        self._tumor_volume_preop = value
+
+    @property
+    def tumor_volume_postop(self) -> float:
+        return self._tumor_volume_postop
+
+    @tumor_volume_postop.setter
+    def tumor_volume_postop(self, value: float) -> None:
+        self._tumor_volume_postop = value
+
+    @property
+    def extent_of_resection(self) -> float:
+        return self._extent_of_resection
+
+    @extent_of_resection.setter
+    def extent_of_resection(self, value: float) -> None:
+        self._extent_of_resection = value
+
+    @property
+    def resection_category(self) -> str:
+        return self._resection_category
+
+    @resection_category.setter
+    def resection_category(self, value: str) -> None:
+        self._resection_category = value
+
+
 class NeuroSurgicalReportingStructure:
     """
     Reporting at a single timestamp with characteristics/features for the tumor.
@@ -53,8 +101,23 @@ class NeuroSurgicalReportingStructure:
         self._output_folder = None
         self._statistics = None
 
+    @property
+    def statistics(self) -> SurgicalStatistics:
+        return self._statistics
+
+    @statistics.setter
+    def statistics(self, value: SurgicalStatistics) -> None:
+        self._statistics = value
+
     def setup(self) -> None:
         pass
+
+    def to_disk(self) -> None:
+        output_folder = os.path.join(self._output_folder, "reporting")
+        os.makedirs(output_folder, exist_ok=True)
+        self.to_txt()
+        self.to_json()
+        self.to_csv()
 
     def to_txt(self) -> None:
         """
@@ -69,45 +132,39 @@ class NeuroSurgicalReportingStructure:
         None
         """
         try:
-            filename = os.path.join(self._output_folder, "neuro_surgical_report.txt")
-            logging.info("Exporting neuro-parameters to text in {}.".format(filename))
-            pfile = open(filename, 'a')
+            filename = os.path.join(self._output_folder, "reporting", "neuro_surgical_report.txt")
+            logging.info(f"Exporting neurosurgical reporting to text in {filename}.")
+            pfile = open(filename, 'w')
+            pfile.write(f'########### Raidionics standardized surgical reporting ###########\n')
+            pfile.write(' Preoperative tumor volume: {:.2f} ml\n'.format(self.statistics.tumor_volume_preop))
+            pfile.write(' Postoperative tumor volume: {:.2f} ml\n'.format(self.statistics.tumor_volume_postop))
+            pfile.write(' Extent of resection: {:.2f} %\n'.format(self.statistics.extent_of_resection))
+            pfile.write(' Resection category: {}\n'.format(self.statistics.resection_category))
             pfile.close()
         except Exception as e:
-            raise RuntimeError("Neuro surgical report dump on disk as text failed with {}".format(e))
+            raise RuntimeError(f"Neurosurgical reporting writing on disk as text failed with {e}")
         return
 
     def to_json(self) -> None:
         try:
             param_json = {}
-            filename = os.path.join(self._output_folder, "neuro_surgical_report.json")
-            logging.info("Exporting neuro surgical parameters to json in {}.".format(filename))
-            param_json["preop_volume"] = self._statistics.preop_volume
-            param_json["postop_volume"] = self._statistics.postop_volume
-            param_json["eor"] = self._statistics.extent_of_resection
-            param_json["resection_category"] = str(self._statistics.resection_category)
+            filename = os.path.join(self._output_folder, "reporting", "neuro_surgical_report.json")
+            logging.info("Exporting surgical reporting to json in {}.".format(filename))
+            param_json["preop_volume"] = self.statistics.tumor_volume_preop
+            param_json["postop_volume"] = self.statistics.tumor_volume_postop
+            param_json["eor"] = self.statistics.extent_of_resection
+            param_json["resection_category"] = str(self.statistics.resection_category)
             with open(filename, 'w', newline='\n') as outfile:
                 json.dump(param_json, outfile, indent=4, sort_keys=True)
         except Exception as e:
-            raise RuntimeError("Neuro surgical report dump on disk as json failed with {}".format(e))
+            raise RuntimeError(f"Neurosurgical reporting writing on disk as json failed with {e}")
 
         return
 
     def to_csv(self) -> None:
         try:
-            filename = os.path.join(self._output_folder, "neuro_surgical_report.csv")
-            logging.info("Exporting neuro-parameters to csv in {}.".format(filename))
+            filename = os.path.join(self._output_folder, "reporting", "neuro_surgical_report.csv")
+            logging.info(f"Exporting neurosurgical reporting to csv in {filename}.")
         except Exception as e:
-            raise RuntimeError("Neuro surgical report dump on disk as csv failed with {}".format(e))
+            raise RuntimeError(f"Neurosurgical reporting writing on disk as csv failed with {e}")
 
-
-class SurgicalStatistics:
-    """
-    Specific class for holding the surgical features/characteristics
-    """
-    def __init__(self):
-        self.preop_volume = None
-        self.postop_volume = None
-        self.extent_of_resection = None
-        self.classification = None
-        self.resection_category = None

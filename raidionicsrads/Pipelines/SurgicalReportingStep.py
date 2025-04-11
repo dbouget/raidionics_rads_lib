@@ -40,7 +40,7 @@ class SurgicalReportingStep(AbstractPipelineStep):
                     ResourcesConfiguration.getInstance().diagnosis_task))
                 pass
         except Exception as e:
-            raise ValueError("[SurgicalReportingStep] Step execution failed with: {}.".format(e))
+            raise ValueError(f"[SurgicalReportingStep] Step execution failed with: {e}.")
         return self._patient_parameters
 
     def cleanup(self):
@@ -64,11 +64,16 @@ class SurgicalReportingStep(AbstractPipelineStep):
             preop_tumor_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
                 volume_uid=preop_t1ce_uid, annotation_class=AnnotationClassType.Tumor)
             postop_tumor_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
-                volume_uid=postop_t1ce_uid, annotation_class=AnnotationClassType.Tumor)
+                volume_uid=postop_t1ce_uid, annotation_class=AnnotationClassType.TumorCE)
+            postop_flairchanges_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
+                volume_uid=postop_t1ce_uid, annotation_class=AnnotationClassType.FLAIRChanges)
             if len(preop_tumor_uid) > 0 and len(postop_tumor_uid) > 0:
-                compute_surgical_report(self._patient_parameters.get_annotation(preop_tumor_uid[0]).usable_input_filepath,
-                                        self._patient_parameters.get_annotation(postop_tumor_uid[0]).usable_input_filepath, report)
+                preop_fn = self._patient_parameters.get_annotation(annotation_uid=preop_tumor_uid[0]).usable_input_filepath
+                postop_fn = self._patient_parameters.get_annotation(annotation_uid=postop_tumor_uid[0]).usable_input_filepath
+                flairchanges_fn = self._patient_parameters.get_annotation(annotation_uid=postop_flairchanges_uid[0]).usable_input_filepath if len(postop_flairchanges_uid) > 0 else None
+                compute_surgical_report(tumor_preop_fn=preop_fn, tumor_postop_fn=postop_fn,
+                                        flairchanges_postop_fn=flairchanges_fn, report=report)
             self._patient_parameters.include_reporting(report_uid, report)
-            report.to_json()
+            report.to_disk()
         except Exception as e:
-            raise ValueError("[SurgicalReportingStep] Neuro surgical reporting failed with: {}.".format(e))
+            raise ValueError(f"[SurgicalReportingStep] Neurosurgical reporting failed with: {e}.")

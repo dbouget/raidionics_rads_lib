@@ -118,9 +118,6 @@ class Annotation:
     def radiological_volume_uid(self) -> str:
         return self._radiological_volume_uid
 
-    def get_parent_radiological_volume_uid(self) -> str:
-        return self._radiological_volume_uid
-
     def get_annotation_type_enum(self) -> Enum:
         return self._annotation_type
 

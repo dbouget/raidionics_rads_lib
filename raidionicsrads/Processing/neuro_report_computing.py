@@ -11,7 +11,7 @@ from ..Processing.tumor_features_computation import *
 from ..Utils.io import load_nifti_volume
 from ..Utils.configuration_parser import ResourcesConfiguration
 from ..Utils.ReportingStructures.NeuroReportingStructure import *
-from ..Utils.ReportingStructures.NeuroSurgicalReportingStructure import ResectionCategoryType
+from ..Utils.ReportingStructures.NeuroSurgicalReportingStructure import *
 
 
 def compute_neuro_report(input_filename: str, report: NeuroReportingStructure) -> NeuroReportingStructure:
@@ -157,16 +157,16 @@ def compute_structure_statistics(input_mask: nib.Nifti1Image) -> NeuroStructureS
 
         for s in ResourcesConfiguration.getInstance().neuro_features_cortical_structures:
             overlaps = compute_cortical_structures_location(volume=refined_image, reference=s)
-            result.cortical = NeuroCorticalStatistics(overlap=overlaps, distance=None)
+            result.cortical[s] = NeuroCorticalStatistics(overlap=overlaps, distance=None)
         for s in ResourcesConfiguration.getInstance().neuro_features_subcortical_structures:
             overlaps, distances = compute_subcortical_structures_location(volume=refined_image,
                                                                           category='Main', reference=s)
-            result.subcortical = NeuroSubCorticalStatistics(overlap=overlaps, distance=distances)
+            result.subcortical[s] = NeuroSubCorticalStatistics(overlap=overlaps, distance=distances)
         for s in ResourcesConfiguration.getInstance().neuro_features_braingrid:
             overlap_per_voxel, infiltrated_voxels = compute_braingrid_voxels_infiltration(volume=refined_image,
                                                                                            category='Main',
                                                                                            reference=s)
-            result.infiltration = NeuroInfiltrationStatistics(overlap=overlap_per_voxel, count=infiltrated_voxels)
+            result.infiltration[s] = NeuroInfiltrationStatistics(overlap=overlap_per_voxel, count=infiltrated_voxels)
 
         return result
     except Exception as e:
@@ -276,26 +276,26 @@ def compute_braingrid_voxels_infiltration(volume, category=None, reference='Voxe
     return overlap_per_voxel, infiltrated_voxels
 
 
-def compute_surgical_report(preop_filename, postop_filename, report):
+def compute_surgical_report(tumor_preop_fn: str, tumor_postop_fn: str, flairchanges_postop_fn: str, report) -> None:
     """
     Update the report in-place with the computed values.
     """
-    preop_annotation_ni = nib.load(preop_filename)
-    postop_annotation_ni = nib.load(postop_filename)
+    preop_annotation_ni = nib.load(tumor_preop_fn)
+    postop_annotation_ni = nib.load(tumor_postop_fn)
     preop_volume = compute_volume(preop_annotation_ni.get_fdata()[:], preop_annotation_ni.header.get_zooms())
     postop_volume = compute_volume(postop_annotation_ni.get_fdata()[:], postop_annotation_ni.header.get_zooms())
 
     eor = ((preop_volume - postop_volume) / preop_volume) * 100.
-    report._statistics.preop_volume = preop_volume
-    report._statistics.postop_volume = postop_volume
-    report._statistics.extent_of_resection = eor
+    report.statistics.tumor_volume_preop = preop_volume
+    report.statistics.tumor_volume_postop = postop_volume
+    report.statistics.extent_of_resection = eor
 
     if eor > 99.9:
-        report._statistics.resection_category = ResectionCategoryType.ComR
+        report.statistics.resection_category = ResectionCategoryType.ComR
     elif eor >= 95.0 and postop_volume <= 1.0:
-        report._statistics.resection_category = ResectionCategoryType.NeaR
+        report.statistics.resection_category = ResectionCategoryType.NeaR
     elif eor >= 80.0 and postop_volume <= 5.0:
-        report._statistics.resection_category = ResectionCategoryType.SubR
+        report.statistics.resection_category = ResectionCategoryType.SubR
     else:
-        report._statistics.resection_category = ResectionCategoryType.ParR
+        report.statistics.resection_category = ResectionCategoryType.ParR
 

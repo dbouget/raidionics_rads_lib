@@ -113,7 +113,9 @@ class FeaturesComputationStep(AbstractPipelineStep):
             else:
                 res = compute_structure_statistics(input_mask=structure_nib)
                 report.include_statistics(structure=t, statistics=res, space=self.report_space)
+        self._patient_parameters.include_reporting(report_uid, report)
         report.to_disk()
+
     def __run_neuro_reporting_old(self):
         """
         @TODO. The self.report_space will not handle properly the Atlas files, should have another flag inside the
