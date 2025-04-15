@@ -264,6 +264,12 @@ def perform_segmentation_global_consistency_refinement(annotation_files: dict, t
         if cavity_anno is None and flair_changes_anno is None and tumor_ce_anno is None:
             # Only the preop tumor core is available, no context refinement can be performed.
             return
+        elif flair_changes_anno is not None and cavity_anno is None and tumor_ce_anno is None:
+            # @TODO. Should the FLAIR changes just be on the outskirt of the tumor core?
+            # new_flair_changes =
+            # nib.save(nib.Nifti1Image(tumorcore_anno, tumorcore_anno_nib.affine, tumorcore_anno_nib.header),
+            #          tumorcore_anno_fn)
+            return
         else:
             uncertain_cav_necro = np.abs(tumorcore_anno - tumor_ce_anno)
             nib.save(nib.Nifti1Image(uncertain_cav_necro, affine=tumorcore_anno_nib.affine, header=tumorcore_anno_nib.header),
