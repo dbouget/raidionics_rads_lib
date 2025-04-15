@@ -154,11 +154,17 @@ class RegistrationDeployerStep(AbstractPipelineStep):
             else:
                 moving_filepath = self._patient_parameters.get_radiological_volume(volume_uid=self.moving_volume_uid).usable_input_filepath
 
+            dest_base_folder = None
+            if self.fixed_volume_uid == "MNI":
+                dest_base_folder = self.fixed_volume_uid + '_space'
+            else:
+                dest_base_folder =   (self._patient_parameters.get_radiological_volume(volume_uid=self.fixed_volume_uid)._timestamp_id +
+                                      '_'+ self._patient_parameters.get_radiological_volume(volume_uid=self.fixed_volume_uid).get_sequence_type_enum().name
+                                      + '_space')
             fp = self._registration_runner.apply_registration_transform(moving=moving_filepath, fixed=fixed_filepath,
                                                                         interpolation='bSpline')
             new_fp = os.path.join(self._patient_parameters.get_radiological_volume(volume_uid=self.moving_volume_uid).output_folder,
-                                  self.fixed_volume_uid + '_space',
-                                  self.moving_volume_uid + '_Seq-' +
+                                  dest_base_folder, self.moving_volume_uid + '_Seq-' +
                                   self._patient_parameters.get_radiological_volume(volume_uid=self.moving_volume_uid)._sequence_type.name +
                                   '_registered_to_' + self._fixed_volume_uid + '.nii.gz')
             os.makedirs(os.path.dirname(new_fp), exist_ok=True)
@@ -172,10 +178,15 @@ class RegistrationDeployerStep(AbstractPipelineStep):
     def __apply_registration_annotations(self):
         try:
             fixed_filepath = None
+            dest_base_folder = None
             if self.fixed_volume_uid == 'MNI':
                 fixed_filepath = ResourcesConfiguration.getInstance().mni_atlas_filepath_T1
+                dest_base_folder = self.fixed_volume_uid + '_space'
             else:
                 fixed_filepath = self._patient_parameters.get_radiological_volume(volume_uid=self.fixed_volume_uid).usable_input_filepath
+                dest_base_folder =   (self._patient_parameters.get_radiological_volume(volume_uid=self.fixed_volume_uid)._timestamp_id +
+                                      '_'+ self._patient_parameters.get_radiological_volume(volume_uid=self.fixed_volume_uid).get_sequence_type_enum().name
+                                      + '_space')
 
             for anno in self._patient_parameters.get_all_annotations_uids_radiological_volume(volume_uid=self.moving_volume_uid):
                 annotation = self._patient_parameters.get_annotation(annotation_uid=anno)
@@ -187,8 +198,9 @@ class RegistrationDeployerStep(AbstractPipelineStep):
                 fp = self._registration_runner.apply_registration_transform(moving=moving_filepath, fixed=fixed_filepath,
                                                                             interpolation='nearestNeighbor')
                 new_fp = os.path.join(self._patient_parameters.get_radiological_volume(volume_uid=self.moving_volume_uid).output_folder,
-                                      self.fixed_volume_uid + '_space',
-                                      self.moving_volume_uid + '_label_' + annotation.get_annotation_type_name() + '_registered_to_' + self.fixed_volume_uid + '.nii.gz')
+                                      dest_base_folder,
+                                      self.moving_volume_uid + '_label_' + annotation.get_annotation_type_name() +
+                                      '_registered_to_' + self.fixed_volume_uid + '.nii.gz')
                 os.makedirs(os.path.dirname(new_fp), exist_ok=True)
                 shutil.copyfile(fp, new_fp)
                 annotation.include_registered_volume(filepath=new_fp,
