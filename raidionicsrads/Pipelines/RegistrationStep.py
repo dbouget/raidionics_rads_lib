@@ -107,6 +107,7 @@ class RegistrationStep(AbstractPipelineStep):
                 return
             self.skip = False
         except Exception as e:
+            self.skip = True
             raise ValueError(f"[RegistrationStep] Setting up process failed with: {e}.")
 
     def execute(self):
@@ -122,8 +123,12 @@ class RegistrationStep(AbstractPipelineStep):
                                                                  moving=self._step_json["moving"]) is not None:
                 logging.info("Skipping registration - already existing")
                 return self._patient_parameters
+            elif self.inclusion == "optional":
+                logging.info("Skipping registration - no matching input was found for the patient.")
+                return self._patient_parameters
             else:
-                logging.info("Skipping registration - manually provided registered image for this instance.")
+                logging.info("Skipping registration - either manually provided registered image for this instance, "
+                             "or no matching input was found for the patient.")
                 return self._patient_parameters
 
         try:

@@ -25,7 +25,6 @@ class ModelSelectionStep(AbstractPipelineStep):
 
     @TODO. Should this step be generalized in case the targeted input or timestamp has to be adjusted on-the-fly
     from the default pipeline.json found on disk?
-    from the default pipeline.json found on disk?
     """
     _base_model_name = None  # Basename of the folder containing all the sub-models to choose from.
     _patient_parameters = None  # Overall patient parameters, updated on-the-fly
@@ -78,6 +77,7 @@ class ModelSelectionStep(AbstractPipelineStep):
         except Exception as e:
             if os.path.exists(self._working_folder):
                 shutil.rmtree(self._working_folder)
+            self.skip = True
             raise ValueError(f"[ModelSelectionStep] setup failed with: {e}.")
 
     def execute(self) -> {}:
@@ -90,6 +90,11 @@ class ModelSelectionStep(AbstractPipelineStep):
             Dictionary containing all the steps for the selected model, which will be appended to the rest of the
             existing pipeline.
         """
+        if self.skip:
+            logging.info("Model selection step skipped, no matching combination of available models and"
+                         " provided inputs was found!")
+            return
+
         try:
             base_model_path = os.path.join(ResourcesConfiguration.getInstance().model_folder, self._base_model_name)
             if ResourcesConfiguration.getInstance().diagnosis_task == 'neuro_diagnosis':
@@ -126,7 +131,7 @@ class ModelSelectionStep(AbstractPipelineStep):
                 elif model_pipeline[st]["task"] in ["Registration", "Apply registration"]:
                     adjusted_model_pipeline[st]["moving"]["timestamp"] = self.target_timestamp
                     adjusted_model_pipeline[st]["fixed"]["timestamp"] = self.target_timestamp
-
+                adjusted_model_pipeline[st]["inclusion"] = self.inclusion
             model_pipeline = adjusted_model_pipeline
 
         if os.path.exists(self._working_folder):

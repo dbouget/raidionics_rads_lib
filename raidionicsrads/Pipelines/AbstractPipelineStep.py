@@ -6,11 +6,13 @@ class AbstractPipelineStep(ABC):
     _step_json = {}
     _step_description = None
     _skip = False
+    _inclusion = "required"
 
     def __init__(self, step_json: dict) -> None:
         self.__reset()
         self._step_json = step_json
         self._step_description = step_json["description"]
+        self._inclusion = step_json["inclusion"] if "inclusion" in step_json.keys() else "required"
 
     def __reset(self):
         """
@@ -40,6 +42,15 @@ class AbstractPipelineStep(ABC):
     @skip.setter
     def skip(self, state: bool) -> None:
         self._skip = state
+
+    @property
+    def inclusion(self) -> str:
+        return self._inclusion
+
+    @inclusion.setter
+    def inclusion(self, value: str) -> None:
+        if value in ["required", "optional"]:
+            self._inclusion = value
 
     @abstractmethod
     def setup(self, patient_parameters):

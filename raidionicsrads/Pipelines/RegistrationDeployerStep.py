@@ -99,6 +99,7 @@ class RegistrationDeployerStep(AbstractPipelineStep):
             self._registration_runner.reg_transform['invtransforms'] = self.registration_instance.inverse_filepaths
             self.skip = False
         except Exception as e:
+            self.skip = True
             raise ValueError(f"[RegistrationDeployerStep] Step setup failed with: {e}.")
 
     def execute(self):
@@ -112,6 +113,10 @@ class RegistrationDeployerStep(AbstractPipelineStep):
                 if (ResourcesConfiguration.getInstance().predictions_use_registered_data
                         and self._step_json["fixed"]["sequence"] != "MNI"):
                     logging.debug("[RegistrationDeployerStep] Step skipped because pre-registered inputs are used.")
+                    return self._patient_parameters
+                elif self.inclusion == "optional":
+                    logging.info("[RegistrationDeployerStep] Step skipped because no matching input was found for the "
+                                 "patient and the step is optional.")
                     return self._patient_parameters
                 else:
                     logging.debug("[RegistrationDeployerStep] Step skipped because manual registered input was provided.")

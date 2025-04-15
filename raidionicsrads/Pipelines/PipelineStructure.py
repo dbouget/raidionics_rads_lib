@@ -3,6 +3,7 @@ import logging
 import os.path
 import time
 import traceback
+from copy import deepcopy
 
 from aenum import Enum, unique
 from raidionicsseg.Utils.configuration_parser import ConfigResources
@@ -17,6 +18,7 @@ from .RegistrationDeployerStep import RegistrationDeployerStep
 from .FeaturesComputationStep import FeaturesComputationStep
 from .SurgicalReportingStep import SurgicalReportingStep
 from .ModelSelectionStep import ModelSelectionStep
+from .ReportingSelectionStep import ReportingSelectionStep
 
 
 @unique
@@ -34,6 +36,7 @@ class TaskType(Enum):
     SRep = 5, "Surgical reporting"
     SegRef = 6, "Segmentation refinement"
     ModSelec = 7, "Model selection"
+    ReportSelec = 8, "Reporting selection"
 
     def __str__(self):
         return self.string
@@ -96,6 +99,8 @@ class Pipeline:
                 step = SurgicalReportingStep(pipeline[s])
             elif task == TaskType.ModSelec:
                 step = ModelSelectionStep(pipeline[s])
+            elif task == TaskType.ReportSelec:
+                step = ReportingSelectionStep(pipeline[s])
             if step:
                 self._steps[str(i)] = step
             else:
@@ -121,7 +126,7 @@ class Pipeline:
         final_count = 0
         for s in list(self._steps.keys()):
             try:
-                if self._steps[s].get_task() in [str(TaskType.Class), str(TaskType.ModSelec)]:
+                if self._steps[s].get_task() in [str(TaskType.Class), str(TaskType.ModSelec), str(TaskType.ReportSelec)]:
                     start = time.time()
                     logging.info("LOG: Pipeline - {desc} - Begin ({curr}/{tot})".format(
                         desc=self._steps[s].step_description,
@@ -130,10 +135,11 @@ class Pipeline:
                     try:
                         self._steps[s].setup(patient_parameters)
                     except Exception as e:
-                        logging.error("""[Backend error] Setup phase of {} failed with:\n{}""".format(
+                        logging.warning("""[PipelineStructure] Setup phase of {} failed with:\n{}""".format(
                             self._steps[s].step_json, e))
                         logging.debug("Traceback: {}.".format(traceback.format_exc()))
-                        break
+                        continue
+                    pipeline_backup = deepcopy(final_pipeline)
                     try:
                         if self._steps[s].get_task() == str(TaskType.Class):
                             patient_parameters = self._steps[s].execute()
@@ -149,10 +155,11 @@ class Pipeline:
                                 final_pipeline[final_count_str] = {}
                                 final_pipeline[final_count_str] = task_optimal_pipeline[top]
                     except Exception as e:
-                        logging.error("""[Backend error] Execution phase of {} failed with:\n{}""".format(
+                        logging.warning("""[PipelineStructure] Execution phase of {} failed with:\n{}""".format(
                             self._steps[s].step_json, e))
-                        logging.debug("Traceback: {}.".format(traceback.format_exc()))
-                        break
+                        logging.debug(f"Traceback: {traceback.format_exc()}.")
+                        final_pipeline = deepcopy(pipeline_backup)
+                        continue
                     logging.info('LOG: Pipeline - {desc} - Runtime: {time} seconds.'.format(
                         desc=self._steps[s].step_description,
                         time=time.time() - start))
@@ -166,9 +173,15 @@ class Pipeline:
                     final_pipeline[final_count_str] = {}
                     final_pipeline[final_count_str] = self._steps[s].step_json
             except Exception as e:
-                logging.error("""[Backend error] setup phase of {} failed with:\n{}""".format(
-                    self._steps[s].step_json, e))
-                logging.debug("Traceback: {}.".format(traceback.format_exc()))
+                if self._steps[s].inclusion == "required":
+                    logging.error("""[Backend error] setup phase of {} failed with:\n{}""".format(
+                        self._steps[s].step_json, e))
+                    logging.debug("Traceback: {}.".format(traceback.format_exc()))
+                    break
+                else:
+                    logging.warning("""[Backend warning] setup phase of {} failed with:\n{}""".format(
+                        self._steps[s].step_json, e))
+                    logging.debug("Traceback: {}.".format(traceback.format_exc()))
         self.__parse_pipeline_steps(pipeline=final_pipeline, initial=False)
 
         # Writing on disk the actual/final pipeline (for info and reuse in Raidionics)
@@ -187,17 +200,27 @@ class Pipeline:
             try:
                 self._steps[s].setup(patient_parameters)
             except Exception as e:
-                logging.error("""[Backend error] Setup phase of {} failed with:\n{}""".format(
-                    self._steps[s].step_json, e))
-                logging.debug("Traceback: {}.".format(traceback.format_exc()))
-                break
+                if self._steps[s].inclusion == "required":
+                    logging.error("""[Backend error] Setup phase of {} failed with:\n{}""".format(
+                        self._steps[s].step_json, e))
+                    logging.debug("Traceback: {}.".format(traceback.format_exc()))
+                    break
+                else:
+                    logging.warning("""[Backend warning] Setup phase of {} failed with:\n{}""".format(
+                        self._steps[s].step_json, e))
+                    logging.debug("Traceback: {}.".format(traceback.format_exc()))
             try:
                 patient_parameters = self._steps[s].execute()
             except Exception as e:
-                logging.error("""[Backend error] Execution phase of {} failed with:\n{}""".format(
-                    self._steps[s].step_json, e))
-                logging.debug("Traceback: {}.".format(traceback.format_exc()))
-                break
+                if self._steps[s].inclusion == "required":
+                    logging.error("""[Backend error] Execution phase of {} failed with:\n{}""".format(
+                        self._steps[s].step_json, e))
+                    logging.debug("Traceback: {}.".format(traceback.format_exc()))
+                    break
+                else:
+                    logging.warning("""[Backend warning] Execution phase of {} failed with:\n{}""".format(
+                        self._steps[s].step_json, e))
+                    logging.debug("Traceback: {}.".format(traceback.format_exc()))
             logging.info('LOG: Pipeline - {desc} - Runtime: {time} seconds.'.format(desc=self._steps[s].step_description,
                                                                                     time=time.time() - start))
             logging.info("LOG: Pipeline - {desc} - End ({curr}/{tot})".format(desc=self._steps[s].step_description,

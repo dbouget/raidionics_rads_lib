@@ -58,6 +58,9 @@ class FeaturesComputationStep(AbstractPipelineStep):
         """
         Verify that the requirements are met for executing the step
         """
+        if self.report_space != "MNI":
+            raise ValueError(f"Features computation only implemented for MNI space, "
+                             f"unknown key \"{self.report_space}\" provided.")
         self._patient_parameters = patient_parameters
 
     def execute(self):
@@ -113,6 +116,15 @@ class FeaturesComputationStep(AbstractPipelineStep):
             else:
                 res = compute_structure_statistics(input_mask=structure_nib)
                 report.include_statistics(structure=t, statistics=res, space=self.report_space)
+                if self.report_space != 'Patient':
+                    # Including the tumor volume in original patient space, quick fix for now as the only
+                    # supported report_space is MNI
+                    pat_space_result = NeuroStructureStatistics()
+                    patient_anno = nib.load(annotation_filepath).get_fdata()[:]
+                    volume = np.count_nonzero(patient_anno) * np.prod(
+                        nib.load(annotation_filepath).header.get_zooms()[0:3]) * 1e-3
+                    pat_space_result.volume = volume
+                    report.include_statistics(structure=t, statistics=pat_space_result, space="Patient")
         self._patient_parameters.include_reporting(report_uid, report)
         report.to_disk()
 
