@@ -51,11 +51,8 @@ class SegmentationRefinementStep(AbstractPipelineStep):
     def setup(self, patient_parameters: PatientParameters) -> None:
         """
         Sanity check that all requirements are met for running the segmentation refinement step.
-        @TODO. The setup was copied from the segmentation step, needs proper adaptation to the requirements here.
-        Should it be enforced only a single input (i.e., brain_overlap refinement only for tumor-CE on T1-CE, and not
-        on FLAIR changes AND tumor-CE on two different MR scans as input?
-        @TODO2. Should we have another refinement that adjusts multiple annotations (cavity, tumor ce, flair changes)
-        in case there are overlap between the different predictions?
+        @TODO. Should it be enforced with only a single input (i.e., brain_overlap refinement only for tumor-CE on T1-CE
+        , and not on FLAIR changes AND tumor-CE on two different MR scans as input?
 
         Parameters
         ----------
@@ -84,25 +81,27 @@ class SegmentationRefinementStep(AbstractPipelineStep):
                     # for specifying the volume the annotation is linked to, if multiple inputs.
                     if not self._input_volume_uid:
                         self._input_volume_uid = volume_uid
-                    # Retrieving the annotation to refine
-                    if input_json["labels"]:
-                        annotation_type = get_type_from_enum_name(AnnotationClassType, input_json["labels"])
-                        anno_uids = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(volume_uid=volume_uid,
-                                                                                                                annotation_class=annotation_type)
-                        if len(anno_uids) == 0:
-                            raise ValueError("No annotation for {}.".format(input_json))
-                        elif len(anno_uids) > 1:
-                            #@TODO. Assuming the last one is to refine? In case a structure is segmented multiple times
-                            # before some kind of refinement?
-                            raise ValueError("Too many annotations for {}.".format(input_json))
-                        anno_uid = anno_uids[0]
-                        self._input_annotation_uid = anno_uid
-                    else:
-                        raise ValueError("No annotation to refine was provided in {}.".format(input_json))
+                    if self.refinement_operation != "global_context":
+                        # Retrieving the annotation to refine
+                        if input_json["labels"]:
+                            annotation_type = get_type_from_enum_name(AnnotationClassType, input_json["labels"])
+                            anno_uids = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(volume_uid=volume_uid,
+                                                                                                                    annotation_class=annotation_type)
+                            if len(anno_uids) == 0:
+                                raise ValueError("No annotation for {}.".format(input_json))
+                            elif len(anno_uids) > 1:
+                                #@TODO. Assuming the last one is to refine? In case a structure is segmented multiple times
+                                # before some kind of refinement?
+                                raise ValueError("Too many annotations for {}.".format(input_json))
+                            anno_uid = anno_uids[0]
+                            self._input_annotation_uid = anno_uid
+                        else:
+                            raise ValueError("No annotation to refine was provided in {}.".format(input_json))
                 # Use-case where the radiological volume should be used in another reference space
                 else:
                     logging.warning(f"Use-case not handled yet!")
-            if self._input_volume_uid is None or self._input_annotation_uid is None:
+            if (self._input_volume_uid is None or
+                    (self._input_annotation_uid is None and self.refinement_operation != "global_context")):
                 raise ValueError(f"The inputs to refine could not be properly retrieved.")
         except Exception as e:
             if os.path.exists(self._working_folder):
@@ -139,6 +138,7 @@ class SegmentationRefinementStep(AbstractPipelineStep):
         """
         try:
             if self.refinement_operation == "dilation":
+                logging.warning("[SegmentationRefinementStep] The dilation process is disabled for the time being.")
                 pass
                 # res = prediction_binary_dilation(seg.astype('uint8'),
                 #                                  voxel_volume=np.prod(seg_ni.header.get_zooms()) * 1e-3,

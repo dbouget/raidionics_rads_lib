@@ -253,10 +253,11 @@ def perform_segmentation_global_consistency_refinement(annotation_files: dict, t
         combined_anno[flair_changes_anno == 1] = 1
         combined_anno[cavity_anno == 1] = 2
         combined_anno[refined_tumorce == 1] = 3
-        nib.save(nib.Nifti1Image(refined_tumorce, affine=tumor_ce_anno_nib.affine, header=tumor_ce_anno_nib.header),
-                 "/home/dnbouget/work/dnbouget/Studies/UnitTests/raidionics_rads_lib/outputs/refined_tumor_ce.nii.gz")
-        nib.save(nib.Nifti1Image(combined_anno, affine=tumor_ce_anno_nib.affine, header=tumor_ce_anno_nib.header),
-                 "/home/dnbouget/work/dnbouget/Studies/UnitTests/raidionics_rads_lib/outputs/combined_masks.nii.gz")
+        # @TODO. Saving the combined file in case? Will not be used by Raidionics, just the backend?
+        # nib.save(nib.Nifti1Image(refined_tumorce, affine=tumor_ce_anno_nib.affine, header=tumor_ce_anno_nib.header),
+        #          "/home/dnbouget/work/dnbouget/Studies/UnitTests/raidionics_rads_lib/outputs/refined_tumor_ce.nii.gz")
+        # nib.save(nib.Nifti1Image(combined_anno, affine=tumor_ce_anno_nib.affine, header=tumor_ce_anno_nib.header),
+        #          "/home/dnbouget/work/dnbouget/Studies/UnitTests/raidionics_rads_lib/outputs/combined_masks.nii.gz")
         # @TODO. How to deal with the results, simply replace in destination for existing ones and the others?
         nib.save(nib.Nifti1Image(refined_tumorce, affine=tumor_ce_anno_nib.affine, header=tumor_ce_anno_nib.header),
                  tumor_ce_anno_fn)

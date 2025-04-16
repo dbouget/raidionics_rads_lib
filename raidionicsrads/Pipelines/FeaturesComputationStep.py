@@ -97,6 +97,9 @@ class FeaturesComputationStep(AbstractPipelineStep):
                 annotation_filepath = None
                 struct_annotations = self._patient_parameters.get_all_annotations_for_timestamp_and_structure(
                     timestamp=self.step_json["timestamp"], structure=t)
+                if len(struct_annotations) == 0:
+                    logging.warning(f"Skipping features computation for {t} as no segmentation file exists")
+                    continue
                 if self.report_space == "Patient":
                     annotation_filepath = struct_annotations[0].usable_input_filepath
                 else:
