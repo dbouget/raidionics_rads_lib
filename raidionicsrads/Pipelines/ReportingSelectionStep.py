@@ -69,6 +69,8 @@ class ReportingSelectionStep(AbstractPipelineStep):
     def setup(self, patient_parameters: PatientParameters) -> None:
         """
         Sanity check that all requirements are met for running the model selection step.
+        @TODO. Should have a check if only asked for surgical reporting that standardized reportings for preop and
+        postop timestamps are already included in the pipeline. If not, they should be included (see commented out code)
 
         Parameters
         ----------
