@@ -120,6 +120,7 @@ def compute_neuro_report(input_filename: str, report: NeuroReportingStructure) -
     except Exception as e:
         raise ValueError("{}".format(e))
 
+
 def compute_structure_statistics(input_mask: nib.Nifti1Image) -> NeuroStructureStatistics:
     """
 
@@ -155,6 +156,19 @@ def compute_structure_statistics(input_mask: nib.Nifti1Image) -> NeuroStructureS
         left, right, crossing = compute_lateralisation(volume=refined_image, brain_mask=brain_lateralisation_mask)
         result.location = NeuroLocationStatistics(left=left, right=right, crossing=crossing)
 
+        # Compute resectability parameters -- @TODO. Should add a check on tumor type (should be only available for GBM)
+        if left >= 50.0:
+                map_filepath = ResourcesConfiguration.getInstance().mni_resection_maps['Probability']['Left']
+        else:
+            map_filepath = ResourcesConfiguration.getInstance().mni_resection_maps['Probability']['Right']
+        resection_probability_map_ni = nib.load(map_filepath)
+        resection_probability_map = resection_probability_map_ni.get_fdata()[:]
+
+        residual, resectable, average = compute_resectability_index(volume=refined_image,
+                                                                    resectability_map=resection_probability_map)
+        result.resectability = NeuroResectabilityStatistics(resectable=resectable, residual=residual, index=average)
+        
+        # Computing cortical, subcortical, and infiltration profiles
         for s in ResourcesConfiguration.getInstance().neuro_features_cortical_structures:
             overlaps = compute_cortical_structures_location(volume=refined_image, reference=s)
             result.cortical[s] = NeuroCorticalStatistics(overlap=overlaps, distance=None)
@@ -171,6 +185,7 @@ def compute_structure_statistics(input_mask: nib.Nifti1Image) -> NeuroStructureS
         return result
     except Exception as e:
         raise ValueError(f"Structure features computation failed with: {e}")
+
 
 def compute_cortical_structures_location(volume, reference='MNI'):
     logging.debug("Computing cortical structures location with {}.".format(reference))
