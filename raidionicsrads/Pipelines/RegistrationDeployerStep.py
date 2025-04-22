@@ -206,6 +206,32 @@ class RegistrationDeployerStep(AbstractPipelineStep):
                 annotation.include_registered_volume(filepath=new_fp,
                                                      registration_uid=self.registration_instance.unique_id,
                                                      destination_space_uid=self.fixed_volume_uid)
+            if self.fixed_volume_uid == 'MNI':
+                # In addition, the other registered annotations towards the moving volume uid are parsed for an atlas
+                # registration case. Only the extra annotations, not featured natively for the volume uid, are registered.
+                for reganno in self._patient_parameters.get_all_registered_annotations_uids_radiological_volume(volume_uid=self.moving_volume_uid):
+                    reg_annotation = self._patient_parameters.get_annotation(annotation_uid=reganno)
+                    if len(self._patient_parameters.get_all_annotations_uids_class_radiological_volume(volume_uid=self.moving_volume_uid, annotation_class=reg_annotation.get_annotation_type_enum())) == 0:
+                        if reg_annotation.is_registered_volume_included(destination_space_uid=self.fixed_volume_uid):
+                            logging.info(
+                                f"Registered annotation ({reg_annotation.get_annotation_type_str()}) already existing -- skipping the step")
+                            continue
+                        moving_filepath = reg_annotation.registered_volumes[self.moving_volume_uid]["filepath"]
+
+                        fp = self._registration_runner.apply_registration_transform(moving=moving_filepath,
+                                                                                    fixed=fixed_filepath,
+                                                                                    interpolation='nearestNeighbor')
+                        new_fp = os.path.join(self._patient_parameters.get_radiological_volume(
+                            volume_uid=self.moving_volume_uid).output_folder,
+                                              dest_base_folder,
+                                              self.moving_volume_uid + '_label_' + reg_annotation.get_annotation_type_name() +
+                                              '_registered_to_' + self.fixed_volume_uid + '.nii.gz')
+                        os.makedirs(os.path.dirname(new_fp), exist_ok=True)
+                        shutil.copyfile(fp, new_fp)
+                        reg_annotation.include_registered_volume(filepath=new_fp,
+                                                             registration_uid=self.registration_instance.unique_id,
+                                                             destination_space_uid=self.fixed_volume_uid)
+
         except Exception as e:
             raise ValueError("Applying the registration on the annotation volume failed with: {}.".format(e))
 

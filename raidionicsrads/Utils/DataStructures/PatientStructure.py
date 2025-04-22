@@ -154,6 +154,7 @@ class PatientParameters:
                     else:
                         # Case where the annotation does not match any radiological volume, has to be left aside
                         pass
+                # @TODO. Have to check the following, most likely problematic on Windows...
                 registration_folders = glob.glob(os.path.join(ts_folder, '**/'), recursive=False)
                 for rf in registration_folders:
                     registered_radiological_volumes = []
@@ -349,6 +350,14 @@ class PatientParameters:
         for v in self.annotation_volumes.keys():
             if self.annotation_volumes[v]._radiological_volume_uid == volume_uid:
                 res.append(v)
+        return res
+
+    def get_all_registered_annotations_uids_radiological_volume(self, volume_uid: str) -> List[str]:
+        res = []
+        for v in self.annotation_volumes.keys():
+            for r in self.annotation_volumes[v].registered_volumes.keys():
+                if r == volume_uid:
+                    res.append(v)
         return res
 
     def get_all_annotations_uids_class_radiological_volume(self, volume_uid: str,
