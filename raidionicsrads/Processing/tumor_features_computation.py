@@ -1,7 +1,7 @@
 import logging
 import traceback
 import numpy as np
-from typing import Tuple
+from typing import Tuple, List
 from scipy.ndimage.measurements import center_of_mass
 from scipy.ndimage import measurements
 from skimage.measure import regionprops
@@ -38,6 +38,30 @@ def compute_volume(volume: np.ndarray, spacing: tuple) -> float:
     return result
 
 
+def compute_shape(volume: np.ndarray, spacing: tuple) -> Tuple[float, float, float, float]:
+    """
+
+    """
+    long_axis = -1.
+    short_axis = -1.
+    feret = -1.
+    equivalent = -1.
+    logging.debug("Computing shape characteristics.")
+    clusters = measurements.label(volume)[0]
+    clusters_labels = regionprops(clusters)
+
+    max_area = 0.
+    for c in clusters_labels:
+        if c.area > max_area:
+            max_area = c.area
+            long_axis = c.axis_major_length * np.prod(spacing[0:3])
+            short_axis = c.axis_minor_length * np.prod(spacing[0:3])
+            feret = c.feret_diameter_max * np.prod(spacing[0:3])
+            equivalent = c.equivalent_diameter_area * np.prod(spacing[0:3])
+
+    return long_axis, short_axis, feret, equivalent
+
+
 def compute_multifocality(volume: np.ndarray, spacing: tuple,
                           volume_threshold: float = 0.,
                           distance_threshold: float = 0.) -> Tuple[bool, int, float]:
@@ -67,7 +91,7 @@ def compute_multifocality(volume: np.ndarray, spacing: tuple,
     multifocal_largest_minimum_distance = -1.
 
     try:
-        logging.debug("Computing tumor multifocality.")
+        logging.debug("Computing multifocality characteristics.")
         tumor_clusters = measurements.label(volume)[0]
         tumor_clusters_labels = regionprops(tumor_clusters)
 
@@ -134,7 +158,7 @@ def compute_lateralisation(volume: np.ndarray, brain_mask: np.ndarray,
     midline_crossing = False
 
     try:
-        logging.debug("Computing tumor lateralization.")
+        logging.debug("Computing lateralization characteristics.")
         # Computing the lateralisation for the center of mass
         if target == 'com':
             com_lateralisation = None

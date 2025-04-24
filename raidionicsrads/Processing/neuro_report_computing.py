@@ -145,6 +145,10 @@ def compute_structure_statistics(input_mask: nib.Nifti1Image) -> NeuroStructureS
 
         result.volume = compute_volume(volume=refined_image, spacing=input_mask.header.get_zooms())
 
+        longa, shorta, feret, equi = compute_shape(volume=refined_image, spacing=input_mask.header.get_zooms())
+        result.shape = NeuroShapeStatistics(long_axis_diameter=longa, short_axis_diameter=shorta, feret_diameter=feret,
+                                            equivalent_diameter_area=equi)
+
         status, nb, dist = compute_multifocality(volume=refined_image, spacing=input_mask.header.get_zooms(),
                                                  volume_threshold=0.1, distance_threshold=5.0)
         result.multifocality = NeuroMultifocalityStatistics(status=status, parts=nb, distance=dist)

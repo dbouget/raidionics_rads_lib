@@ -12,6 +12,52 @@ from ..configuration_parser import ResourcesConfiguration
 from ..io import generate_cortical_structures_labels_for_slicer, generate_subcortical_structures_labels_for_slicer, generate_braingrid_structures_labels_for_slicer
 
 
+class NeuroShapeStatistics:
+    _long_axis_diameter = None
+    _short_axis_diameter = None
+    _feret_diameter = None
+    _equivalent_diameter_area = None
+
+    def __init__(self, long_axis_diameter: float = None, short_axis_diameter: float = None,
+                 feret_diameter: float = None, equivalent_diameter_area: float = None):
+        self._long_axis_diameter = long_axis_diameter
+        self._short_axis_diameter = short_axis_diameter
+        self._feret_diameter = feret_diameter
+        self._equivalent_diameter_area = equivalent_diameter_area
+
+    @property
+    def long_axis_diameter(self) -> float:
+        return self._long_axis_diameter
+
+    @long_axis_diameter.setter
+    def long_axis_diameter(self, value: float) -> None:
+        self._long_axis_diameter = value
+
+    @property
+    def short_axis_diameter(self) -> float:
+        return self._short_axis_diameter
+
+    @short_axis_diameter.setter
+    def short_axis_diameter(self, value: float) -> None:
+        self._short_axis_diameter = value
+
+    @property
+    def feret_diameter(self) -> float:
+        return self._feret_diameter
+
+    @feret_diameter.setter
+    def feret_diameter(self, value: float) -> None:
+        self._feret_diameter = value
+
+    @property
+    def equivalent_diameter_area(self) -> float:
+        return self._equivalent_diameter_area
+
+    @equivalent_diameter_area.setter
+    def equivalent_diameter_area(self, value: float) -> None:
+        self._equivalent_diameter_area = value
+
+
 class NeuroMultifocalityStatistics:
     _multifocality = None
     _nb_parts = None
@@ -194,6 +240,7 @@ class NeuroStructureStatistics:
     Specific class for holding the computed characteristics/features.
     """
     _volume = None
+    _shape = None
     _multifocality = None
     _location = None
     _resectability = None
@@ -203,6 +250,7 @@ class NeuroStructureStatistics:
 
     def __init__(self):
         self._volume = None
+        self._shape = NeuroShapeStatistics()
         self._multifocality = NeuroMultifocalityStatistics()
         self._location = NeuroLocationStatistics()
         self._resectability = NeuroResectabilityStatistics()
@@ -217,6 +265,14 @@ class NeuroStructureStatistics:
     @volume.setter
     def volume(self, value: float) -> None:
         self._volume = value
+
+    @property
+    def shape(self) -> NeuroShapeStatistics:
+        return self._shape
+
+    @shape.setter
+    def shape(self, value: NeuroShapeStatistics) -> None:
+        self._shape = value
 
     @property
     def multifocality(self) -> NeuroLocationStatistics:
@@ -356,6 +412,12 @@ class NeuroReportingStructure:
                 pfile.write('  * {}: {}ml\n'.format(s, self.statistics[s]["MNI"].volume))
             for s in self.statistics.keys():
                 pfile.write(f'\n Features for {s} category.\n')
+                pfile.write(' Shape: \n')
+                pfile.write(f'  * Long-axis diameter: {np.round(self.statistics[s]["MNI"].shape.long_axis_diameter, 2)} (mm)\n')
+                pfile.write(f'  * Short-axis diameter: {np.round(self.statistics[s]["MNI"].shape.short_axis_diameter, 2)} (mm)\n')
+                pfile.write(f'  * Feret diameter maximum: {np.round(self.statistics[s]["MNI"].shape.feret_diameter, 2)} (mm)\n')
+                pfile.write(f'  * Equivalent diameter area: {np.round(self.statistics[s]["MNI"].shape.equivalent_diameter_area, 2)} (mm)\n\n')
+
                 pfile.write(' Multifocality: \n')
                 pfile.write(f'  * Status: {self.statistics[s]["MNI"].multifocality.multifocality}\n')
                 pfile.write(f'  * Number parts: {self.statistics[s]["MNI"].multifocality.nb_parts}\n')
@@ -426,7 +488,6 @@ class NeuroReportingStructure:
         return
 
     def to_json(self) -> None:
-        # @TODO. to modify
         try:
             filename = os.path.join(self._output_folder, "reporting",
                                     "T" + str(self.timestamp), "neuro_clinical_report.json")
@@ -441,6 +502,12 @@ class NeuroReportingStructure:
 
                 param_json[s]["MNI"] = {}
                 param_json[s]["MNI"]["Volume (ml)"] = self.statistics[s]["MNI"].volume
+
+                param_json[s]["MNI"]["Shape"] = {}
+                param_json[s]["MNI"]["Shape"]["Long-axis diameter (mm)"] = self.statistics[s]["MNI"].shape.long_axis_diameter
+                param_json[s]["MNI"]["Shape"]["Short-axis diameter (mm)"] = self.statistics[s]["MNI"].shape.short_axis_diameter
+                param_json[s]["MNI"]["Shape"]["Feret diameter (mm)"] = self.statistics[s]["MNI"].shape.feret_diameter
+                param_json[s]["MNI"]["Shape"]["Equivalent diameter area (mm)"] = self.statistics[s]["MNI"].shape.equivalent_diameter_area
 
                 param_json[s]["MNI"]["Multifocality"] = {}
                 param_json[s]["MNI"]["Multifocality"]["Status"] = self.statistics[s]["MNI"].multifocality.multifocality
@@ -508,6 +575,13 @@ class NeuroReportingStructure:
                 if i == 0:
                     column_names.extend(["Volume patient space (ml)", "Volume MNI space (ml)"])
                 structure_values.extend([self.statistics[s]["Patient"].volume, self.statistics[s]["MNI"].volume])
+
+                if i == 0:
+                    column_names.extend(["Long-axis diameter (mm)", "Short-axis diameter (mm)", "Feret diameter maximum (mm)", "Equivalent diameter area (mm)"])
+                structure_values.extend([self.statistics[s]["MNI"].shape.long_axis_diameter,
+                                         self.statistics[s]["MNI"].shape.short_axis_diameter,
+                                         self.statistics[s]["MNI"].shape.feret_diameter,
+                                         self.statistics[s]["MNI"].shape.equivalent_diameter_area])
 
                 if i == 0:
                     column_names.extend(["Multifocality", "Number parts", "Multifocal distance (mm)"])
