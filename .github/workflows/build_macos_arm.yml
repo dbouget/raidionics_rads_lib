@@ -98,7 +98,7 @@ jobs:
           uses: actions/checkout@v4
 
         - name: Segmentation pipeline unit test
-          run: cd ${{github.workspace}}/tests && python3 segmentation_pipeline_test.py
+          run: cd ${{github.workspace}}/tests && python3 test_segmentation_pipeline.py
 
         - name: Reporting pipeline unit test
           run: cd ${{github.workspace}}/tests && python3 reporting_pipeline_test.py

@@ -39,3 +39,6 @@ ANTsX/
 notebooks/
 .ipynb_checkpoints/
 tests
+*coverage
+tests/unit_tests_results_dir/
+unit_tests_results_dir/
