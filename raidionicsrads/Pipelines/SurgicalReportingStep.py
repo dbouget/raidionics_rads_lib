@@ -78,14 +78,14 @@ class SurgicalReportingStep(AbstractPipelineStep):
                     volume_uid=preop_t1ce_uid, annotation_class=AnnotationClassType.Tumor)
                 postop_tumor_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
                     volume_uid=postop_t1ce_uid, annotation_class=AnnotationClassType.TumorCE)
-                postop_flairchanges_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
-                    volume_uid=postop_t1ce_uid, annotation_class=AnnotationClassType.FLAIRChanges)
+                postop_flairchanges_fns = self._patient_parameters.get_all_annotations_fns_class_radiological_volume(
+                    volume_uid=postop_t1ce_uid, annotation_class=AnnotationClassType.FLAIRChanges, include_coregistrations=True)
                 postop_cavity_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
                     volume_uid=postop_t1ce_uid, annotation_class=AnnotationClassType.Cavity)
                 if len(preop_tumor_uid) > 0 and len(postop_tumor_uid) > 0:
                     preop_fn = self._patient_parameters.get_annotation(annotation_uid=preop_tumor_uid[0]).usable_input_filepath
                     postop_fn = self._patient_parameters.get_annotation(annotation_uid=postop_tumor_uid[0]).usable_input_filepath
-                    flairchanges_fn = self._patient_parameters.get_annotation(annotation_uid=postop_flairchanges_uid[0]).usable_input_filepath if len(postop_flairchanges_uid) > 0 else None
+                    flairchanges_fn = postop_flairchanges_fns[0] if len(postop_flairchanges_fns) > 0 else None
                     cavity_postop_fn = self._patient_parameters.get_annotation(
                         annotation_uid=postop_cavity_uid[0]).usable_input_filepath if len(
                         postop_cavity_uid) > 0 else None

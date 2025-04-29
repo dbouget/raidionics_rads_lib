@@ -201,7 +201,7 @@ class NeuroSurgicalReportingStructure:
             all_values.extend([self.statistics.extent_of_resection, self.statistics.resection_category])
             column_names.extend(["Volume FLAIR changes postop (ml)", "Volume cavity postop (ml)"])
             all_values.extend([self.statistics.flairchanges_volume_postop, self.statistics.cavity_volume_postop])
-            values_df = pd.DataFrame(np.asarray(all_values), columns=column_names)
+            values_df = pd.DataFrame(np.asarray([all_values]), columns=column_names)
             values_df.to_csv(filename, index=False)
         except Exception as e:
             raise RuntimeError(f"Neurosurgical reporting writing on disk as csv failed with {e}")

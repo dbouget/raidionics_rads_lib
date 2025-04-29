@@ -360,12 +360,34 @@ class PatientParameters:
         return res
 
     def get_all_annotations_uids_class_radiological_volume(self, volume_uid: str,
-                                                           annotation_class: AnnotationClassType) -> List[str]:
+                                                           annotation_class: AnnotationClassType,
+                                                           include_coregistrations: bool = False) -> List[str]:
         res = []
         for v in self.annotation_volumes.keys():
             if self.annotation_volumes[v]._radiological_volume_uid == volume_uid and \
                     self.annotation_volumes[v]._annotation_type == annotation_class:
                 res.append(v)
+            if include_coregistrations:
+                if volume_uid in self.annotation_volumes[v].registered_volumes.keys() and \
+                        self.annotation_volumes[v]._annotation_type == annotation_class:
+                    res.append(v)
+        return res
+
+    def get_all_annotations_fns_class_radiological_volume(self, volume_uid: str,
+                                                           annotation_class: AnnotationClassType,
+                                                           include_coregistrations: bool = False) -> List[str]:
+        """
+        @TODO. What if the volume_uid is an atlas?
+        """
+        res = []
+        for v in self.annotation_volumes.keys():
+            if self.annotation_volumes[v]._radiological_volume_uid == volume_uid and \
+                    self.annotation_volumes[v]._annotation_type == annotation_class:
+                res.append(self.annotation_volumes[v].usable_input_filepath)
+            if include_coregistrations:
+                if volume_uid in self.annotation_volumes[v].registered_volumes.keys() and \
+                        self.annotation_volumes[v]._annotation_type == annotation_class:
+                    res.append(self.annotation_volumes[v].registered_volumes[volume_uid]["filepath"])
         return res
 
     def get_registration_by_uids(self, fixed_uid: str, moving_uid: str) -> Registration:
