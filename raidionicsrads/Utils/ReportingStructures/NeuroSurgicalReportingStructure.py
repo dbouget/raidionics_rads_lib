@@ -36,12 +36,17 @@ class SurgicalStatistics:
     _tumor_volume_postop = None
     _extent_of_resection = None
     _resection_category = None
+    _flairchanges_volume_postop = None
+    _cavity_volume_postop = None
 
-    def __init__(self, volume_pre: float = None, volume_post: float = None, eor: float = None, category: str = None):
+    def __init__(self, volume_pre: float = None, volume_post: float = None, eor: float = None, category: str = None,
+                 flairchanges_volume_postop: float = None, _cavity_volume_postop: float = None):
         self._tumor_volume_preop = volume_pre
         self._tumor_volume_postop = volume_post
         self._extent_of_resection = eor
         self._resection_category = category
+        self._flairchanges_volume_postop = flairchanges_volume_postop
+        self._cavity_volume_postop = _cavity_volume_postop
 
     @property
     def tumor_volume_preop(self) -> float:
@@ -74,6 +79,22 @@ class SurgicalStatistics:
     @resection_category.setter
     def resection_category(self, value: str) -> None:
         self._resection_category = value
+
+    @property
+    def flairchanges_volume_postop(self) -> float:
+        return self._flairchanges_volume_postop
+
+    @flairchanges_volume_postop.setter
+    def flairchanges_volume_postop(self, value: float) -> None:
+        self._flairchanges_volume_postop = value
+
+    @property
+    def cavity_volume_postop(self) -> float:
+        return self._cavity_volume_postop
+
+    @cavity_volume_postop.setter
+    def cavity_volume_postop(self, value: float) -> None:
+        self._cavity_volume_postop = value
 
 
 class NeuroSurgicalReportingStructure:
@@ -140,6 +161,10 @@ class NeuroSurgicalReportingStructure:
             pfile.write(' Postoperative tumor volume: {:.2f} ml\n'.format(self.statistics.tumor_volume_postop))
             pfile.write(' Extent of resection: {:.2f} %\n'.format(self.statistics.extent_of_resection))
             pfile.write(' Resection category: {}\n'.format(self.statistics.resection_category))
+            if self.statistics.flairchanges_volume_postop is not None:
+                pfile.write(' Postoperative flair changes volume: {:.2f} ml\n'.format(self.statistics.flairchanges_volume_postop))
+            if self.statistics.cavity_volume_postop is not None:
+                pfile.write(' Postoperative cavity volume: {:.2f} ml\n'.format(self.statistics.cavity_volume_postop))
             pfile.close()
         except Exception as e:
             raise RuntimeError(f"Neurosurgical reporting writing on disk as text failed with {e}")
@@ -154,6 +179,8 @@ class NeuroSurgicalReportingStructure:
             param_json["postop_volume"] = self.statistics.tumor_volume_postop
             param_json["eor"] = self.statistics.extent_of_resection
             param_json["resection_category"] = str(self.statistics.resection_category)
+            param_json["flairchanges_postop_volume"] = self.statistics.flairchanges_volume_postop
+            param_json["cavity_postop_volume"] = self.statistics.cavity_volume_postop
             with open(filename, 'w', newline='\n') as outfile:
                 json.dump(param_json, outfile, indent=4, sort_keys=True)
         except Exception as e:
@@ -165,6 +192,17 @@ class NeuroSurgicalReportingStructure:
         try:
             filename = os.path.join(self._output_folder, "reporting", "neuro_surgical_report.csv")
             logging.info(f"Exporting neurosurgical reporting to csv in {filename}.")
+            column_names = []
+            all_values = []
+
+            column_names.extend(["Volume tumor preop (ml)", "Volume tumor postop (ml)"])
+            all_values.extend([self.statistics.tumor_volume_preop, self.statistics.tumor_volume_postop])
+            column_names.extend(["Extent of resection (%)", "Resection category"])
+            all_values.extend([self.statistics.extent_of_resection, self.statistics.resection_category])
+            column_names.extend(["Volume FLAIR changes postop (ml)", "Volume cavity postop (ml)"])
+            all_values.extend([self.statistics.flairchanges_volume_postop, self.statistics.cavity_volume_postop])
+            values_df = pd.DataFrame(np.asarray(all_values), columns=column_names)
+            values_df.to_csv(filename, index=False)
         except Exception as e:
             raise RuntimeError(f"Neurosurgical reporting writing on disk as csv failed with {e}")
 

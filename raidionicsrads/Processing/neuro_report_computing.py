@@ -295,26 +295,44 @@ def compute_braingrid_voxels_infiltration(volume, category=None, reference='Voxe
     return overlap_per_voxel, infiltrated_voxels
 
 
-def compute_surgical_report(tumor_preop_fn: str, tumor_postop_fn: str, flairchanges_postop_fn: str, report) -> None:
+def compute_surgical_report(tumor_preop_fn: str, tumor_postop_fn: str, report, tumor_type: str,
+                            flairchanges_postop_fn: str = None, cavity_postop_fn: str = None) -> None:
     """
     Update the report in-place with the computed values.
+    What do the RANO guidelines say about contrast-enhancing versus not, regarding the assessment?
+    How to check for supramaximal resection? => beyond CE tumor borders
+    Is it correct to compare the tumorcore preop and tumorCE postop?
     """
-    preop_annotation_ni = nib.load(tumor_preop_fn)
-    postop_annotation_ni = nib.load(tumor_postop_fn)
-    preop_volume = compute_volume(preop_annotation_ni.get_fdata()[:], preop_annotation_ni.header.get_zooms())
-    postop_volume = compute_volume(postop_annotation_ni.get_fdata()[:], postop_annotation_ni.header.get_zooms())
+    try:
+        preop_annotation_ni = nib.load(tumor_preop_fn)
+        postop_annotation_ni = nib.load(tumor_postop_fn)
+        preop_volume = compute_volume(preop_annotation_ni.get_fdata()[:], preop_annotation_ni.header.get_zooms())
+        postop_volume = compute_volume(postop_annotation_ni.get_fdata()[:], postop_annotation_ni.header.get_zooms())
 
-    eor = ((preop_volume - postop_volume) / preop_volume) * 100.
-    report.statistics.tumor_volume_preop = preop_volume
-    report.statistics.tumor_volume_postop = postop_volume
-    report.statistics.extent_of_resection = eor
+        flairchanges_postop_volume = None
+        if flairchanges_postop_fn is not None:
+            flairchanges_postop_ni = nib.load(flairchanges_postop_fn)
+            flairchanges_postop_volume = compute_volume(flairchanges_postop_ni.get_fdata()[:], flairchanges_postop_ni.header.get_zooms())
+        cavity_postop_volume = None
+        if cavity_postop_fn is not None:
+            cavity_postop_ni = nib.load(cavity_postop_fn)
+            cavity_postop_volume = compute_volume(cavity_postop_ni.get_fdata()[:], cavity_postop_ni.header.get_zooms())
 
-    if eor > 99.9:
-        report.statistics.resection_category = ResectionCategoryType.ComR
-    elif eor >= 95.0 and postop_volume <= 1.0:
-        report.statistics.resection_category = ResectionCategoryType.NeaR
-    elif eor >= 80.0 and postop_volume <= 5.0:
-        report.statistics.resection_category = ResectionCategoryType.SubR
-    else:
-        report.statistics.resection_category = ResectionCategoryType.ParR
+        eor = ((preop_volume - postop_volume) / preop_volume) * 100.
+        report.statistics.tumor_volume_preop = preop_volume
+        report.statistics.tumor_volume_postop = postop_volume
+        report.statistics.extent_of_resection = eor
+        report.statistics.flairchanges_volume_postop = flairchanges_postop_volume
+        report.statistics.cavity_volume_postop = cavity_postop_volume
+
+        if eor > 99.9:
+            report.statistics.resection_category = ResectionCategoryType.ComR
+        elif eor >= 95.0 and postop_volume <= 10.0:
+            report.statistics.resection_category = ResectionCategoryType.NeaR
+        elif eor >= 80.0 and postop_volume <= 50.0:
+            report.statistics.resection_category = ResectionCategoryType.SubR
+        else:
+            report.statistics.resection_category = ResectionCategoryType.ParR
+    except Exception as e:
+        raise ValueError(f"Surgical report computation failed with {e}\n")
 

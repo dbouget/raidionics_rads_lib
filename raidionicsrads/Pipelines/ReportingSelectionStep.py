@@ -428,6 +428,7 @@ class ReportingSelectionStep(AbstractPipelineStep):
                 pip_num = str(pip_num_int)
                 pip[pip_num] = {}
                 pip[pip_num]["task"] = "Surgical reporting"
+                pip[pip_num]["tumor_type"] = self.tumor_type
                 pip[pip_num]["description"] = f"Standardized surgical reporting computation."
         except Exception as e:
             raise ValueError(f"{e}")
