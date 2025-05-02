@@ -107,4 +107,4 @@ jobs:
           run: cd ${{github.workspace}}/tests && python reporting_pipeline_braingrid_test.py
 
         - name: Registration pipeline unit test with Python backend
-          run: cd ${{github.workspace}}/tests && python3 registration_pipeline_test.py
+          run: cd ${{github.workspace}}/tests && python3 test_registration_pipeline_simple.py

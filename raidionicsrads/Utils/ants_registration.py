@@ -36,12 +36,14 @@ class ANTsRegistration:
     def clear_cache(self):
         # In Python, registration files are stored in the temporary folder and must be removed.
         if self.backend == 'python':
-            for elem in self.reg_transform['fwdtransforms']:
-                if os.path.exists(elem):
-                    os.remove(elem)
-            for elem in self.reg_transform['invtransforms']:
-                if os.path.exists(elem):
-                    os.remove(elem)
+            if 'fwdtransforms' in self.reg_transform.keys():
+                for elem in self.reg_transform['fwdtransforms']:
+                    if os.path.exists(elem):
+                        os.remove(elem)
+            if 'invtransforms' in self.reg_transform.keys():
+                for elem in self.reg_transform['invtransforms']:
+                    if os.path.exists(elem):
+                        os.remove(elem)
 
         if os.path.exists(self.registration_folder):
             shutil.rmtree(self.registration_folder)

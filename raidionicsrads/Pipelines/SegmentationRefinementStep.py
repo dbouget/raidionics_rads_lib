@@ -81,6 +81,9 @@ class SegmentationRefinementStep(AbstractPipelineStep):
                     # for specifying the volume the annotation is linked to, if multiple inputs.
                     if not self._input_volume_uid:
                         self._input_volume_uid = volume_uid
+                    if self.refinement_operation != "brain_overlap" and ResourcesConfiguration.getInstance().predictions_use_stripped_data:
+                        self.skip = True
+                        return
                     if self.refinement_operation != "global_context":
                         # Retrieving the annotation to refine
                         if input_json["labels"]:
@@ -117,6 +120,11 @@ class SegmentationRefinementStep(AbstractPipelineStep):
         PatientParameters
             Updated placeholder with the results of the current step.
         """
+        if self.skip:
+            if self.refinement_operation != "brain_overlap" and ResourcesConfiguration.getInstance().predictions_use_stripped_data:
+                logging.info("Skipping brain overlap segmentation refinement, the input scans are skull-stripped")
+            return self._patient_parameters
+
         try:
             if ResourcesConfiguration.getInstance().diagnosis_task == 'neuro_diagnosis':
                 self.__perform_neuro_postprocessing()
@@ -138,11 +146,8 @@ class SegmentationRefinementStep(AbstractPipelineStep):
         """
         try:
             if self.refinement_operation == "dilation":
-                logging.warning("[SegmentationRefinementStep] The dilation process is disabled for the time being.")
-                pass
-                # res = prediction_binary_dilation(seg.astype('uint8'),
-                #                                  voxel_volume=np.prod(seg_ni.header.get_zooms()) * 1e-3,
-                #                                  arg=int(self._refinement_args))
+                predictions_filepath = self._patient_parameters.get_annotation(annotation_uid=self._input_annotation_uid).usable_input_filepath
+                prediction_binary_dilation(predictions_filepath, arg=int(self._refinement_args))
             elif self.refinement_operation == "brain_overlap":
                 predictions_filepath = self._patient_parameters.get_annotation(annotation_uid=self._input_annotation_uid).usable_input_filepath
                 brain_annotation_uids = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(volume_uid=self._input_volume_uid, annotation_class=AnnotationClassType.Brain)
