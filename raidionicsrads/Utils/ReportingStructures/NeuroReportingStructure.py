@@ -556,7 +556,7 @@ class NeuroReportingStructure:
             with open(filename, 'w', newline='\n') as outfile:
                 json.dump(param_json, outfile, indent=4, sort_keys=True)
         except Exception as e:
-            raise RuntimeError(f"Standardized report dump on disk for T{self.timestamp} as json failed with {e}")
+            raise RuntimeError(f"Standardized report dump on disk for T{self.timestamp} as json failed with {e}.\n")
 
         return
 

@@ -92,7 +92,7 @@ jobs:
           run: cd ${{github.workspace}}/tests && python3 test_segmentation_pipeline.py
 
         - name: Reporting pipeline unit test
-          run: cd ${{github.workspace}}/tests && python3 reporting_pipeline_test.py
+          run: cd ${{github.workspace}}/tests && python3 test_reporting_pipeline.py
 
         - name: Reporting pipeline with BrainGrid unit test
           run: cd ${{github.workspace}}/tests && python3 reporting_pipeline_braingrid_test.py

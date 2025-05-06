@@ -82,6 +82,9 @@ class RegistrationStep(AbstractPipelineStep):
                 self._moving_volume_filepath = self._patient_parameters.get_radiological_volume(volume_uid=self.moving_volume_uid).usable_input_filepath
             elif self._step_json["moving"]["timestamp"] == -1:  # Atlas file
                 self._moving_volume_filepath = ResourcesConfiguration.getInstance().mni_atlas_filepath_T1
+            elif self._inclusion == "optional":
+                self.skip = True
+                return
             else:
                 raise ValueError("[RegistrationStep] Requested registration moving input cannot be found for: {}".format(self._step_json["moving"]))
             if not os.path.exists(self._moving_volume_filepath):

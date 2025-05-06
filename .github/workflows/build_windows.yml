@@ -64,7 +64,7 @@ jobs:
     strategy:
       matrix:
         os: [ windows-2019, windows-2022 ]
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -91,14 +91,7 @@ jobs:
       - name: Clone repo
         uses: actions/checkout@v4
 
-      - name: Segmentation pipeline unit test
-        run: cd ${{github.workspace}}/tests && python test_segmentation_pipeline.py
-
-      - name: Reporting pipeline unit test
-        run: cd ${{github.workspace}}/tests && python reporting_pipeline_test.py
-
-      - name: Reporting pipeline with BrainGrid unit test
-        run: cd ${{github.workspace}}/tests && python reporting_pipeline_braingrid_test.py
-
-      - name: Registration pipeline unit test with Python backend
-        run: cd ${{github.workspace}}/tests && python test_registration_pipeline_simple.py
+      - name: Integration tests
+        run: |
+            pip install pytest pytest-cov pytest-timeout requests
+            pytest -vvv --cov=raidionicsrads ${{github.workspace}}/tests/generic_tests --cov-report=xml --timeout=1000 --log-cli-level=DEBUG

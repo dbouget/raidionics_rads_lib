@@ -14,7 +14,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             TARGET: ubuntu
             CMD_BUILD: python setup.py bdist_wheel --plat-name manylinux1_x86_64
     steps:
@@ -63,8 +63,8 @@ jobs:
     needs: build
     strategy:
       matrix:
-        os: [ ubuntu-20.04, ubuntu-22.04 ]
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        os: [ ubuntu-22.04, ubuntu-24.04 ]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -90,14 +90,15 @@ jobs:
       - name: Clone repo
         uses: actions/checkout@v4
 
-      - name: Segmentation pipeline unit test
-        run: cd ${{github.workspace}}/tests && python test_segmentation_pipeline.py
+      - name: Integration tests
+        run: |
+            pip install pytest pytest-cov pytest-timeout requests
+            pytest -vvv --cov=raidionicsrads ${{github.workspace}}/tests/generic_tests --cov-report=xml --timeout=1000 --log-cli-level=DEBUG
 
-      - name: Reporting pipeline unit test
-        run: cd ${{github.workspace}}/tests && python reporting_pipeline_test.py
-
-      - name: Reporting pipeline with BrainGrid unit test
-        run: cd ${{github.workspace}}/tests && python reporting_pipeline_braingrid_test.py
-
-      - name: Registration pipeline unit test with Python backend
-        run: cd ${{github.workspace}}/tests && python test_registration_pipeline_simple.py
+      - name: Upload coverage to Codecov
+        if: ${{ matrix.os == 'ubuntu-22.04' && matrix.python-version == '3.9' }}
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN  }}
+          slug: dbouget/raidionics_rads_lib
+          verbose: true

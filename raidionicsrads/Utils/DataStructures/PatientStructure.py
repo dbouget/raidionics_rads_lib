@@ -305,7 +305,7 @@ class PatientParameters:
         return "-1"
 
     def get_radiological_volume(self, volume_uid: str) -> RadiologicalVolume:
-        return self.radiological_volumes[volume_uid]
+        return self.radiological_volumes[volume_uid] if volume_uid in self.radiological_volumes.keys() else None
 
     def get_radiological_volume_by_base_filename(self, base_fn: str):
         result = None

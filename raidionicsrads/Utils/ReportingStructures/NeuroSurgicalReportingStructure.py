@@ -36,17 +36,22 @@ class SurgicalStatistics:
     _tumor_volume_postop = None
     _extent_of_resection = None
     _resection_category = None
+    _flairchanges_volume_preop = None
     _flairchanges_volume_postop = None
+    _extent_of_resection_flair = None
     _cavity_volume_postop = None
 
-    def __init__(self, volume_pre: float = None, volume_post: float = None, eor: float = None, category: str = None,
-                 flairchanges_volume_postop: float = None, _cavity_volume_postop: float = None):
+    def __init__(self, volume_pre: float = None, volume_post: float = None, eor: float = None, eor_flair: float = None,
+                 category: str = None, flairchanges_volume_preop: float = None,
+                 flairchanges_volume_postop: float = None, cavity_volume_postop: float = None):
         self._tumor_volume_preop = volume_pre
         self._tumor_volume_postop = volume_post
         self._extent_of_resection = eor
+        self._extent_of_resection_flair = eor_flair
         self._resection_category = category
+        self._flairchanges_volume_preop = flairchanges_volume_preop
         self._flairchanges_volume_postop = flairchanges_volume_postop
-        self._cavity_volume_postop = _cavity_volume_postop
+        self._cavity_volume_postop = cavity_volume_postop
 
     @property
     def tumor_volume_preop(self) -> float:
@@ -73,12 +78,28 @@ class SurgicalStatistics:
         self._extent_of_resection = value
 
     @property
+    def extent_of_resection_flair(self) -> float:
+        return self._extent_of_resection_flair
+
+    @extent_of_resection_flair.setter
+    def extent_of_resection_flair(self, value: float) -> None:
+        self._extent_of_resection_flair = value
+
+    @property
     def resection_category(self) -> str:
         return self._resection_category
 
     @resection_category.setter
     def resection_category(self, value: str) -> None:
         self._resection_category = value
+
+    @property
+    def flairchanges_volume_preop(self) -> float:
+        return self._flairchanges_volume_preop
+
+    @flairchanges_volume_preop.setter
+    def flairchanges_volume_preop(self, value: float) -> None:
+        self._flairchanges_volume_preop = value
 
     @property
     def flairchanges_volume_postop(self) -> float:

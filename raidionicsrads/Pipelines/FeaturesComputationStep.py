@@ -126,7 +126,7 @@ class FeaturesComputationStep(AbstractPipelineStep):
                     patient_anno = nib.load(annotation_filepath).get_fdata()[:]
                     volume = np.count_nonzero(patient_anno) * np.prod(
                         nib.load(annotation_filepath).header.get_zooms()[0:3]) * 1e-3
-                    pat_space_result.volume = np.round(volume, 3)
+                    pat_space_result.volume = float(round(volume, 3))
                     report.include_statistics(structure=t, statistics=pat_space_result, space="Patient")
         self._patient_parameters.include_reporting(report_uid, report)
         report.to_disk()

@@ -218,7 +218,7 @@ def compute_cortical_structures_location(volume, reference='MNI'):
     for li in total_lobes_labels:
         overlap = volume[region_mask == li]
         ratio_in_lobe = np.count_nonzero(overlap) / np.count_nonzero(volume)
-        overlap = np.round(ratio_in_lobe * 100., 2)
+        overlap = float(round(ratio_in_lobe * 100., 2))
         region_name = ''
         if reference == 'MNI':
             region_name = '-'.join(str(lobes_description.loc[lobes_description['Label'] == li]['Region'].values[0]).strip().split(' ')) + '_' + (str(lobes_description.loc[lobes_description['Label'] == li]['Laterality'].values[0]).strip() if str(lobes_description.loc[lobes_description['Label'] == li]['Laterality'].values[0]).strip() != 'None' else '')
@@ -258,7 +258,7 @@ def compute_subcortical_structures_location(volume, category=None, reference='BC
                 overlaps_columns.append('overlap_' + tfn.split('.')[0] + '_' + category)
             if np.count_nonzero(overlap_volume) != 0:
                 distances[tfn] = dist
-                overlaps[tfn] = (np.count_nonzero(overlap_volume) / np.count_nonzero(volume)) * 100.
+                overlaps[tfn] = float((np.count_nonzero(overlap_volume) / np.count_nonzero(volume)) * 100.)
             else:
                 if np.count_nonzero(reg_tract) > 0:
                     dist = compute_hd95(volume, reg_tract, voxelspacing=reg_tract_ni.header.get_zooms(), connectivity=1)
@@ -284,7 +284,7 @@ def compute_braingrid_voxels_infiltration(volume, category=None, reference='Voxe
     for li in total_voxels_labels:
         overlap = volume[region_mask == li]
         ratio_in_voxel = np.count_nonzero(overlap) / np.count_nonzero(volume)
-        overlap = np.round(ratio_in_voxel * 100., 2)
+        overlap = float(round(ratio_in_voxel * 100., 2))
         region_name = ''
         if reference == 'Voxels':
             region_name = '_'.join(lobes_description.loc[lobes_description['Label'] == li]['Region'].values[0].strip().split(' '))
@@ -295,7 +295,7 @@ def compute_braingrid_voxels_infiltration(volume, category=None, reference='Voxe
     return overlap_per_voxel, infiltrated_voxels
 
 
-def compute_surgical_report(tumor_preop_fn: str, tumor_postop_fn: str, report, tumor_type: str,
+def compute_surgical_report(tumor_preop_fn: str, tumor_postop_fn: str, report, flairchanges_preop_fn: str = None,
                             flairchanges_postop_fn: str = None, cavity_postop_fn: str = None) -> None:
     """
     Update the report in-place with the computed values.
@@ -309,10 +309,17 @@ def compute_surgical_report(tumor_preop_fn: str, tumor_postop_fn: str, report, t
         preop_volume = compute_volume(preop_annotation_ni.get_fdata()[:], preop_annotation_ni.header.get_zooms())
         postop_volume = compute_volume(postop_annotation_ni.get_fdata()[:], postop_annotation_ni.header.get_zooms())
 
+        flairchanges_preop_volume = None
+        if flairchanges_preop_fn is not None:
+            flairchanges_preop_ni = nib.load(flairchanges_preop_fn)
+            flairchanges_preop_volume = compute_volume(flairchanges_preop_ni.get_fdata()[:],
+                                                       flairchanges_preop_ni.header.get_zooms())
+
         flairchanges_postop_volume = None
         if flairchanges_postop_fn is not None:
             flairchanges_postop_ni = nib.load(flairchanges_postop_fn)
-            flairchanges_postop_volume = compute_volume(flairchanges_postop_ni.get_fdata()[:], flairchanges_postop_ni.header.get_zooms())
+            flairchanges_postop_volume = compute_volume(flairchanges_postop_ni.get_fdata()[:],
+                                                        flairchanges_postop_ni.header.get_zooms())
         cavity_postop_volume = None
         if cavity_postop_fn is not None:
             cavity_postop_ni = nib.load(cavity_postop_fn)
@@ -322,8 +329,13 @@ def compute_surgical_report(tumor_preop_fn: str, tumor_postop_fn: str, report, t
         report.statistics.tumor_volume_preop = preop_volume
         report.statistics.tumor_volume_postop = postop_volume
         report.statistics.extent_of_resection = eor
+        report.statistics.flairchanges_volume_preop = flairchanges_preop_volume
         report.statistics.flairchanges_volume_postop = flairchanges_postop_volume
         report.statistics.cavity_volume_postop = cavity_postop_volume
+
+        if flairchanges_preop_volume and flairchanges_postop_volume:
+            eor_flair =  ((flairchanges_preop_volume - flairchanges_postop_volume) / flairchanges_preop_volume) * 100.
+            report.statistics.extent_of_resection_flair = eor_flair
 
         if eor > 99.9:
             report.statistics.resection_category = ResectionCategoryType.ComR

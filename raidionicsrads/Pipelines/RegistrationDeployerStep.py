@@ -85,6 +85,9 @@ class RegistrationDeployerStep(AbstractPipelineStep):
             # if moving_volume.is_registered_volume_included(destination_space_uid=fixed_volume_uid):
             #     self.skip = True
             #     return
+            if moving_volume is None and self._inclusion == "optional":
+                self.skip = True
+                return
 
             self.registration_instance = self._patient_parameters.get_registration_by_json(fixed=self._step_json["fixed"],
                                                                                       moving=self._step_json["moving"])
