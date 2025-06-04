@@ -78,13 +78,19 @@ class SurgicalReportingStep(AbstractPipelineStep):
                     volume_uid=preop_t1ce_uid, annotation_class=AnnotationClassType.Tumor)
                 postop_tumor_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
                     volume_uid=postop_t1ce_uid, annotation_class=AnnotationClassType.TumorCE)
+                preop_brain_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
+                    volume_uid=preop_t1ce_uid, annotation_class=AnnotationClassType.Brain)
                 preop_flairchanges_fns = self._patient_parameters.get_all_annotations_fns_class_radiological_volume(
                     volume_uid=preop_t1ce_uid, annotation_class=AnnotationClassType.FLAIRChanges, include_coregistrations=True)
                 postop_flairchanges_fns = self._patient_parameters.get_all_annotations_fns_class_radiological_volume(
                     volume_uid=postop_t1ce_uid, annotation_class=AnnotationClassType.FLAIRChanges, include_coregistrations=True)
                 postop_cavity_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
                     volume_uid=postop_t1ce_uid, annotation_class=AnnotationClassType.Cavity)
+                postop_brain_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
+                    volume_uid=postop_t1ce_uid, annotation_class=AnnotationClassType.Brain)
                 if len(preop_tumor_uid) > 0 and len(postop_tumor_uid) > 0:
+                    preop_brain_fn = self._patient_parameters.get_annotation(annotation_uid=preop_brain_uid[0]).usable_input_filepath
+                    postop_brain_fn = self._patient_parameters.get_annotation(annotation_uid=postop_brain_uid[0]).usable_input_filepath
                     preop_fn = self._patient_parameters.get_annotation(annotation_uid=preop_tumor_uid[0]).usable_input_filepath
                     postop_fn = self._patient_parameters.get_annotation(annotation_uid=postop_tumor_uid[0]).usable_input_filepath
                     flairchanges_preop_fn = preop_flairchanges_fns[0] if len(preop_flairchanges_fns) > 0 else None
@@ -92,7 +98,8 @@ class SurgicalReportingStep(AbstractPipelineStep):
                     cavity_postop_fn = self._patient_parameters.get_annotation(
                         annotation_uid=postop_cavity_uid[0]).usable_input_filepath if len(
                         postop_cavity_uid) > 0 else None
-                    compute_surgical_report(tumor_preop_fn=preop_fn, tumor_postop_fn=postop_fn,
+                    compute_surgical_report(brain_preop_fn=preop_brain_fn, brain_postop_fn=postop_brain_fn,
+                                            tumor_preop_fn=preop_fn, tumor_postop_fn=postop_fn,
                                             flairchanges_preop_fn=flairchanges_preop_fn,
                                             flairchanges_postop_fn=flairchanges_fn, cavity_postop_fn=cavity_postop_fn,
                                             report=report)
@@ -107,13 +114,20 @@ class SurgicalReportingStep(AbstractPipelineStep):
                     volume_uid=postop_uid, annotation_class=AnnotationClassType.FLAIRChanges)
                 postop_cavity_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
                     volume_uid=postop_uid, annotation_class=AnnotationClassType.Cavity)
+                preop_brain_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
+                    volume_uid=preop_uid, annotation_class=AnnotationClassType.Brain)
+                postop_brain_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
+                    volume_uid=postop_uid, annotation_class=AnnotationClassType.Brain)
                 if len(preop_tumor_uid) > 0 and len(postop_tumor_uid) > 0:
+                    preop_brain_fn = self._patient_parameters.get_annotation(annotation_uid=preop_brain_uid[0]).usable_input_filepath
+                    postop_brain_fn = self._patient_parameters.get_annotation(annotation_uid=postop_brain_uid[0]).usable_input_filepath
                     preop_fn = self._patient_parameters.get_annotation(annotation_uid=preop_tumor_uid[0]).usable_input_filepath
                     postop_fn = self._patient_parameters.get_annotation(annotation_uid=postop_tumor_uid[0]).usable_input_filepath
                     cavity_postop_fn = self._patient_parameters.get_annotation(
                         annotation_uid=postop_cavity_uid[0]).usable_input_filepath if len(
                         postop_cavity_uid) > 0 else None
-                    compute_surgical_report(tumor_preop_fn=preop_fn, tumor_postop_fn=postop_fn,
+                    compute_surgical_report(brain_preop_fn=preop_brain_fn, brain_postop_fn=postop_brain_fn,
+                                            tumor_preop_fn=preop_fn, tumor_postop_fn=postop_fn,
                                             cavity_postop_fn=cavity_postop_fn,
                                             report=report)
                 else:

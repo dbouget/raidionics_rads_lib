@@ -128,7 +128,7 @@ class ReportingSelectionStep(AbstractPipelineStep):
                     pip[pip_num]["fixed"]["timestamp"] = self.timestamps[0]
                     pip[pip_num]["fixed"]["sequence"] = "T1-CE"
                     pip[pip_num]["inclusion"] = "optional"
-                    pip[pip_num]["description"] = "Registration from FLAIR (T0) to T1CE (T0)"
+                    pip[pip_num]["description"] = f"Registration from FLAIR (T{self.timestamps[0]}) to T1CE (T{self.timestamps[0]})"
 
                     pip_num_int = pip_num_int + 1
                     pip_num = str(pip_num_int)
@@ -142,7 +142,7 @@ class ReportingSelectionStep(AbstractPipelineStep):
                     pip[pip_num]["fixed"]["sequence"] = "T1-CE"
                     pip[pip_num]["direction"] = "forward"
                     pip[pip_num]["inclusion"] = "optional"
-                    pip[pip_num]["description"] = "Apply registration from FLAIR (T0) to T1CE (T0)"
+                    pip[pip_num]["description"] = f"Apply registration from FLAIR (T{self.timestamps[0]}) to T1CE (T{self.timestamps[0]})"
 
                     pip_num_int = pip_num_int + 1
                     pip_num = str(pip_num_int)
@@ -158,7 +158,7 @@ class ReportingSelectionStep(AbstractPipelineStep):
                     pip[pip_num]["inputs"]["0"]["space"]["sequence"] = "T1-CE"
                     pip[pip_num]["operation"] = "global_context"
                     pip[pip_num]["args"] = {}
-                    pip[pip_num]["description"] = "Global segmented structures context refinement in T1CE (T0)"
+                    pip[pip_num]["description"] = f"Global segmented structures context refinement in T1CE (T{self.timestamps[0]})"
 
                     pip_num_int = pip_num_int + 1
                     pip_num = str(pip_num_int)
@@ -170,7 +170,7 @@ class ReportingSelectionStep(AbstractPipelineStep):
                     pip[pip_num]["fixed"] = {}
                     pip[pip_num]["fixed"]["timestamp"] = -1
                     pip[pip_num]["fixed"]["sequence"] = "MNI"
-                    pip[pip_num]["description"] = "Registration from T1CE (T0) to MNI"
+                    pip[pip_num]["description"] = f"Registration from T1CE (T{self.timestamps[0]}) to MNI"
 
                     pip_num_int = pip_num_int + 1
                     pip_num = str(pip_num_int)
@@ -183,7 +183,7 @@ class ReportingSelectionStep(AbstractPipelineStep):
                     pip[pip_num]["fixed"]["timestamp"] = -1
                     pip[pip_num]["fixed"]["sequence"] = "MNI"
                     pip[pip_num]["direction"] = "forward"
-                    pip[pip_num]["description"] = "Apply registration from T1CE (T0) to MNI"
+                    pip[pip_num]["description"] = f"Apply registration from T1CE (T{self.timestamps[0]}) to MNI"
 
                     pip_num_int = pip_num_int + 1
                     pip_num = str(pip_num_int)
@@ -196,7 +196,7 @@ class ReportingSelectionStep(AbstractPipelineStep):
                     pip[pip_num]["fixed"]["timestamp"] = -1
                     pip[pip_num]["fixed"]["sequence"] = "MNI"
                     pip[pip_num]["direction"] = "inverse"
-                    pip[pip_num]["description"] = "Apply inverse registration from MNI to T1CE (T0)"
+                    pip[pip_num]["description"] = f"Apply inverse registration from MNI to T1CE (T{self.timestamps[0]})"
 
                     pip_num_int = pip_num_int + 1
                     pip_num = str(pip_num_int)
@@ -205,7 +205,7 @@ class ReportingSelectionStep(AbstractPipelineStep):
                     pip[pip_num]["timestamp"] = self.timestamps[0]
                     pip[pip_num]["target"] = ["Tumor", "TumorCE"] # @TODO. Should we open for both if not knowing if preop or postop?
                     pip[pip_num]["space"] = "MNI"
-                    pip[pip_num]["description"] = "Standardized features computation for timestamp 0"
+                    pip[pip_num]["description"] = f"Standardized features computation for timestamp {self.timestamps[0]}"
                 else:
                     pip_num_int = pip_num_int + 1
                     pip_num = str(pip_num_int)

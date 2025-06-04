@@ -91,6 +91,16 @@ class FeaturesComputationStep(AbstractPipelineStep):
         report = NeuroReportingStructure(id=report_uid,
                                          output_folder=ResourcesConfiguration.getInstance().output_folder,
                                          timestamp=self.step_json["timestamp"])
+        brain_annotation = self._patient_parameters.get_all_annotations_for_timestamp_and_structure(
+            timestamp=self.step_json["timestamp"], structure="Brain")
+        brain_nib = None
+        if len(brain_annotation) != 0:
+            if self.report_space == "Patient":
+                brain_filepath = brain_annotation[0].usable_input_filepath
+            else:
+                brain_filepath = brain_annotation[0].registered_volumes[self.report_space]["filepath"]
+            brain_nib = nib.load(brain_filepath)
+
         for t in self.targets:
             structure_nib = None
             if t in [x.name for x in list(AnnotationClassType)]:
@@ -117,7 +127,7 @@ class FeaturesComputationStep(AbstractPipelineStep):
                 logging.error(f"No segmentation file found nor assembled for structure: {t}")
                 continue
             else:
-                res = compute_structure_statistics(input_mask=structure_nib)
+                res = compute_structure_statistics(input_mask=structure_nib, brain_mask=brain_nib)
                 report.include_statistics(structure=t, statistics=res, space=self.report_space)
                 if self.report_space != 'Patient':
                     # Including the tumor volume in original patient space, quick fix for now as the only
@@ -126,8 +136,11 @@ class FeaturesComputationStep(AbstractPipelineStep):
                     patient_anno = nib.load(annotation_filepath).get_fdata()[:]
                     volume = np.count_nonzero(patient_anno) * np.prod(
                         nib.load(annotation_filepath).header.get_zooms()[0:3]) * 1e-3
-                    pat_space_result.volume = float(round(volume, 3))
+                    pat_space_result.volume = NeuroVolumeStatistics(volume=volume, brain_percentage=-1.)
                     report.include_statistics(structure=t, statistics=pat_space_result, space="Patient")
+        # Include the acquisition infos here (for now?)
+        acquisition_infos = compute_acquisition_infos(self._patient_parameters.get_all_radiological_volumes_for_timestamp(timestamp=self.step_json["timestamp"]))
+        report.acquisition_infos = acquisition_infos
         self._patient_parameters.include_reporting(report_uid, report)
         report.to_disk()
 

@@ -22,7 +22,7 @@ from ..Utils.segmentation_parser import collect_segmentation_model_parameters
 
 def perform_brain_extraction(image_filepath: str, method: str = 'deep_learning') -> str:
     """
-
+    @DEPRECATED? The brain segmentation is performed as a stand-alone pipeline step
     The brain extraction process.
 
     Parameters
@@ -53,7 +53,7 @@ def perform_brain_extraction(image_filepath: str, method: str = 'deep_learning')
 
 def perform_custom_brain_extraction(image_filepath: str, folder: str) -> str:
     """
-
+    @DEPRECATED?
     The custom brain segmentation is performed by using the pre-trained model followed by skull-stripping.
 
     Parameters
@@ -213,6 +213,10 @@ def perform_brain_overlap_refinement(predictions_filepath: str, brain_mask_filep
         raise ValueError("Brain overlap refinement failed with: {}.".format(e))
 
 def perform_segmentation_global_consistency_refinement(annotation_files: dict, timestamp: str):
+    """
+    @TODO. Should also ship the preop segmentation for postop refinement (e.g. preop necrosis still in postop),
+    but then the preop T1 and postop T1 should be co-registered...
+    """
     tumorcore_anno_fn = None
     tumorcore_anno_nib = None
     tumorcore_anno = None
@@ -225,7 +229,10 @@ def perform_segmentation_global_consistency_refinement(annotation_files: dict, t
     flair_changes_anno_fn = None
     flair_changes_anno_nib = None
     flair_changes_anno = None
-    necrosis_cyst_anno = None
+    necrosis_anno_fn = None
+    necrosis_anno_nib = None
+    necrosis_anno = None
+    output_annotation_files = {}
 
     for a in list(annotation_files.keys()):
         if a == str(AnnotationClassType.Tumor):
@@ -244,81 +251,121 @@ def perform_segmentation_global_consistency_refinement(annotation_files: dict, t
             flair_changes_anno_fn = annotation_files[a]
             flair_changes_anno_nib = nib.load(flair_changes_anno_fn)
             flair_changes_anno = flair_changes_anno_nib.get_fdata()[:]
+        elif a == str(AnnotationClassType.Necrosis):
+            necrosis_anno_fn = annotation_files[a]
+            necrosis_anno_nib = nib.load(necrosis_anno_fn)
+            necrosis_anno = necrosis_anno_nib.get_fdata()[:]
 
     if timestamp == 1:
-        if cavity_anno is not None:
+        if cavity_anno is not None and flair_changes_anno is not None:
             refined_tumorce = np.zeros(tumor_ce_anno.shape).astype("uint8")
             refined_tumorce[(tumor_ce_anno != 0) & (cavity_anno == 0)] = 1
-
-            combined_anno = np.zeros(tumor_ce_anno.shape).astype("uint8")
-            combined_anno[flair_changes_anno == 1] = 1
-            combined_anno[cavity_anno == 1] = 2
-            combined_anno[refined_tumorce == 1] = 3
-            # @TODO. Saving the combined file in case?
             nib.save(nib.Nifti1Image(refined_tumorce, affine=tumor_ce_anno_nib.affine, header=tumor_ce_anno_nib.header),
                      tumor_ce_anno_fn)
+
+            output_annotation_files[AnnotationClassType.TumorCE] = tumor_ce_anno_fn
+            new_flair_changes = np.zeros(flair_changes_anno.shape).astype('uint8')
+            new_flair_changes[flair_changes_anno == 1] = 1
+            new_flair_changes[tumor_ce_anno == 1] = 1
+            new_flair_changes[cavity_anno == 1] = 0
+            nib.save(nib.Nifti1Image(new_flair_changes, flair_changes_anno_nib.affine, flair_changes_anno_nib.header),
+                     flair_changes_anno_fn)
+            output_annotation_files[AnnotationClassType.FLAIRChanges] = flair_changes_anno_fn
+
+            new_cavity = np.zeros(cavity_anno.shape).astype('uint8')
+            new_cavity[flair_changes_anno == 1] = 1
+            # combined_anno = np.zeros(tumor_ce_anno.shape).astype("uint8")
+            # combined_anno[flair_changes_anno == 1] = 1
+            # combined_anno[cavity_anno == 1] = 2
+            # combined_anno[refined_tumorce == 1] = 3
+            # # @TODO. Saving the combined file in case?
     elif timestamp == 0:
-        if cavity_anno is None and flair_changes_anno is None and tumor_ce_anno is None:
+        if cavity_anno is None and flair_changes_anno is None and tumor_ce_anno is None and necrosis_anno is None:
             # Only the preop tumor core is available, no context refinement can be performed.
-            return
-        elif flair_changes_anno is not None and cavity_anno is None and tumor_ce_anno is None:
+            output_annotation_files[AnnotationClassType.Tumor] = tumorcore_anno_fn
+        elif flair_changes_anno is not None and cavity_anno is None and tumor_ce_anno is None and necrosis_anno is None:
             # Should the FLAIR changes just be on the outskirt of the tumor core?
             new_flair_changes = np.zeros(flair_changes_anno.shape).astype('uint8')
             new_flair_changes[flair_changes_anno == 1] = 1
             new_flair_changes[tumorcore_anno == 1] = 0
             nib.save(nib.Nifti1Image(new_flair_changes, flair_changes_anno_nib.affine, flair_changes_anno_nib.header),
                      flair_changes_anno_fn)
-            return
+            output_annotation_files[AnnotationClassType.Tumor] = tumorcore_anno_fn
+            output_annotation_files[AnnotationClassType.FLAIRChanges] = flair_changes_anno_fn
+        elif flair_changes_anno is None and cavity_anno is None and tumor_ce_anno is None and necrosis_anno is not None:
+            new_necrosis = np.zeros(necrosis_anno.shape).astype('uint8')
+            new_necrosis[(tumorcore_anno == 1) & (necrosis_anno == 1)] = 1
+            nib.save(nib.Nifti1Image(new_necrosis, necrosis_anno_nib.affine, necrosis_anno_nib.header),
+                     necrosis_anno_fn)
+            output_annotation_files[AnnotationClassType.Tumor] = tumorcore_anno_fn
+            output_annotation_files[AnnotationClassType.Necrosis] = necrosis_anno_fn
+        elif flair_changes_anno is not None and cavity_anno is None and tumor_ce_anno is None and necrosis_anno is not None:
+            new_necrosis = np.zeros(necrosis_anno.shape).astype('uint8')
+            new_necrosis[(tumorcore_anno == 1) & (necrosis_anno == 1)] = 1
+            nib.save(nib.Nifti1Image(new_necrosis, necrosis_anno_nib.affine, necrosis_anno_nib.header),
+                     necrosis_anno_fn)
+            new_flair_changes = np.zeros(flair_changes_anno.shape).astype('uint8')
+            new_flair_changes[flair_changes_anno == 1] = 1
+            new_flair_changes[tumorcore_anno == 1] = 0
+            new_flair_changes[necrosis_anno == 1] = 0
+            nib.save(nib.Nifti1Image(new_flair_changes, flair_changes_anno_nib.affine, flair_changes_anno_nib.header),
+                     flair_changes_anno_fn)
+            output_annotation_files[AnnotationClassType.Tumor] = tumorcore_anno_fn
+            output_annotation_files[AnnotationClassType.Necrosis] = necrosis_anno_fn
+            output_annotation_files[AnnotationClassType.FLAIRChanges] = flair_changes_anno_fn
         else:
-            return
-            # @TODO. Have to further investigate how to perform global context refinement for this use-case, need a better
-            # model that is not confused between cavity preop and large necrosis (not enough training data).
-            uncertain_cav_necro = np.abs(tumorcore_anno - tumor_ce_anno)
-            tc_labels, tc_candidates = select_candidates(tumorcore_anno)
-            tce_labels, tce_candidates = select_candidates(tumor_ce_anno)
-            cav_labels, cav_candidates = select_candidates(cavity_anno)
+            pass
+            # return
+            # # @TODO. Have to further investigate how to perform global context refinement for this use-case, need a better
+            # # model that is not confused between cavity preop and large necrosis (not enough training data).
+            # uncertain_cav_necro = np.abs(tumorcore_anno - tumor_ce_anno)
+            # tc_labels, tc_candidates = select_candidates(tumorcore_anno)
+            # tce_labels, tce_candidates = select_candidates(tumor_ce_anno)
+            # cav_labels, cav_candidates = select_candidates(cavity_anno)
+            #
+            # tc_coms = []
+            # tce_coms = []
+            # cav_coms = []
+            # for c in tc_candidates:
+            #     com = center_of_mass(tc_labels == c.label)
+            #     tc_coms.append(com)
+            #
+            # for c in tce_candidates:
+            #     com = center_of_mass(tce_labels == c.label)
+            #     tce_coms.append(com)
+            #
+            # for c in cav_candidates:
+            #     com = center_of_mass(cav_labels == c.label)
+            #     cav_coms.append(com)
+            #
+            # # To separate preoperatively the tumor from an old surgical cavity, we should compare the overlap between the
+            # # tumor core prediction and cavity prediction.
+            # # If there is an overlap, we should compare that connected component with the tumorce prediction and use the com somehow?
+            # clean_cavity = np.zeros(cavity_anno.shape)
+            # for c, cc in enumerate(cav_candidates):
+            #     eligible = False
+            #     for t, tt in enumerate(tc_candidates):
+            #         vol_c = np.zeros(cav_labels.shape)
+            #         vol_t = np.zeros(tc_labels.shape)
+            #         vol_c[cav_labels == cc.label] = 1
+            #         vol_t[tc_labels == tt.label] = 1
+            #         overlap = compute_dice(vol_c, vol_t)
+            #         if overlap != 0.:
+            #             com_cav = cav_coms[c]
+            #             for tc, tcc in enumerate(tce_candidates):
+            #                 com_tce = tce_coms[tc]
+            #                 distance = math.sqrt(math.pow(com_cav[0] - com_tce[0], 2) + math.pow(com_cav[1] - com_tce[1], 2) + math.pow(com_cav[2] - com_tce[2], 2))
+            #                 iou = compute_3d_iou(cc.bbox, tcc.bbox)
+            #                 if distance < 30. or iou > 0.20:
+            #                     eligible = True
+            #     if not eligible:
+            #         # @TODO. Should populate the cavity mask with it
+            #         clean_cavity[cav_labels == cc.label] = 1
+            # # @TODO. Subtract the clean cavity mask from tumor mask to make it clean!
+            # final_tumorcore = np.zeros(tumorcore_anno.shape)
+            # final_tumorcore[(clean_cavity == 0) & (tumorcore_anno == 1)] = 1
 
-            tc_coms = []
-            tce_coms = []
-            cav_coms = []
-            for c in tc_candidates:
-                com = center_of_mass(tc_labels == c.label)
-                tc_coms.append(com)
-
-            for c in tce_candidates:
-                com = center_of_mass(tce_labels == c.label)
-                tce_coms.append(com)
-
-            for c in cav_candidates:
-                com = center_of_mass(cav_labels == c.label)
-                cav_coms.append(com)
-
-            # To separate preoperatively the tumor from an old surgical cavity, we should compare the overlap between the
-            # tumor core prediction and cavity prediction.
-            # If there is an overlap, we should compare that connected component with the tumorce prediction and use the com somehow?
-            clean_cavity = np.zeros(cavity_anno.shape)
-            for c, cc in enumerate(cav_candidates):
-                eligible = False
-                for t, tt in enumerate(tc_candidates):
-                    vol_c = np.zeros(cav_labels.shape)
-                    vol_t = np.zeros(tc_labels.shape)
-                    vol_c[cav_labels == cc.label] = 1
-                    vol_t[tc_labels == tt.label] = 1
-                    overlap = compute_dice(vol_c, vol_t)
-                    if overlap != 0.:
-                        com_cav = cav_coms[c]
-                        for tc, tcc in enumerate(tce_candidates):
-                            com_tce = tce_coms[tc]
-                            distance = math.sqrt(math.pow(com_cav[0] - com_tce[0], 2) + math.pow(com_cav[1] - com_tce[1], 2) + math.pow(com_cav[2] - com_tce[2], 2))
-                            iou = compute_3d_iou(cc.bbox, tcc.bbox)
-                            if distance < 30. or iou > 0.20:
-                                eligible = True
-                if not eligible:
-                    # @TODO. Should populate the cavity mask with it
-                    clean_cavity[cav_labels == cc.label] = 1
-            # @TODO. Subtract the clean cavity mask from tumor mask to make it clean!
-            final_tumorcore = np.zeros(tumorcore_anno.shape)
-            final_tumorcore[(clean_cavity == 0) & (tumorcore_anno == 1)] = 1
+    return output_annotation_files
 
 
 def select_candidates(input_array):

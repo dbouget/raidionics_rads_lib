@@ -17,6 +17,8 @@ class AnnotationClassType(Enum):
     Cavity = 2, 'Cavity'
     FLAIRChanges = 3, 'FLAIR/T2 changes (nonenhancing progression)'
     TumorCE = 4, 'Contrast-enhancing tumor'
+    Necrosis = 5, 'Necrosis'
+    Edema = 6, 'Surrounding non-enhancing FLAIR hyperintensity'
 
     Lungs = 100, 'Lungs'
     Airways = 101, 'Airways'

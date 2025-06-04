@@ -1,7 +1,7 @@
 import logging
 import traceback
 import numpy as np
-from typing import Tuple, List
+from typing import Tuple, List, Union
 from scipy.ndimage.measurements import center_of_mass
 from scipy.ndimage import measurements, label
 from skimage.measure import regionprops
@@ -9,7 +9,7 @@ from scipy.ndimage import binary_closing, _ni_support
 from scipy.ndimage import distance_transform_edt, binary_erosion, generate_binary_structure
 
 
-def compute_volume(volume: np.ndarray, spacing: tuple) -> float:
+def compute_volume(volume: np.ndarray, spacing: tuple, brain_mask: np.ndarray = None) -> tuple[float, float]:
     """
 
     Parameters
@@ -23,18 +23,23 @@ def compute_volume(volume: np.ndarray, spacing: tuple) -> float:
     float
         Object volume in milliliters, rounded at two decimals.
     """
-    result = 0.
+    res_volume = 0.
+    brain_perc = -1.
     try:
         logging.debug("Computing tumor volume.")
         voxel_size = np.prod(spacing[0:3])
         volume_pixels = np.count_nonzero(volume)
         volume_mmcube = voxel_size * volume_pixels
         volume_ml = volume_mmcube * 1e-3
-        result = float(round(volume_ml, 2))
+        res_volume = float(round(volume_ml, 2))
+        if brain_mask is not None:
+            brain_volume = np.count_nonzero(brain_mask) * voxel_size * 1e-3
+            brain_perc = volume_ml / brain_volume
+            brain_perc = round(brain_perc, 4)
     except Exception as e:
         raise ValueError('Volume computation failed with: {}'.format(e))
 
-    return result
+    return res_volume, brain_perc
 
 
 def compute_shape(volume: np.ndarray, spacing: tuple) -> Tuple[float, float, float, float]:

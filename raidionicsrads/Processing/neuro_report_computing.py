@@ -8,6 +8,7 @@ import nibabel as nib
 from skimage.morphology import ball
 from scipy.ndimage import binary_closing
 from ..Processing.tumor_features_computation import *
+from ..Utils.DataStructures.RadiologicalVolumeStructure import MRISequenceType
 from ..Utils.io import load_nifti_volume
 from ..Utils.configuration_parser import ResourcesConfiguration
 from ..Utils.ReportingStructures.NeuroReportingStructure import *
@@ -121,7 +122,8 @@ def compute_neuro_report(input_filename: str, report: NeuroReportingStructure) -
         raise ValueError("{}".format(e))
 
 
-def compute_structure_statistics(input_mask: nib.Nifti1Image) -> NeuroStructureStatistics:
+def compute_structure_statistics(input_mask: nib.Nifti1Image,
+                                 brain_mask: nib.Nifti1Image = None) -> NeuroStructureStatistics:
     """
 
     Return
@@ -143,11 +145,16 @@ def compute_structure_statistics(input_mask: nib.Nifti1Image) -> NeuroStructureS
                 refined_image[refined_image == c] = 0
         refined_image[refined_image != 0] = 1
 
-        result.volume = compute_volume(volume=refined_image, spacing=input_mask.header.get_zooms())
+        brain_array = None
+        if brain_mask:
+            brain_array = brain_mask.get_fdata()[:]
+        volume, brain_perc = compute_volume(volume=refined_image, spacing=input_mask.header.get_zooms(),
+                                            brain_mask=brain_array)
+        result.volume = NeuroVolumeStatistics(volume=volume, brain_percentage=brain_perc)
 
         longa, shorta, feret, equi = compute_shape(volume=refined_image, spacing=input_mask.header.get_zooms())
-        result.shape = NeuroShapeStatistics(long_axis_diameter=longa, short_axis_diameter=shorta, feret_diameter=feret,
-                                            equivalent_diameter_area=equi)
+        result.shape = NeuroDiameterStatistics(long_axis_diameter=longa, short_axis_diameter=shorta, feret_diameter=feret,
+                                               equivalent_diameter_area=equi)
 
         status, nb, dist = compute_multifocality(volume=refined_image, spacing=input_mask.header.get_zooms(),
                                                  volume_threshold=0.1, distance_threshold=5.0)
@@ -295,7 +302,7 @@ def compute_braingrid_voxels_infiltration(volume, category=None, reference='Voxe
     return overlap_per_voxel, infiltrated_voxels
 
 
-def compute_surgical_report(tumor_preop_fn: str, tumor_postop_fn: str, report, flairchanges_preop_fn: str = None,
+def compute_surgical_report(brain_preop_fn: str, brain_postop_fn: str, tumor_preop_fn: str, tumor_postop_fn: str, report, flairchanges_preop_fn: str = None,
                             flairchanges_postop_fn: str = None, cavity_postop_fn: str = None) -> None:
     """
     Update the report in-place with the computed values.
@@ -304,10 +311,15 @@ def compute_surgical_report(tumor_preop_fn: str, tumor_postop_fn: str, report, f
     Is it correct to compare the tumorcore preop and tumorCE postop?
     """
     try:
+        preop_brain_annotation_ni = nib.load(brain_preop_fn)
+        postop_brain_annotation_ni = nib.load(brain_postop_fn)
+        preop_brain_volume, _ = compute_volume(preop_brain_annotation_ni.get_fdata()[:], preop_brain_annotation_ni.header.get_zooms())
+        postop_brain_volume, _ = compute_volume(postop_brain_annotation_ni.get_fdata()[:], postop_brain_annotation_ni.header.get_zooms())
+
         preop_annotation_ni = nib.load(tumor_preop_fn)
         postop_annotation_ni = nib.load(tumor_postop_fn)
-        preop_volume = compute_volume(preop_annotation_ni.get_fdata()[:], preop_annotation_ni.header.get_zooms())
-        postop_volume = compute_volume(postop_annotation_ni.get_fdata()[:], postop_annotation_ni.header.get_zooms())
+        preop_volume, _ = compute_volume(preop_annotation_ni.get_fdata()[:], preop_annotation_ni.header.get_zooms())
+        postop_volume, _ = compute_volume(postop_annotation_ni.get_fdata()[:], postop_annotation_ni.header.get_zooms())
 
         flairchanges_preop_volume = None
         if flairchanges_preop_fn is not None:
@@ -318,12 +330,12 @@ def compute_surgical_report(tumor_preop_fn: str, tumor_postop_fn: str, report, f
         flairchanges_postop_volume = None
         if flairchanges_postop_fn is not None:
             flairchanges_postop_ni = nib.load(flairchanges_postop_fn)
-            flairchanges_postop_volume = compute_volume(flairchanges_postop_ni.get_fdata()[:],
+            flairchanges_postop_volume, _ = compute_volume(flairchanges_postop_ni.get_fdata()[:],
                                                         flairchanges_postop_ni.header.get_zooms())
         cavity_postop_volume = None
         if cavity_postop_fn is not None:
             cavity_postop_ni = nib.load(cavity_postop_fn)
-            cavity_postop_volume = compute_volume(cavity_postop_ni.get_fdata()[:], cavity_postop_ni.header.get_zooms())
+            cavity_postop_volume, _ = compute_volume(cavity_postop_ni.get_fdata()[:], cavity_postop_ni.header.get_zooms())
 
         eor = ((preop_volume - postop_volume) / preop_volume) * 100.
         report.statistics.tumor_volume_preop = preop_volume
@@ -332,6 +344,11 @@ def compute_surgical_report(tumor_preop_fn: str, tumor_postop_fn: str, report, f
         report.statistics.flairchanges_volume_preop = flairchanges_preop_volume
         report.statistics.flairchanges_volume_postop = flairchanges_postop_volume
         report.statistics.cavity_volume_postop = cavity_postop_volume
+        report.statistics.brain_volume_preop = preop_brain_volume
+        report.statistics.brain_volume_postop = postop_brain_volume
+        report.statistics.brain_volume_change =  ((preop_brain_volume - postop_brain_volume) / preop_brain_volume) * 100.
+        report.statistics.tumor_to_brain_ratio_preop = (preop_volume / preop_brain_volume) * 100.
+        report.statistics.tumor_to_brain_ratio_postop = (postop_volume / postop_brain_volume) * 100.
 
         if flairchanges_preop_volume and flairchanges_postop_volume:
             eor_flair =  ((flairchanges_preop_volume - flairchanges_postop_volume) / flairchanges_preop_volume) * 100.
@@ -348,3 +365,28 @@ def compute_surgical_report(tumor_preop_fn: str, tumor_postop_fn: str, report, f
     except Exception as e:
         raise ValueError(f"Surgical report computation failed with {e}\n")
 
+def compute_acquisition_infos(radiological_volumes: List[str]) -> NeuroAcquisitionInfo:
+    """
+    @TODO. If multiple scans for a same sequence, only the info for the "best" sequence should be reported. The best
+    scan being the one also used for running the segmentation models (e.g., highest resolution/smallest spacing).
+    """
+    t1c_stats = None
+    t1w_stats = None
+    t2f_stats = None
+    t2w_stats = None
+    for v in radiological_volumes:
+        rad_vol_nib = nib.load(v.usable_input_filepath)
+        stats = NeuroRadiologicalVolumeStatistics(dim_x=rad_vol_nib.shape[0], dim_y=rad_vol_nib.shape[1],
+                                                  dim_z=rad_vol_nib.shape[2], spac_x=rad_vol_nib.header.get_zooms()[0],
+                                                  spac_y=rad_vol_nib.header.get_zooms()[1],
+                                                  spac_z=rad_vol_nib.header.get_zooms()[2])
+        if v.get_sequence_type_enum() == MRISequenceType.T1c:
+            t1c_stats = stats
+        elif v.get_sequence_type_enum() == MRISequenceType.T1w:
+            t1w_stats = stats
+        elif v.get_sequence_type_enum() == MRISequenceType.FLAIR:
+            t2f_stats = stats
+        elif v.get_sequence_type_enum() == MRISequenceType.T2:
+            t2w_stats = stats
+    infos = NeuroAcquisitionInfo(t1c_stats=t1c_stats, t1w_stats=t1w_stats, t2w_stats=t2w_stats, t2f_stats=t2f_stats)
+    return infos

@@ -12,14 +12,152 @@ from ..configuration_parser import ResourcesConfiguration
 from ..io import generate_cortical_structures_labels_for_slicer, generate_subcortical_structures_labels_for_slicer, generate_braingrid_structures_labels_for_slicer
 
 
-class NeuroShapeStatistics:
-    _long_axis_diameter = None
-    _short_axis_diameter = None
-    _feret_diameter = None
-    _equivalent_diameter_area = None
+class NeuroRadiologicalVolumeStatistics:
+    _dimension_x = None
+    _dimension_y = None
+    _dimension_z = None
+    _spacing_x = None
+    _spacing_y = None
+    _spacing_z = None
 
-    def __init__(self, long_axis_diameter: float = None, short_axis_diameter: float = None,
-                 feret_diameter: float = None, equivalent_diameter_area: float = None):
+    def __init__(self, dim_x: int = None, dim_y: int = None, dim_z: int = None, spac_x: float = None,
+                 spac_y: float = None, spac_z: float = None):
+        self._dimension_x = dim_x
+        self._dimension_y = dim_y
+        self._dimension_z = dim_z
+        self._spacing_x = spac_x
+        self._spacing_y = spac_y
+        self._spacing_z = spac_z
+
+    @property
+    def dimension_x(self) -> int:
+        return self._dimension_x
+
+    @dimension_x.setter
+    def dimension_x(self, value: int) -> None:
+        self._dimension_x = value
+
+    @property
+    def dimension_y(self) -> int:
+        return self._dimension_y
+
+    @dimension_y.setter
+    def dimension_y(self, value: int) -> None:
+        self._dimension_y = value
+
+    @property
+    def dimension_z(self) -> int:
+        return self._dimension_z
+
+    @dimension_z.setter
+    def dimension_z(self, value: int) -> None:
+        self._dimension_z = value
+
+    @property
+    def spacing_x(self) -> float:
+        return self._spacing_x
+
+    @spacing_x.setter
+    def spacing_x(self, value: float) -> None:
+        self._spacing_x = value
+
+    @property
+    def spacing_y(self) -> float:
+        return self._spacing_y
+
+    @spacing_y.setter
+    def spacing_y(self, value: float) -> None:
+        self._spacing_y = value
+
+    @property
+    def spacing_z(self) -> float:
+        return self._spacing_z
+
+    @spacing_z.setter
+    def spacing_z(self, value: float) -> None:
+        self._spacing_z = value
+
+
+class NeuroAcquisitionInfo:
+    _t1c_stats = None
+    _t1w_stats = None
+    _t2f_stats = None
+    _t2w_stats = None
+
+    def __init__(self, t1c_stats: NeuroRadiologicalVolumeStatistics = None,
+                 t1w_stats: NeuroRadiologicalVolumeStatistics = None,
+                 t2f_stats: NeuroRadiologicalVolumeStatistics = None,
+                 t2w_stats: NeuroRadiologicalVolumeStatistics = None):
+        self._t1c_stats = t1c_stats
+        self._t1w_stats = t1w_stats
+        self._t2f_stats = t2f_stats
+        self._t2w_stats = t2w_stats
+
+    @property
+    def t1c_stats(self) -> NeuroRadiologicalVolumeStatistics:
+        return self._t1c_stats
+
+    @t1c_stats.setter
+    def t1c_stats(self, value: NeuroRadiologicalVolumeStatistics) -> None:
+        self._t1c_stats = value
+
+    @property
+    def t1w_stats(self) -> NeuroRadiologicalVolumeStatistics:
+        return self._t1w_stats
+
+    @t1w_stats.setter
+    def t1w_stats(self, value: NeuroRadiologicalVolumeStatistics) -> None:
+        self._t1w_stats = value
+
+    @property
+    def t2f_stats(self) -> NeuroRadiologicalVolumeStatistics:
+        return self._t2f_stats
+
+    @t2f_stats.setter
+    def t2f_stats(self, value: NeuroRadiologicalVolumeStatistics) -> None:
+        self._t2f_stats = value
+
+    @property
+    def t2w_stats(self) -> NeuroRadiologicalVolumeStatistics:
+        return self._t2w_stats
+
+    @t2w_stats.setter
+    def t2w_stats(self, value: NeuroRadiologicalVolumeStatistics) -> None:
+        self._t2w_stats = value
+
+
+class NeuroVolumeStatistics:
+    _volume = -1.
+    _brain_percentage = -1.
+
+    def __init__(self, volume: float = -1., brain_percentage: float = -1.):
+        self._volume = volume
+        self._brain_percentage = brain_percentage
+
+    @property
+    def volume(self) -> float:
+        return self._volume
+
+    @volume.setter
+    def volume(self, value: float) -> None:
+        self._volume = value
+
+    @property
+    def brain_percentage(self) -> float:
+        return self._brain_percentage
+
+    @brain_percentage.setter
+    def brain_percentage(self, value: float) -> None:
+        self._brain_percentage = value
+
+class NeuroDiameterStatistics:
+    _long_axis_diameter = -1.
+    _short_axis_diameter = -1.
+    _feret_diameter = -1.
+    _equivalent_diameter_area = -1.
+
+    def __init__(self, long_axis_diameter: float = -1., short_axis_diameter: float = -1.,
+                 feret_diameter: float = -1., equivalent_diameter_area: float = -1.):
         self._long_axis_diameter = long_axis_diameter
         self._short_axis_diameter = short_axis_diameter
         self._feret_diameter = feret_diameter
@@ -60,9 +198,9 @@ class NeuroShapeStatistics:
 
 class NeuroMultifocalityStatistics:
     _multifocality = None
-    _nb_parts = None
-    _max_distance = None
-    def __init__(self, status: bool = None, parts: int = None, distance: float = None):
+    _nb_parts = -1
+    _max_distance = -1.
+    def __init__(self, status: bool = None, parts: int = -1, distance: float = -1.):
         self._multifocality = status
         self._nb_parts = parts
         self._max_distance = distance
@@ -92,11 +230,11 @@ class NeuroMultifocalityStatistics:
         self._max_distance = value
 
 class NeuroLocationStatistics:
-    _left_laterality_percentage = None
-    _right_laterality_percentage = None
+    _left_laterality_percentage = -1.
+    _right_laterality_percentage = -1.
     _laterality_midline_crossing = None
 
-    def __init__(self, left: float = None, right: float = None, crossing: bool = None):
+    def __init__(self, left: float = -1., right: float = -1., crossing: bool = None):
         self._left_laterality_percentage = left
         self._right_laterality_percentage = right
         self._laterality_midline_crossing = crossing
@@ -127,11 +265,11 @@ class NeuroLocationStatistics:
 
 
 class NeuroResectabilityStatistics:
-    _expected_resectable_tumor_volume = None
-    _expected_residual_tumor_volume = None
-    _resectability_index = None
+    _expected_resectable_tumor_volume = -1.
+    _expected_residual_tumor_volume = -1.
+    _resectability_index = -1.
 
-    def __init__(self, resectable: float = None, residual: float = None, index: float = None):
+    def __init__(self, resectable: float = -1., residual: float = -1., index: float = -1.):
         self._expected_resectable_tumor_volume = resectable
         self._expected_residual_tumor_volume = residual
         self._resectability_index = index
@@ -240,7 +378,7 @@ class NeuroStructureStatistics:
     Specific class for holding the computed characteristics/features.
     """
     _volume = None
-    _shape = None
+    _diameters = None
     _multifocality = None
     _location = None
     _resectability = None
@@ -249,8 +387,8 @@ class NeuroStructureStatistics:
     _infiltration = None
 
     def __init__(self):
-        self._volume = None
-        self._shape = NeuroShapeStatistics()
+        self._volume = NeuroVolumeStatistics()
+        self._diameters = NeuroDiameterStatistics()
         self._multifocality = NeuroMultifocalityStatistics()
         self._location = NeuroLocationStatistics()
         self._resectability = NeuroResectabilityStatistics()
@@ -259,20 +397,20 @@ class NeuroStructureStatistics:
         self._infiltration = {}
 
     @property
-    def volume(self) -> float:
+    def volume(self) -> NeuroVolumeStatistics:
         return self._volume
 
     @volume.setter
-    def volume(self, value: float) -> None:
+    def volume(self, value: NeuroVolumeStatistics) -> None:
         self._volume = value
 
     @property
-    def shape(self) -> NeuroShapeStatistics:
-        return self._shape
+    def diameters(self) -> NeuroDiameterStatistics:
+        return self._diameters
 
-    @shape.setter
-    def shape(self, value: NeuroShapeStatistics) -> None:
-        self._shape = value
+    @diameters.setter
+    def diameters(self, value: NeuroDiameterStatistics) -> None:
+        self._diameters = value
 
     @property
     def multifocality(self) -> NeuroLocationStatistics:
@@ -330,6 +468,7 @@ class NeuroReportingStructure:
     _timestamp = None  # Timestamp attached to the report
     _output_folder = None
     _tumor_type = None  # Type of CNS tumor identified
+    _acquisition_infos = None
     _statistics = {}
 
     def __init__(self, id: str, output_folder: str, timestamp: str):
@@ -349,6 +488,7 @@ class NeuroReportingStructure:
         self._output_folder = None
         self._tumor_type = None
         self._statistics = {}
+        self._acquisition_infos = None
 
     @property
     def unique_id(self) -> str:
@@ -379,11 +519,20 @@ class NeuroReportingStructure:
     def timestamp(self, value: str) -> None:
         self._timestamp = value
 
+    @property
+    def acquisition_infos(self) -> NeuroAcquisitionInfo:
+        return self._acquisition_infos
+
+    @acquisition_infos.setter
+    def acquisition_infos(self, value: NeuroAcquisitionInfo) -> None:
+        self._acquisition_infos = value
+
     def to_disk(self) -> None:
         self.to_txt()
         self.to_csv()
         self.to_json()
         self.dump_descriptions()
+        self.dump_acquisition_infos()
 
     def to_txt(self) -> None:
         """
@@ -407,21 +556,22 @@ class NeuroReportingStructure:
             pfile.write('########### Raidionics standardized report for timestamp {} in MNI space ###########\n'.format(self.timestamp))
             pfile.write('Tumor type: {}\n'.format(self._tumor_type))
 
-            pfile.write('\nVolumes: \n')
-            for s in self.statistics.keys():
-                pfile.write('  * {}: {}ml\n'.format(s, self.statistics[s]["MNI"].volume))
             for s in self.statistics.keys():
                 pfile.write(f'\n Features for {s} category.\n')
-                pfile.write(' Shape: \n')
-                pfile.write(f'  * Long-axis diameter: {np.round(self.statistics[s]["MNI"].shape.long_axis_diameter, 2)} (mm)\n')
-                pfile.write(f'  * Short-axis diameter: {np.round(self.statistics[s]["MNI"].shape.short_axis_diameter, 2)} (mm)\n')
-                pfile.write(f'  * Feret diameter maximum: {np.round(self.statistics[s]["MNI"].shape.feret_diameter, 2)} (mm)\n')
-                pfile.write(f'  * Equivalent diameter area: {np.round(self.statistics[s]["MNI"].shape.equivalent_diameter_area, 2)} (mm)\n\n')
+                pfile.write(' Volumes: \n')
+                pfile.write(f'  * Volume: {round(self.statistics[s]["MNI"].volume.volume, 2)} (ml)\n')
+                pfile.write(f'  * Brain percentage: {round(self.statistics[s]["MNI"].volume.brain_percentage * 100., 2)} (%)\n')
+
+                pfile.write(' Diameters: \n')
+                pfile.write(f'  * Long-axis diameter: {round(self.statistics[s]["MNI"].diameters.long_axis_diameter, 2)} (mm)\n')
+                pfile.write(f'  * Short-axis diameter: {round(self.statistics[s]["MNI"].diameters.short_axis_diameter, 2)} (mm)\n')
+                pfile.write(f'  * Feret diameter maximum: {round(self.statistics[s]["MNI"].diameters.feret_diameter, 2)} (mm)\n')
+                pfile.write(f'  * Equivalent diameter area: {round(self.statistics[s]["MNI"].diameters.equivalent_diameter_area, 2)} (mm)\n\n')
 
                 pfile.write(' Multifocality: \n')
                 pfile.write(f'  * Status: {self.statistics[s]["MNI"].multifocality.multifocality}\n')
                 pfile.write(f'  * Number parts: {self.statistics[s]["MNI"].multifocality.nb_parts}\n')
-                pfile.write(f'  * Largest distance between components: {np.round(self.statistics[s]["MNI"].multifocality.max_distance, 2)} (mm)\n\n')
+                pfile.write(f'  * Largest distance between components: {round(self.statistics[s]["MNI"].multifocality.max_distance, 2)} (mm)\n\n')
 
                 pfile.write(' Location: \n')
                 pfile.write(f'  * Left hemisphere: {self.statistics[s]["MNI"].location.left_laterality_percentage}\n')
@@ -498,16 +648,17 @@ class NeuroReportingStructure:
             for i, s in enumerate(self.statistics.keys()):
                 param_json[s] = {}
                 param_json[s]["Patient"] = {}
-                param_json[s]["Patient"]["Volume (ml)"] = self.statistics[s]["Patient"].volume
+                param_json[s]["Patient"]["Volume (ml)"] = self.statistics[s]["Patient"].volume.volume
 
                 param_json[s]["MNI"] = {}
-                param_json[s]["MNI"]["Volume (ml)"] = self.statistics[s]["MNI"].volume
+                param_json[s]["MNI"]["Volume (ml)"] = self.statistics[s]["MNI"].volume.volume
+                param_json[s]["MNI"]["Brain percentage (%)"] = self.statistics[s]["MNI"].volume.brain_percentage
 
-                param_json[s]["MNI"]["Shape"] = {}
-                param_json[s]["MNI"]["Shape"]["Long-axis diameter (mm)"] = self.statistics[s]["MNI"].shape.long_axis_diameter
-                param_json[s]["MNI"]["Shape"]["Short-axis diameter (mm)"] = self.statistics[s]["MNI"].shape.short_axis_diameter
-                param_json[s]["MNI"]["Shape"]["Feret diameter (mm)"] = self.statistics[s]["MNI"].shape.feret_diameter
-                param_json[s]["MNI"]["Shape"]["Equivalent diameter area (mm)"] = self.statistics[s]["MNI"].shape.equivalent_diameter_area
+                param_json[s]["MNI"]["Diameters"] = {}
+                param_json[s]["MNI"]["Diameters"]["Long-axis diameter (mm)"] = self.statistics[s]["MNI"].diameters.long_axis_diameter
+                param_json[s]["MNI"]["Diameters"]["Short-axis diameter (mm)"] = self.statistics[s]["MNI"].diameters.short_axis_diameter
+                param_json[s]["MNI"]["Diameters"]["Feret diameter (mm)"] = self.statistics[s]["MNI"].diameters.feret_diameter
+                param_json[s]["MNI"]["Diameters"]["Equivalent diameter area (mm)"] = self.statistics[s]["MNI"].diameters.equivalent_diameter_area
 
                 param_json[s]["MNI"]["Multifocality"] = {}
                 param_json[s]["MNI"]["Multifocality"]["Status"] = self.statistics[s]["MNI"].multifocality.multifocality
@@ -573,15 +724,24 @@ class NeuroReportingStructure:
             for i, s in enumerate(self.statistics.keys()):
                 structure_values = []
                 if i == 0:
-                    column_names.extend(["Volume patient space (ml)", "Volume MNI space (ml)"])
-                structure_values.extend([self.statistics[s]["Patient"].volume, self.statistics[s]["MNI"].volume])
+                    column_names.extend(["Structure"])
+                structure_values.extend([s])
+                if i == 0:
+                    column_names.extend(["Volume patient space (ml)"])
+                structure_values.extend([self.statistics[s]["Patient"].volume.volume])
 
                 if i == 0:
-                    column_names.extend(["Long-axis diameter (mm)", "Short-axis diameter (mm)", "Feret diameter maximum (mm)", "Equivalent diameter area (mm)"])
-                structure_values.extend([self.statistics[s]["MNI"].shape.long_axis_diameter,
-                                         self.statistics[s]["MNI"].shape.short_axis_diameter,
-                                         self.statistics[s]["MNI"].shape.feret_diameter,
-                                         self.statistics[s]["MNI"].shape.equivalent_diameter_area])
+                    column_names.extend(["Volume MNI space (ml)", "Brain percentage (%)"])
+                structure_values.extend([self.statistics[s]["MNI"].volume.volume,
+                                         self.statistics[s]["MNI"].volume.brain_percentage])
+
+                if i == 0:
+                    column_names.extend(["Long-axis diameter (mm)", "Short-axis diameter (mm)",
+                                         "Feret diameter maximum (mm)", "Equivalent diameter area (mm)"])
+                structure_values.extend([self.statistics[s]["MNI"].diameters.long_axis_diameter,
+                                         self.statistics[s]["MNI"].diameters.short_axis_diameter,
+                                         self.statistics[s]["MNI"].diameters.feret_diameter,
+                                         self.statistics[s]["MNI"].diameters.equivalent_diameter_area])
 
                 if i == 0:
                     column_names.extend(["Multifocality", "Number parts", "Multifocal distance (mm)"])
@@ -676,3 +836,46 @@ class NeuroReportingStructure:
         except Exception as e:
             raise RuntimeError(f"Neuro-parameters atlas descriptions dump failed with {e}")
 
+    def dump_acquisition_infos(self):
+        try:
+            filename = os.path.join(self._output_folder, "reporting",
+                                    "T" + str(self.timestamp), "radiological_acquisition_infos.csv")
+            column_names = ["Sequence", "DimX", "DimY", "DimZ", "SpacX", "SpacY", "SpacZ"]
+
+            t1c_values = ["t1c", None, None, None, None, None, None]
+            t1w_values = ["t1w", None, None, None, None, None, None]
+            t2f_values = ["t2f", None, None, None, None, None, None]
+            t2w_values = ["t2w", None, None, None, None, None, None]
+            if self.acquisition_infos.t1c_stats is not None:
+                t1c_values[1] = self.acquisition_infos.t1c_stats.dimension_x
+                t1c_values[2] = self.acquisition_infos.t1c_stats.dimension_y
+                t1c_values[3] = self.acquisition_infos.t1c_stats.dimension_z
+                t1c_values[4] = self.acquisition_infos.t1c_stats.spacing_x
+                t1c_values[5] = self.acquisition_infos.t1c_stats.spacing_y
+                t1c_values[6] = self.acquisition_infos.t1c_stats.spacing_z
+            if self.acquisition_infos.t1w_stats is not None:
+                t1w_values[1] = self.acquisition_infos.t1w_stats.dimension_x
+                t1w_values[2] = self.acquisition_infos.t1w_stats.dimension_y
+                t1w_values[3] = self.acquisition_infos.t1w_stats.dimension_z
+                t1w_values[4] = self.acquisition_infos.t1w_stats.spacing_x
+                t1w_values[5] = self.acquisition_infos.t1w_stats.spacing_y
+                t1w_values[6] = self.acquisition_infos.t1w_stats.spacing_z
+            if self.acquisition_infos.t2f_stats is not None:
+                t2f_values[1] = self.acquisition_infos.t2f_stats.dimension_x
+                t2f_values[2] = self.acquisition_infos.t2f_stats.dimension_y
+                t2f_values[3] = self.acquisition_infos.t2f_stats.dimension_z
+                t2f_values[4] = self.acquisition_infos.t2f_stats.spacing_x
+                t2f_values[5] = self.acquisition_infos.t2f_stats.spacing_y
+                t2f_values[6] = self.acquisition_infos.t2f_stats.spacing_z
+            if self.acquisition_infos.t2w_stats is not None:
+                t2w_values[1] = self.acquisition_infos.t2w_stats.dimension_x
+                t2w_values[2] = self.acquisition_infos.t2w_stats.dimension_y
+                t2w_values[3] = self.acquisition_infos.t2w_stats.dimension_z
+                t2w_values[4] = self.acquisition_infos.t2w_stats.spacing_x
+                t2w_values[5] = self.acquisition_infos.t2w_stats.spacing_y
+                t2w_values[6] = self.acquisition_infos.t2w_stats.spacing_z
+            all_values = [t1c_values, t1w_values, t2f_values, t2w_values]
+            values_df = pd.DataFrame(np.asarray(all_values), columns=column_names)
+            values_df.to_csv(filename, index=False)
+        except Exception as e:
+            logging.error(f"Dumping acquisition infos on disk failed with: {e}")

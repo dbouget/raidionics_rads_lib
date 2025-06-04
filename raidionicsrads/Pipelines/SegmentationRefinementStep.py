@@ -142,7 +142,9 @@ class SegmentationRefinementStep(AbstractPipelineStep):
 
     def __perform_neuro_postprocessing(self) -> None:
         """
-
+        @TODO. If the use_registered_data flag is True, the annotations used in global_context refinement should hence
+        also include the annotations from other sequences not featured in T1, for inclusion, not looking in the
+        registered_volumes attribute.
         """
         try:
             if self.refinement_operation == "dilation":
@@ -165,9 +167,12 @@ class SegmentationRefinementStep(AbstractPipelineStep):
                     if v.unique_id != self._input_volume_uid:
                         linked_annos = self._patient_parameters.get_all_annotations_radiological_volume(v.unique_id)
                         for anno in linked_annos:
-                            if self._input_volume_uid in list(anno.registered_volumes.keys()):
-                                if anno.get_annotation_type_str() not in list(annotation_files.keys()):
-                                    annotation_files[anno.get_annotation_type_str()] = anno.registered_volumes[self._input_volume_uid]["filepath"]
+                            if not ResourcesConfiguration.getInstance().predictions_use_registered_data:
+                                if self._input_volume_uid in list(anno.registered_volumes.keys()):
+                                    if anno.get_annotation_type_str() not in list(annotation_files.keys()):
+                                        annotation_files[anno.get_annotation_type_str()] = anno.registered_volumes[self._input_volume_uid]["filepath"]
+                            else:
+                                annotation_files[anno.get_annotation_type_str()] = anno.usable_input_filepath
 
                 perform_segmentation_global_consistency_refinement(annotation_files=annotation_files,
                                                                    timestamp=self._step_json["inputs"]["0"]["timestamp"])
