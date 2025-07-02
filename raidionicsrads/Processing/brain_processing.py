@@ -212,8 +212,10 @@ def perform_brain_overlap_refinement(predictions_filepath: str, brain_mask_filep
     except Exception as e:
         raise ValueError("Brain overlap refinement failed with: {}.".format(e))
 
-def perform_segmentation_global_consistency_refinement(annotation_files: dict, timestamp: str):
+def perform_segmentation_global_consistency_refinement(annotation_files: dict, timestamp: str) -> dict:
     """
+    @TODO. Should handle things differently based on contrast-enhancing or non contrast-enhancing tumors! Must propagate the info down
+
     @TODO. Should also ship the preop segmentation for postop refinement (e.g. preop necrosis still in postop),
     but then the preop T1 and postop T1 should be co-registered...
     """
@@ -257,6 +259,11 @@ def perform_segmentation_global_consistency_refinement(annotation_files: dict, t
             necrosis_anno = necrosis_anno_nib.get_fdata()[:]
 
     if timestamp == 1:
+        if cavity_anno is not None and necrosis_anno is not None:
+            # High chances that both segmented the same thing, would have to clean up!
+            # Disabling necrosis segmention in postop for the time being, as the model was trained on preop only.
+            pass
+
         if cavity_anno is not None and flair_changes_anno is not None:
             refined_tumorce = np.zeros(tumor_ce_anno.shape).astype("uint8")
             refined_tumorce[(tumor_ce_anno != 0) & (cavity_anno == 0)] = 1
@@ -284,7 +291,7 @@ def perform_segmentation_global_consistency_refinement(annotation_files: dict, t
             # Only the preop tumor core is available, no context refinement can be performed.
             output_annotation_files[AnnotationClassType.Tumor] = tumorcore_anno_fn
         elif flair_changes_anno is not None and cavity_anno is None and tumor_ce_anno is None and necrosis_anno is None:
-            # Should the FLAIR changes just be on the outskirt of the tumor core?
+            # Should the FLAIR changes just be on the outskirt of the tumor core (at least for contrast-enhancing tumors)?
             new_flair_changes = np.zeros(flair_changes_anno.shape).astype('uint8')
             new_flair_changes[flair_changes_anno == 1] = 1
             new_flair_changes[tumorcore_anno == 1] = 0
@@ -297,8 +304,14 @@ def perform_segmentation_global_consistency_refinement(annotation_files: dict, t
             new_necrosis[(tumorcore_anno == 1) & (necrosis_anno == 1)] = 1
             nib.save(nib.Nifti1Image(new_necrosis, necrosis_anno_nib.affine, necrosis_anno_nib.header),
                      necrosis_anno_fn)
+            new_et = np.zeros(necrosis_anno.shape).astype('uint8')
+            new_et[(tumorcore_anno == 1) & (necrosis_anno == 0)] = 1
+            new_et_fn = os.path.join(os.path.dirname(necrosis_anno_fn), os.path.basename(necrosis_anno_fn.split('_annotation')[0]) + '_annotation-TumorCE.nii.gz')
+            nib.save(nib.Nifti1Image(new_et, necrosis_anno_nib.affine, necrosis_anno_nib.header),
+                     new_et_fn)
             output_annotation_files[AnnotationClassType.Tumor] = tumorcore_anno_fn
             output_annotation_files[AnnotationClassType.Necrosis] = necrosis_anno_fn
+            output_annotation_files[AnnotationClassType.TumorCE] = new_et_fn
         elif flair_changes_anno is not None and cavity_anno is None and tumor_ce_anno is None and necrosis_anno is not None:
             new_necrosis = np.zeros(necrosis_anno.shape).astype('uint8')
             new_necrosis[(tumorcore_anno == 1) & (necrosis_anno == 1)] = 1
@@ -306,13 +319,19 @@ def perform_segmentation_global_consistency_refinement(annotation_files: dict, t
                      necrosis_anno_fn)
             new_flair_changes = np.zeros(flair_changes_anno.shape).astype('uint8')
             new_flair_changes[flair_changes_anno == 1] = 1
-            new_flair_changes[tumorcore_anno == 1] = 0
-            new_flair_changes[necrosis_anno == 1] = 0
+            new_flair_changes[tumorcore_anno == 1] = 1
             nib.save(nib.Nifti1Image(new_flair_changes, flair_changes_anno_nib.affine, flair_changes_anno_nib.header),
                      flair_changes_anno_fn)
+            new_edema = np.zeros(necrosis_anno.shape).astype('uint8')
+            new_edema[flair_changes_anno == 1] = 1
+            new_edema[tumorcore_anno == 1] = 0
+            new_edema_fn = os.path.join(os.path.dirname(necrosis_anno_fn), os.path.basename(necrosis_anno_fn.split('_annotation')[0]) + '_annotation-Edema.nii.gz')
+            nib.save(nib.Nifti1Image(new_edema, necrosis_anno_nib.affine, necrosis_anno_nib.header),
+                     new_edema_fn)
             output_annotation_files[AnnotationClassType.Tumor] = tumorcore_anno_fn
             output_annotation_files[AnnotationClassType.Necrosis] = necrosis_anno_fn
             output_annotation_files[AnnotationClassType.FLAIRChanges] = flair_changes_anno_fn
+            output_annotation_files[AnnotationClassType.Edema] = new_edema_fn
         else:
             pass
             # return

@@ -302,7 +302,8 @@ def compute_braingrid_voxels_infiltration(volume, category=None, reference='Voxe
     return overlap_per_voxel, infiltrated_voxels
 
 
-def compute_surgical_report(brain_preop_fn: str, brain_postop_fn: str, tumor_preop_fn: str, tumor_postop_fn: str, report, flairchanges_preop_fn: str = None,
+def compute_surgical_report(brain_preop_fn: str, brain_postop_fn: str, tumor_preop_fn: str, tumor_postop_fn: str,
+                            necrosis_preop_fn: str, necrosis_postop_fn: str, report, flairchanges_preop_fn: str = None,
                             flairchanges_postop_fn: str = None, cavity_postop_fn: str = None) -> None:
     """
     Update the report in-place with the computed values.
@@ -324,7 +325,7 @@ def compute_surgical_report(brain_preop_fn: str, brain_postop_fn: str, tumor_pre
         flairchanges_preop_volume = None
         if flairchanges_preop_fn is not None:
             flairchanges_preop_ni = nib.load(flairchanges_preop_fn)
-            flairchanges_preop_volume = compute_volume(flairchanges_preop_ni.get_fdata()[:],
+            flairchanges_preop_volume, _ = compute_volume(flairchanges_preop_ni.get_fdata()[:],
                                                        flairchanges_preop_ni.header.get_zooms())
 
         flairchanges_postop_volume = None
@@ -332,6 +333,16 @@ def compute_surgical_report(brain_preop_fn: str, brain_postop_fn: str, tumor_pre
             flairchanges_postop_ni = nib.load(flairchanges_postop_fn)
             flairchanges_postop_volume, _ = compute_volume(flairchanges_postop_ni.get_fdata()[:],
                                                         flairchanges_postop_ni.header.get_zooms())
+        necrosis_preop_volume = None
+        if necrosis_preop_fn is not None:
+            necrosis_preop_ni = nib.load(necrosis_preop_fn)
+            necrosis_preop_volume, _ = compute_volume(necrosis_preop_ni.get_fdata()[:],
+                                                       necrosis_preop_ni.header.get_zooms())
+        necrosis_postop_volume = None
+        if necrosis_postop_fn is not None:
+            necrosis_postop_ni = nib.load(necrosis_postop_fn)
+            necrosis_postop_volume, _ = compute_volume(necrosis_postop_ni.get_fdata()[:],
+                                                       necrosis_postop_ni.header.get_zooms())
         cavity_postop_volume = None
         if cavity_postop_fn is not None:
             cavity_postop_ni = nib.load(cavity_postop_fn)
@@ -343,6 +354,8 @@ def compute_surgical_report(brain_preop_fn: str, brain_postop_fn: str, tumor_pre
         report.statistics.extent_of_resection = eor
         report.statistics.flairchanges_volume_preop = flairchanges_preop_volume
         report.statistics.flairchanges_volume_postop = flairchanges_postop_volume
+        report.statistics.necrosis_volume_preop = necrosis_preop_volume
+        report.statistics.necrosis_volume_postop = necrosis_postop_volume
         report.statistics.cavity_volume_postop = cavity_postop_volume
         report.statistics.brain_volume_preop = preop_brain_volume
         report.statistics.brain_volume_postop = postop_brain_volume
@@ -353,6 +366,10 @@ def compute_surgical_report(brain_preop_fn: str, brain_postop_fn: str, tumor_pre
         if flairchanges_preop_volume and flairchanges_postop_volume:
             eor_flair =  ((flairchanges_preop_volume - flairchanges_postop_volume) / flairchanges_preop_volume) * 100.
             report.statistics.extent_of_resection_flair = eor_flair
+
+        if necrosis_preop_volume and necrosis_postop_volume:
+            eor_necro =  ((necrosis_preop_volume - necrosis_postop_volume) / necrosis_preop_volume) * 100.
+            report.statistics.necrosis_volume_change = eor_necro
 
         if eor > 99.9:
             report.statistics.resection_category = ResectionCategoryType.ComR

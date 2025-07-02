@@ -44,6 +44,9 @@ class SurgicalStatistics:
     _brain_volume_preop = None
     _brain_volume_postop = None
     _brain_volume_change = None
+    _necrosis_volume_preop = None
+    _necrosis_volume_postop = None
+    _necrosis_volume_change = None
     _tumor_to_brain_ratio_preop = None
     _tumor_to_brain_ratio_postop = None
 
@@ -52,7 +55,8 @@ class SurgicalStatistics:
                  flairchanges_volume_postop: float = None, cavity_volume_postop: float = None,
                  brain_volume_preop: float = None, brain_volume_postop: float = None,
                  brain_volume_change: float = None, tumor_to_brain_ratio_preop: float = None,
-                 tumor_to_brain_ratio_postop: float = None):
+                 tumor_to_brain_ratio_postop: float = None, necrosis_volume_preop: float = None,
+                 necrosis_volume_postop: float = None, necrosis_volume_change: float = None):
         self._tumor_volume_preop = volume_pre
         self._tumor_volume_postop = volume_post
         self._extent_of_resection = eor
@@ -66,6 +70,9 @@ class SurgicalStatistics:
         self._brain_volume_change = brain_volume_change
         self._tumor_to_brain_ratio_preop = tumor_to_brain_ratio_preop
         self._tumor_to_brain_ratio_postop = tumor_to_brain_ratio_postop
+        self._necrosis_volume_preop = necrosis_volume_preop
+        self._necrosis_volume_postop = necrosis_volume_postop
+        self._necrosis_volume_change = necrosis_volume_change
 
     @property
     def tumor_volume_preop(self) -> float:
@@ -156,6 +163,30 @@ class SurgicalStatistics:
         self._brain_volume_change = value
 
     @property
+    def necrosis_volume_preop(self) -> float:
+        return self._necrosis_volume_preop
+
+    @necrosis_volume_preop.setter
+    def necrosis_volume_preop(self, value: float) -> None:
+        self._necrosis_volume_preop = value
+
+    @property
+    def necrosis_volume_postop(self) -> float:
+        return self._necrosis_volume_postop
+
+    @necrosis_volume_postop.setter
+    def necrosis_volume_postop(self, value: float) -> None:
+        self._necrosis_volume_postop = value
+
+    @property
+    def necrosis_volume_change(self) -> float:
+        return self._necrosis_volume_change
+
+    @necrosis_volume_change.setter
+    def necrosis_volume_change(self, value: float) -> None:
+        self._necrosis_volume_change = value
+
+    @property
     def tumor_to_brain_ratio_preop(self) -> float:
         return self._tumor_to_brain_ratio_preop
 
@@ -239,6 +270,12 @@ class NeuroSurgicalReportingStructure:
             pfile.write(' Postoperative tumor volume: {:.2f} ml\n'.format(self.statistics.tumor_volume_postop))
             pfile.write(' Extent of resection: {:.2f} %\n'.format(self.statistics.extent_of_resection))
             pfile.write(' Resection category: {}\n'.format(self.statistics.resection_category))
+            if self.statistics.necrosis_volume_preop is not None:
+                pfile.write(' Preoperative necrosis volume: {:.2f} ml\n'.format(self.statistics.necrosis_volume_preop))
+            if self.statistics.necrosis_volume_postop is not None:
+                pfile.write(' Postoperative necrosis volume: {:.2f} ml\n'.format(self.statistics.necrosis_volume_postop))
+            if self.statistics.necrosis_volume_change is not None:
+                pfile.write(' Necrosis volume change: {:.2f} ml\n'.format(self.statistics.necrosis_volume_change))
             if self.statistics.flairchanges_volume_preop is not None:
                 pfile.write(' Preoperative flair changes volume: {:.2f} ml\n'.format(self.statistics.flairchanges_volume_preop))
             if self.statistics.flairchanges_volume_postop is not None:
@@ -272,6 +309,9 @@ class NeuroSurgicalReportingStructure:
             param_json["brain_volume_change"] = self.statistics.brain_volume_change
             param_json["tumor_to_brain_ratio_preop"] = self.statistics.tumor_to_brain_ratio_preop
             param_json["tumor_to_brain_ratio_postop"] = self.statistics.tumor_to_brain_ratio_postop
+            param_json["necrosis_preop_volume"] = self.statistics.necrosis_volume_preop
+            param_json["necrosis_postop_volume"] = self.statistics.necrosis_volume_postop
+            param_json["necrosis_volume_change"] = self.statistics.necrosis_volume_change
             with open(filename, 'w', newline='\n') as outfile:
                 json.dump(param_json, outfile, indent=4, sort_keys=True)
         except Exception as e:
@@ -290,14 +330,17 @@ class NeuroSurgicalReportingStructure:
             all_values.extend([self.statistics.brain_volume_preop, self.statistics.brain_volume_postop])
             column_names.extend(["Volume tumor preop (ml)", "Volume tumor postop (ml)"])
             all_values.extend([self.statistics.tumor_volume_preop, self.statistics.tumor_volume_postop])
+            column_names.extend(["Volume necrosis preop (ml)", "Volume necrosis postop (ml)"])
+            all_values.extend([self.statistics.necrosis_volume_preop, self.statistics.necrosis_volume_postop])
             column_names.extend(["Extent of resection (%)", "Resection category"])
             all_values.extend([self.statistics.extent_of_resection, self.statistics.resection_category])
             column_names.extend(["Volume FLAIR changes preop (ml)", "Volume FLAIR changes postop (ml)",
                                  "Volume cavity postop (ml)"])
             all_values.extend([self.statistics.flairchanges_volume_preop, self.statistics.flairchanges_volume_postop,
                                self.statistics.cavity_volume_postop])
-            column_names.extend(["FLAIRchanges volume change (%)", "Brain volume change (%)"])
-            all_values.extend([self.statistics.extent_of_resection_flair, self.statistics.brain_volume_change])
+            column_names.extend(["FLAIRchanges volume change (%)", "Brain volume change (%)", "Necrosis volume change (%)"])
+            all_values.extend([self.statistics.extent_of_resection_flair, self.statistics.brain_volume_change,
+                               self.statistics.necrosis_volume_change])
             column_names.extend(["Tumor to brain ratio preop (%)", "Tumor to brain ratio postop (%)"])
             all_values.extend([self.statistics.tumor_to_brain_ratio_preop, self.statistics.tumor_to_brain_ratio_postop])
             values_df = pd.DataFrame(np.asarray([all_values]), columns=column_names)

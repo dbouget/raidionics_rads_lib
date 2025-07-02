@@ -174,8 +174,24 @@ class SegmentationRefinementStep(AbstractPipelineStep):
                             else:
                                 annotation_files[anno.get_annotation_type_str()] = anno.usable_input_filepath
 
-                perform_segmentation_global_consistency_refinement(annotation_files=annotation_files,
+                refined_annos = perform_segmentation_global_consistency_refinement(annotation_files=annotation_files,
                                                                    timestamp=self._step_json["inputs"]["0"]["timestamp"])
+                for ranno in list(refined_annos.keys()):
+                    if not self._patient_parameters.get_all_annotations_uids_class_radiological_volume(volume_uid=self._input_volume_uid,
+                                                                                                       annotation_class=ranno):
+                        # A new annotation has been created and should be included.
+                        non_available_uid = True
+                        anno_uid = None
+                        while non_available_uid:
+                            anno_uid = 'A' + str(np.random.randint(0, 10000))
+                            if anno_uid not in self._patient_parameters.get_all_annotations_uids():
+                                non_available_uid = False
+                        annotation = Annotation(uid=anno_uid, input_filename=refined_annos[ranno],
+                                                output_folder=self._patient_parameters.get_radiological_volume(
+                                                    volume_uid=self._input_volume_uid).output_folder,
+                                                radiological_volume_uid=self._input_volume_uid,
+                                                annotation_class=ranno)
+                        self._patient_parameters.include_annotation(anno_uid, annotation)
             else:
                 raise ValueError("The selected refinement operation is not available, with value {}".format(self.refinement_operation))
         except Exception as e:
