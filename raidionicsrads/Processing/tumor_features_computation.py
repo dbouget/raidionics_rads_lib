@@ -9,7 +9,7 @@ from scipy.ndimage import binary_closing, _ni_support
 from scipy.ndimage import distance_transform_edt, binary_erosion, generate_binary_structure
 
 
-def compute_volume(volume: np.ndarray, spacing: tuple, brain_mask: np.ndarray = None) -> tuple[float, float]:
+def compute_volume(volume: np.ndarray, spacing: Tuple, brain_mask: np.ndarray = None) -> Tuple[float, float]:
     """
 
     Parameters
@@ -42,7 +42,7 @@ def compute_volume(volume: np.ndarray, spacing: tuple, brain_mask: np.ndarray = 
     return res_volume, brain_perc
 
 
-def compute_shape(volume: np.ndarray, spacing: tuple) -> Tuple[float, float, float, float]:
+def compute_shape(volume: np.ndarray, spacing: Tuple) -> Tuple[float, float, float, float]:
     """
 
     """
@@ -66,7 +66,7 @@ def compute_shape(volume: np.ndarray, spacing: tuple) -> Tuple[float, float, flo
     return float(long_axis), float(short_axis), float(feret), float(equivalent)
 
 
-def compute_multifocality(volume: np.ndarray, spacing: tuple,
+def compute_multifocality(volume: np.ndarray, spacing: Tuple,
                           volume_threshold: float = 0.,
                           distance_threshold: float = 0.) -> Tuple[bool, int, float]:
     """
