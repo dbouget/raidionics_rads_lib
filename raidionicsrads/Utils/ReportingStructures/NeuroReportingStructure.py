@@ -562,7 +562,7 @@ class NeuroReportingStructure:
             logging.info(f"Exporting standardized report for timestamp timestamp {self.timestamp} to text in {filename}.")
             pfile = open(filename, 'w')
             pfile.write('########### Raidionics standardized report for timestamp {} in MNI space ###########\n'.format(self.timestamp))
-            pfile.write('Tumor type: {}\n'.format(self._tumor_type))
+            pfile.write('Tumor type: {}\n'.format(self.tumor_type))
 
             for s in self.statistics.keys():
                 pfile.write(f'\n Features for {s} category.\n')
@@ -656,6 +656,7 @@ class NeuroReportingStructure:
             for i, s in enumerate(self.statistics.keys()):
                 param_json[s] = {}
                 param_json[s]["Patient"] = {}
+                param_json[s]["Patient"]["Type"] = str(self.tumor_type)
                 param_json[s]["Patient"]["Volume (ml)"] = self.statistics[s]["Patient"].volume.volume
 
                 param_json[s]["MNI"] = {}
@@ -732,8 +733,8 @@ class NeuroReportingStructure:
             for i, s in enumerate(self.statistics.keys()):
                 structure_values = []
                 if i == 0:
-                    column_names.extend(["Structure"])
-                structure_values.extend([s])
+                    column_names.extend(["Structure", "Type"])
+                structure_values.extend([s, str(self.tumor_type)])
                 if i == 0:
                     column_names.extend(["Volume patient space (ml)"])
                 structure_values.extend([self.statistics[s]["Patient"].volume.volume])
