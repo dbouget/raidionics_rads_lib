@@ -174,8 +174,12 @@ class SegmentationRefinementStep(AbstractPipelineStep):
                             else:
                                 annotation_files[anno.get_annotation_type_str()] = anno.usable_input_filepath
 
+                tumor_general_type = "contrast-enhancing"
+                if self.step_json["inputs"]["0"]["labels"] == "FLAIRChanges":
+                    tumor_general_type = "non contrast-enhancing"
                 refined_annos = perform_segmentation_global_consistency_refinement(annotation_files=annotation_files,
-                                                                   timestamp=self._step_json["inputs"]["0"]["timestamp"])
+                                                                   timestamp=self._step_json["inputs"]["0"]["timestamp"],
+                                                                                   tumor_general_type=tumor_general_type)
                 for ranno in list(refined_annos.keys()):
                     if not self._patient_parameters.get_all_annotations_uids_class_radiological_volume(volume_uid=self._input_volume_uid,
                                                                                                        annotation_class=ranno):
