@@ -520,6 +520,14 @@ class NeuroReportingStructure:
         self._timestamp = value
 
     @property
+    def tumor_type(self) -> str:
+        return self._tumor_type
+
+    @tumor_type.setter
+    def tumor_type(self, value: str) -> None:
+        self._tumor_type = value
+
+    @property
     def acquisition_infos(self) -> NeuroAcquisitionInfo:
         return self._acquisition_infos
 

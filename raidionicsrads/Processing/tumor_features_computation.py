@@ -42,7 +42,7 @@ def compute_volume(volume: np.ndarray, spacing: Tuple, brain_mask: np.ndarray = 
     return res_volume, brain_perc
 
 
-def compute_shape(volume: np.ndarray, spacing: Tuple) -> Tuple[float, float, float, float]:
+def compute_diameters(volume: np.ndarray, spacing: Tuple) -> Tuple[float, float, float, float]:
     """
 
     """
@@ -50,7 +50,7 @@ def compute_shape(volume: np.ndarray, spacing: Tuple) -> Tuple[float, float, flo
     short_axis = -1.
     feret = -1.
     equivalent = -1.
-    logging.debug("Computing shape characteristics.")
+    logging.debug("Computing diameter characteristics.")
     clusters = measurements.label(volume)[0]
     clusters_labels = regionprops(clusters)
 

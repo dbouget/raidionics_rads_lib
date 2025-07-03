@@ -7,7 +7,7 @@ from .AbstractPipelineStep import AbstractPipelineStep
 from ..Utils.configuration_parser import ResourcesConfiguration
 from ..Utils.ReportingStructures.NeuroReportingStructure import NeuroReportingStructure
 from ..Processing.neuro_report_computing import *
-from ..Utils.DataStructures.AnnotationStructure import AnnotationClassType
+from ..Utils.DataStructures.AnnotationStructure import AnnotationClassType, BrainTumorType
 from ..Utils.utilities import get_type_from_enum_name
 
 
@@ -102,6 +102,16 @@ class FeaturesComputationStep(AbstractPipelineStep):
             brain_nib = nib.load(brain_filepath)
 
         for t in self.targets:
+            # Filling in the tumor type (@TODO. not ideal here, but the report is not yet created at the time the
+            # classification is performed... Should be made cleaner in the future.
+            if t == "Tumor":
+                tumortype_classif_results_fn = os.path.join(ResourcesConfiguration.getInstance().output_folder,
+                                                            "BrainTumorType_classification_results_raw.csv")
+                tumortype_classif_results_df = pd.read_csv(tumortype_classif_results_fn)
+                tumor_type = tumortype_classif_results_df.values[tumortype_classif_results_df[tumortype_classif_results_df.columns[1]].idxmax(), 0]
+                report.tumor_type = get_type_from_enum_name(BrainTumorType, tumor_type)
+            elif t == "FLAIRChanges" and "Tumor" not in self.targets:
+                report.tumor_type = BrainTumorType.LGG
             structure_nib = None
             if t in [x.name for x in list(AnnotationClassType)]:
                 annotation_filepath = None

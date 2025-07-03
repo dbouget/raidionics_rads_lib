@@ -152,8 +152,8 @@ def compute_structure_statistics(input_mask: nib.Nifti1Image,
                                             brain_mask=brain_array)
         result.volume = NeuroVolumeStatistics(volume=volume, brain_percentage=brain_perc)
 
-        longa, shorta, feret, equi = compute_shape(volume=refined_image, spacing=input_mask.header.get_zooms())
-        result.shape = NeuroDiameterStatistics(long_axis_diameter=longa, short_axis_diameter=shorta, feret_diameter=feret,
+        longa, shorta, feret, equi = compute_diameters(volume=refined_image, spacing=input_mask.header.get_zooms())
+        result.diameters = NeuroDiameterStatistics(long_axis_diameter=longa, short_axis_diameter=shorta, feret_diameter=feret,
                                                equivalent_diameter_area=equi)
 
         status, nb, dist = compute_multifocality(volume=refined_image, spacing=input_mask.header.get_zooms(),

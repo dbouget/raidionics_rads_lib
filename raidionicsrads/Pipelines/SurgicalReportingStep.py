@@ -60,7 +60,7 @@ class SurgicalReportingStep(AbstractPipelineStep):
 
     def __run_neuro_surgical_reporting(self):
         """
-
+        @TODO. Should it be possible to compute some volume/change values for each timestamp also?
         """
         try:
             non_available_uid = True
@@ -76,20 +76,20 @@ class SurgicalReportingStep(AbstractPipelineStep):
                 postop_t1ce_uid = self._patient_parameters.get_radiological_volume_uid(timestamp=1, sequence="T1-CE")
                 preop_tumor_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
                     volume_uid=preop_t1ce_uid, annotation_class=AnnotationClassType.Tumor)
-                postop_tumor_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
-                    volume_uid=postop_t1ce_uid, annotation_class=AnnotationClassType.TumorCE)
                 preop_brain_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
                     volume_uid=preop_t1ce_uid, annotation_class=AnnotationClassType.Brain)
                 preop_flairchanges_fns = self._patient_parameters.get_all_annotations_fns_class_radiological_volume(
                     volume_uid=preop_t1ce_uid, annotation_class=AnnotationClassType.FLAIRChanges, include_coregistrations=True)
+                preop_necrosis_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
+                    volume_uid=preop_t1ce_uid, annotation_class=AnnotationClassType.Necrosis)
+                postop_tumor_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
+                    volume_uid=postop_t1ce_uid, annotation_class=AnnotationClassType.TumorCE)
                 postop_flairchanges_fns = self._patient_parameters.get_all_annotations_fns_class_radiological_volume(
                     volume_uid=postop_t1ce_uid, annotation_class=AnnotationClassType.FLAIRChanges, include_coregistrations=True)
                 postop_cavity_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
                     volume_uid=postop_t1ce_uid, annotation_class=AnnotationClassType.Cavity)
                 postop_brain_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
                     volume_uid=postop_t1ce_uid, annotation_class=AnnotationClassType.Brain)
-                preop_necrosis_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
-                    volume_uid=preop_t1ce_uid, annotation_class=AnnotationClassType.Necrosis)
                 postop_necrosis_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
                     volume_uid=postop_t1ce_uid, annotation_class=AnnotationClassType.Necrosis)
                 if len(preop_tumor_uid) > 0 and len(postop_tumor_uid) > 0:
