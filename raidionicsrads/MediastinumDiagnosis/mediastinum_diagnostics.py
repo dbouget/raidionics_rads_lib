@@ -4,7 +4,7 @@ from skimage.morphology import ball
 from skimage.measure import regionprops
 from scipy.ndimage.measurements import center_of_mass
 from scipy.ndimage import binary_opening, measurements, binary_closing
-from ..Processing.mediastinum_clipping import *
+from ..Processing.mediastinum_processing import *
 from .mediastinum_parameters import MediastinumDiagnosisParameters
 from ..Utils.ants_registration import *
 from ..Utils.configuration_parser import ResourcesConfiguration

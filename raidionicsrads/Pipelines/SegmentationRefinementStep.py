@@ -13,6 +13,7 @@ from .AbstractPipelineStep import AbstractPipelineStep
 from ..Utils.DataStructures.PatientStructure import PatientParameters
 from ..Utils.DataStructures.AnnotationStructure import Annotation, AnnotationClassType, BrainTumorType
 from ..Processing.brain_processing import perform_brain_overlap_refinement, perform_segmentation_global_consistency_refinement
+from ..Processing.mediastinum_processing import perform_lungs_overlap_refinement
 
 
 class SegmentationRefinementStep(AbstractPipelineStep):
@@ -129,9 +130,7 @@ class SegmentationRefinementStep(AbstractPipelineStep):
             if ResourcesConfiguration.getInstance().diagnosis_task == 'neuro_diagnosis':
                 self.__perform_neuro_postprocessing()
             else:
-                logging.warning("[SegmentationRefinementStep] No execution implemented yet for the task {}".format(
-                    ResourcesConfiguration.getInstance().diagnosis_task))
-                pass
+                self.__perform_mediastinum_postprocessing()
         except Exception as e:
             raise ValueError("[SegmentationRefinementStep] Step execution failed with: {}.".format(e))
         return self._patient_parameters
@@ -150,6 +149,15 @@ class SegmentationRefinementStep(AbstractPipelineStep):
             if self.refinement_operation == "dilation":
                 predictions_filepath = self._patient_parameters.get_annotation(annotation_uid=self._input_annotation_uid).usable_input_filepath
                 prediction_binary_dilation(predictions_filepath, arg=int(self._refinement_args))
+            elif self.refinement_operation == "brain_overlap":
+                predictions_filepath = self._patient_parameters.get_annotation(annotation_uid=self._input_annotation_uid).usable_input_filepath
+                brain_annotation_uids = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(volume_uid=self._input_volume_uid, annotation_class=AnnotationClassType.Brain)
+                if len(brain_annotation_uids) == 0 or len(brain_annotation_uids) > 1:
+                    raise ValueError(f"The brain annotation could not be retrieved for performing segmentation refinement.")
+                brain_annotation_uid = brain_annotation_uids[0]
+                brain_mask_filepath = self._patient_parameters.get_annotation(
+                    annotation_uid=brain_annotation_uid).usable_input_filepath
+                perform_brain_overlap_refinement(predictions_filepath=predictions_filepath, brain_mask_filepath=brain_mask_filepath)
             elif self.refinement_operation == "brain_overlap":
                 predictions_filepath = self._patient_parameters.get_annotation(annotation_uid=self._input_annotation_uid).usable_input_filepath
                 brain_annotation_uids = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(volume_uid=self._input_volume_uid, annotation_class=AnnotationClassType.Brain)
@@ -264,4 +272,28 @@ class SegmentationRefinementStep(AbstractPipelineStep):
             raise ValueError("Segmentation refinement results parsing failed with: {}.".format(e))
 
         if os.path.exists(self._working_folder):
+            shutil.rmtree(self._working_folder)
+
+    def __perform_mediastinum_postprocessing(self) -> None:
+        """
+        """
+        try:
+            if self.refinement_operation == "lungs_overlap":
+                predictions_filepath = self._patient_parameters.get_annotation(annotation_uid=self._input_annotation_uid).usable_input_filepath
+                lungs_annotation_uids = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(volume_uid=self._input_volume_uid, annotation_class=AnnotationClassType.Lungs)
+                if len(lungs_annotation_uids) == 0 or len(lungs_annotation_uids) > 1:
+                    raise ValueError(f"The lungs annotation could not be retrieved for performing segmentation refinement.")
+                lungs_annotation_uid = lungs_annotation_uids[0]
+                lungs_mask_filepath = self._patient_parameters.get_annotation(
+                    annotation_uid=lungs_annotation_uid).usable_input_filepath
+                perform_lungs_overlap_refinement(predictions_filepath=predictions_filepath,
+                                                 mask_filepath=lungs_mask_filepath)
+            else:
+                raise ValueError("The selected refinement operation is not available, with value {}".format(self.refinement_operation))
+        except Exception as e:
+            if self._working_folder is not None and os.path.exists(self._working_folder):
+                shutil.rmtree(self._working_folder)
+            raise ValueError("Segmentation refinement execution could not proceed with: {}.".format(e))
+
+        if self._working_folder is not None and os.path.exists(self._working_folder):
             shutil.rmtree(self._working_folder)

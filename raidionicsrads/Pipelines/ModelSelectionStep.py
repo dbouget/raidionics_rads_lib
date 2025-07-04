@@ -208,4 +208,35 @@ class ModelSelectionStep(AbstractPipelineStep):
         -------
 
         """
-        raise ValueError("Automatic identification of the best CT model has not been done yet!")
+        try:
+            final_model_name = None
+            # Have to check first if the model is eligible (e.g., MRI models are not)
+            if self._base_model_name.split('_')[0] == "MRI":
+                return base_model_path
+            else:
+                # For eligible models, list the submodels and match to list of available inputs.
+                eligible_models = []
+                for _, dirs, _ in os.walk(base_model_path):
+                    for d in dirs:
+                        eligible_models.append(d)
+                    break
+
+            eligible_models = sorted(eligible_models, key=len)
+            timestamp = self.target_timestamp
+
+            existing_inputs = self._patient_parameters.get_all_radiological_volumes_for_timestamp(timestamp=timestamp)
+            existing_sequences = sorted(np.unique([i.get_sequence_type_str() for i in existing_inputs]))
+            for m in eligible_models:
+                mseq = m.split('_')
+                complete = True
+                for s in mseq:
+                    if s == "hr" and "High-resolution" not in existing_sequences:
+                        complete = False
+                        break
+                if complete:
+                    final_model_name = os.path.join(self._base_model_name, m)
+            if final_model_name is None:
+                raise ValueError("Could not identify any model matching the set of MR scan inputs.")
+        except Exception as e:
+            raise ValueError(e)
+        return final_model_name
