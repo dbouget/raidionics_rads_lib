@@ -1,4 +1,5 @@
 import json
+import os.path
 import traceback
 import logging
 import numpy as np
@@ -107,9 +108,10 @@ class FeaturesComputationStep(AbstractPipelineStep):
             if t == "Tumor":
                 tumortype_classif_results_fn = os.path.join(ResourcesConfiguration.getInstance().output_folder,
                                                             "BrainTumorType_classification_results_raw.csv")
-                tumortype_classif_results_df = pd.read_csv(tumortype_classif_results_fn)
-                tumor_type = tumortype_classif_results_df.values[tumortype_classif_results_df[tumortype_classif_results_df.columns[1]].idxmax(), 0]
-                report.tumor_type = get_type_from_enum_name(BrainTumorType, tumor_type)
+                if os.path.exists(tumortype_classif_results_fn):
+                    tumortype_classif_results_df = pd.read_csv(tumortype_classif_results_fn)
+                    tumor_type = tumortype_classif_results_df.values[tumortype_classif_results_df[tumortype_classif_results_df.columns[1]].idxmax(), 0]
+                    report.tumor_type = get_type_from_enum_name(BrainTumorType, tumor_type)
             elif t == "FLAIRChanges" and "Tumor" not in self.targets:
                 report.tumor_type = BrainTumorType.LGG
             structure_nib = None

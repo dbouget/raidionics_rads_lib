@@ -657,26 +657,26 @@ class NeuroReportingStructure:
                 param_json[s] = {}
                 param_json[s]["Patient"] = {}
                 param_json[s]["Patient"]["Type"] = str(self.tumor_type)
-                param_json[s]["Patient"]["Volume (ml)"] = self.statistics[s]["Patient"].volume.volume
+                param_json[s]["Patient"]["Volume (ml)"] = float(self.statistics[s]["Patient"].volume.volume)
 
                 param_json[s]["MNI"] = {}
-                param_json[s]["MNI"]["Volume (ml)"] = self.statistics[s]["MNI"].volume.volume
-                param_json[s]["MNI"]["Brain percentage (%)"] = self.statistics[s]["MNI"].volume.brain_percentage
+                param_json[s]["MNI"]["Volume (ml)"] = float(self.statistics[s]["MNI"].volume.volume)
+                param_json[s]["MNI"]["Brain percentage (%)"] = float(self.statistics[s]["MNI"].volume.brain_percentage)
 
                 param_json[s]["MNI"]["Diameters"] = {}
-                param_json[s]["MNI"]["Diameters"]["Long-axis diameter (mm)"] = self.statistics[s]["MNI"].diameters.long_axis_diameter
-                param_json[s]["MNI"]["Diameters"]["Short-axis diameter (mm)"] = self.statistics[s]["MNI"].diameters.short_axis_diameter
-                param_json[s]["MNI"]["Diameters"]["Feret diameter (mm)"] = self.statistics[s]["MNI"].diameters.feret_diameter
-                param_json[s]["MNI"]["Diameters"]["Equivalent diameter area (mm)"] = self.statistics[s]["MNI"].diameters.equivalent_diameter_area
+                param_json[s]["MNI"]["Diameters"]["Long-axis diameter (mm)"] = float(self.statistics[s]["MNI"].diameters.long_axis_diameter)
+                param_json[s]["MNI"]["Diameters"]["Short-axis diameter (mm)"] = float(self.statistics[s]["MNI"].diameters.short_axis_diameter)
+                param_json[s]["MNI"]["Diameters"]["Feret diameter (mm)"] = float(self.statistics[s]["MNI"].diameters.feret_diameter)
+                param_json[s]["MNI"]["Diameters"]["Equivalent diameter area (mm)"] = float(self.statistics[s]["MNI"].diameters.equivalent_diameter_area)
 
                 param_json[s]["MNI"]["Multifocality"] = {}
                 param_json[s]["MNI"]["Multifocality"]["Status"] = self.statistics[s]["MNI"].multifocality.multifocality
                 param_json[s]["MNI"]["Multifocality"]["Elements"] = self.statistics[s]["MNI"].multifocality.nb_parts
-                param_json[s]["MNI"]["Multifocality"]["Max distance (mm)"] = self.statistics[s]["MNI"].multifocality.max_distance
+                param_json[s]["MNI"]["Multifocality"]["Max distance (mm)"] = float(self.statistics[s]["MNI"].multifocality.max_distance)
 
                 param_json[s]["MNI"]["Location"] = {}
-                param_json[s]["MNI"]["Location"]["Left laterality (%)"] = self.statistics[s]["MNI"].location.left_laterality_percentage
-                param_json[s]["MNI"]["Location"]["Right laterality (%)"] = self.statistics[s]["MNI"].location.right_laterality_percentage
+                param_json[s]["MNI"]["Location"]["Left laterality (%)"] = float(self.statistics[s]["MNI"].location.left_laterality_percentage)
+                param_json[s]["MNI"]["Location"]["Right laterality (%)"] = float(self.statistics[s]["MNI"].location.right_laterality_percentage)
                 param_json[s]["MNI"]["Location"]["Midline crossing"] = self.statistics[s]["MNI"].location.laterality_midline_crossing
 
 
@@ -684,25 +684,25 @@ class NeuroReportingStructure:
                 if "Tumor" in s:
                     param_json[s]["MNI"]["Resectability"] = {}
                     param_json[s]["MNI"]["Resectability"]["Index"] = self.statistics[s]["MNI"].resectability.resectability_index
-                    param_json[s]["MNI"]["Resectability"]["Resectable volume (ml)"] = self.statistics[s]["MNI"].resectability.expected_resectable_tumor_volume
-                    param_json[s]["MNI"]["Resectability"]["Expected residual volume (ml)"] = self.statistics[s]["MNI"].resectability.expected_residual_tumor_volume
+                    param_json[s]["MNI"]["Resectability"]["Resectable volume (ml)"] = float(self.statistics[s]["MNI"].resectability.expected_resectable_tumor_volume)
+                    param_json[s]["MNI"]["Resectability"]["Expected residual volume (ml)"] = float(self.statistics[s]["MNI"].resectability.expected_residual_tumor_volume)
 
                 param_json[s]["MNI"]["Cortical Profile"] = {}
                 for t in self.statistics[s]["MNI"].cortical.keys():
                     param_json[s]["MNI"]["Cortical Profile"][t] = {}
                     param_json[s]["MNI"]["Cortical Profile"][t]["Overlap"] = {}
                     for r in self.statistics[s]["MNI"].cortical[t].cortical_structures_overlap.keys():
-                        param_json[s]["MNI"]["Cortical Profile"][t]["Overlap"][r] = self.statistics[s]["MNI"].cortical[t].cortical_structures_overlap[r]
+                        param_json[s]["MNI"]["Cortical Profile"][t]["Overlap"][r] = float(self.statistics[s]["MNI"].cortical[t].cortical_structures_overlap[r])
 
                 param_json[s]["MNI"]["Subcortical Profile"] = {}
                 for t in self.statistics[s]["MNI"].subcortical.keys():
                     param_json[s]["MNI"]["Subcortical Profile"][t] = {}
                     param_json[s]["MNI"]["Subcortical Profile"][t]["Overlap"] = {}
                     for r in self.statistics[s]["MNI"].subcortical[t].subcortical_structures_overlap.keys():
-                        param_json[s]["MNI"]["Subcortical Profile"][t]["Overlap"][r] = self.statistics[s]["MNI"].subcortical[t].subcortical_structures_overlap[r]
+                        param_json[s]["MNI"]["Subcortical Profile"][t]["Overlap"][r] = float(self.statistics[s]["MNI"].subcortical[t].subcortical_structures_overlap[r])
                     param_json[s]["MNI"]["Subcortical Profile"][t]["Distance"] = {}
                     for r in self.statistics[s]["MNI"].subcortical[t].subcortical_structures_distance.keys():
-                        param_json[s]["MNI"]["Subcortical Profile"][t]["Distance"][r] = self.statistics[s]["MNI"].subcortical[t].subcortical_structures_distance[r]
+                        param_json[s]["MNI"]["Subcortical Profile"][t]["Distance"][r] = float(self.statistics[s]["MNI"].subcortical[t].subcortical_structures_distance[r])
 
                 if len(ResourcesConfiguration.getInstance().neuro_features_braingrid) != 0:
                     param_json[s]["MNI"]["Infiltration"] = {}
@@ -711,7 +711,7 @@ class NeuroReportingStructure:
                         param_json[s]["MNI"]["Infiltration"][t]["Count"] = self.statistics[s]["MNI"].infiltration[t].count
                         param_json[s]["MNI"]["Infiltration"][t]["Overlap"] = {}
                         for r in self.statistics[s]["MNI"].infiltration[t].overlap.keys():
-                            param_json[s]["MNI"]["Infiltration"][t]["Overlap"][r] = self.statistics[s]["MNI"].infiltration[t].overlap[r]
+                            param_json[s]["MNI"]["Infiltration"][t]["Overlap"][r] = float(self.statistics[s]["MNI"].infiltration[t].overlap[r])
 
             with open(filename, 'w', newline='\n') as outfile:
                 json.dump(param_json, outfile, indent=4, sort_keys=True)
