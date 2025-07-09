@@ -31,9 +31,6 @@ def test_postoperative_segmentation_pipeline_package(test_dir):
         rads_config.set('Default', 'caller', '')
         rads_config.add_section('System')
         rads_config.set('System', 'gpu_id', "-1")
-        if platform.system() == 'Darwin' and platform.processor() == 'arm':
-            rads_config.set('System', 'ants_root',
-                            os.path.join(os.path.dirname(os.path.realpath(__file__)), '../../raidionicsrads/ANTs'))
         rads_config.set('System', 'input_folder', os.path.join(test_dir, "patients",
                                                                'patient-UnitTest2', "inputs"))
         rads_config.set('System', 'output_folder', output_folder)
@@ -113,9 +110,6 @@ def test_postoperative_segmentation_pipeline_cli(test_dir):
         rads_config.set('Default', 'caller', '')
         rads_config.add_section('System')
         rads_config.set('System', 'gpu_id', "-1")
-        if platform.system() == 'Darwin' and platform.processor() == 'arm':
-            rads_config.set('System', 'ants_root',
-                            os.path.join(os.path.dirname(os.path.realpath(__file__)), '../../raidionicsrads/ANTs'))
         rads_config.set('System', 'input_folder', os.path.join(test_dir, "patients",
                                                                'patient-UnitTest2', "inputs"))
         rads_config.set('System', 'output_folder', output_folder)
