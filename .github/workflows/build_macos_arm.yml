@@ -69,7 +69,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-14, macos-15]
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.11"] # onnxruntime-silicon is compatible on Python 3.11 at most
     runs-on: ${{ matrix.os }}
 
     steps:
