@@ -12,7 +12,7 @@ if platform.system() == 'Darwin' and platform.processor() == 'arm':   # Specific
     required.append('scikit-learn')
     required.append('statsmodels')
 else:
-    required.append('antspyx==0.4.2')
+    required.append('antspyx')
 
 setup(
     name='raidionicsrads',
