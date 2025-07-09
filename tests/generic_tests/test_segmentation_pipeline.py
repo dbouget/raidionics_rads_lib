@@ -231,19 +231,11 @@ def test_segmentation_pipeline_package_mediastinum(test_dir):
         step_index = 1
         step_str = str(step_index)
         pipeline_json[step_str] = {}
-        pipeline_json[step_str]["task"] = "Segmentation"
-        pipeline_json[step_str]["inputs"] = {}
-        pipeline_json[step_str]["inputs"]["0"] = {}
-        pipeline_json[step_str]["inputs"]["0"]["timestamp"] = 0
-        pipeline_json[step_str]["inputs"]["0"]["sequence"] = "High-resolution"
-        pipeline_json[step_str]["inputs"]["0"]["labels"] = None
-        pipeline_json[step_str]["inputs"]["0"]["space"] = {}
-        pipeline_json[step_str]["inputs"]["0"]["space"]["timestamp"] = 0
-        pipeline_json[step_str]["inputs"]["0"]["space"]["sequence"] = "High-resolution"
-        pipeline_json[step_str]["target"] = "Lungs"
-        pipeline_json[step_str]["model"] = "CT_Lungs"
+        pipeline_json[step_str]["task"] = 'Model selection'
+        pipeline_json[step_str]["model"] = 'CT_Lungs'
+        pipeline_json[step_str]["timestamp"] = 0
         pipeline_json[step_str]["format"] = "thresholding"
-        pipeline_json[step_str]["description"] = "Lungs segmentation in High-resolution (T0)."
+        pipeline_json[step_str]["description"] = "Identifying the best lungs segmentation model for existing inputs"
 
         with open(os.path.join(output_folder, 'test_pipeline.json'), 'w', newline='\n') as outfile:
             json.dump(pipeline_json, outfile, indent=4, sort_keys=True)
