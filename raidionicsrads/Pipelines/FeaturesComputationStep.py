@@ -99,6 +99,8 @@ class FeaturesComputationStep(AbstractPipelineStep):
             if self.report_space == "Patient":
                 brain_filepath = brain_annotation[0].usable_input_filepath
             else:
+                if self.report_space not in brain_annotation[0].registered_volumes.keys() :
+                    raise ValueError(f"The {self.report_space} key was not found for {brain_annotation[0].radiological_volume_uid}.")
                 brain_filepath = brain_annotation[0].registered_volumes[self.report_space]["filepath"]
             brain_nib = nib.load(brain_filepath)
 
