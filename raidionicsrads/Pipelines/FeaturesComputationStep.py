@@ -92,15 +92,18 @@ class FeaturesComputationStep(AbstractPipelineStep):
         report = NeuroReportingStructure(id=report_uid,
                                          output_folder=ResourcesConfiguration.getInstance().output_folder,
                                          timestamp=self.step_json["timestamp"])
-        brain_annotation = self._patient_parameters.get_all_annotations_for_timestamp_and_structure(
-            timestamp=self.step_json["timestamp"], structure="Brain")
+        # @TODO. What to do to ensure the first volume is correct if multiple...?
+        base_radiological_volume = self._patient_parameters.get_radiological_volume_for_timestamp_and_sequence(timestamp=self.step_json["timestamp"], sequence=str(MRISequenceType.T1c)) if self.step_json["tumor_type"] == "contrast-enhancing" else self._patient_parameters.get_radiological_volume_for_timestamp_and_sequence(timestamp=self.step_json["timestamp"], sequence=str(MRISequenceType.FLAIR))
+        brain_annotation = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(volume_uid=base_radiological_volume[0].unique_id, annotation_class=AnnotationClassType.Brain, return_objects=True)
+        # brain_annotation = self._patient_parameters.get_all_annotations_for_timestamp_and_structure(
+        #     timestamp=self.step_json["timestamp"], structure="Brain")
         brain_nib = None
         if len(brain_annotation) != 0:
             if self.report_space == "Patient":
                 brain_filepath = brain_annotation[0].usable_input_filepath
             else:
                 if self.report_space not in brain_annotation[0].registered_volumes.keys() :
-                    raise ValueError(f"The {self.report_space} key was not found for {brain_annotation[0].radiological_volume_uid}.")
+                    raise ValueError(f"The {self.report_space} key was not found for {brain_annotation[0].radiological_volume_uid}")
                 brain_filepath = brain_annotation[0].registered_volumes[self.report_space]["filepath"]
             brain_nib = nib.load(brain_filepath)
 

@@ -314,6 +314,15 @@ class PatientParameters:
                 return self.radiological_volumes[im]
         return result
 
+    def get_radiological_volume_for_timestamp_and_sequence(self, timestamp: int,
+                                                           sequence: str) -> List[RadiologicalVolume]:
+        res_list = []
+        volumes = self.get_all_radiological_volumes_uids_for_timestamp(timestamp=timestamp)
+        for v in volumes:
+            if self.radiological_volumes[v].get_sequence_type_str() == sequence:
+                res_list.append(self.radiological_volumes[v])
+        return res_list
+
     def get_all_annotations_uids(self) -> List[str]:
         return list(self.annotation_volumes.keys())
 
@@ -361,16 +370,23 @@ class PatientParameters:
 
     def get_all_annotations_uids_class_radiological_volume(self, volume_uid: str,
                                                            annotation_class: AnnotationClassType,
-                                                           include_coregistrations: bool = False) -> List[str]:
+                                                           include_coregistrations: bool = False,
+                                                           return_objects=False) -> List[str]:
         res = []
         for v in self.annotation_volumes.keys():
             if self.annotation_volumes[v]._radiological_volume_uid == volume_uid and \
                     self.annotation_volumes[v]._annotation_type == annotation_class:
-                res.append(v)
+                if not return_objects:
+                    res.append(v)
+                else:
+                    res.append(self.annotation_volumes[v])
             if include_coregistrations:
                 if volume_uid in self.annotation_volumes[v].registered_volumes.keys() and \
                         self.annotation_volumes[v]._annotation_type == annotation_class:
-                    res.append(v)
+                    if not return_objects:
+                        res.append(v)
+                    else:
+                        res.append(self.annotation_volumes[v])
         return res
 
     def get_all_annotations_fns_class_radiological_volume(self, volume_uid: str,
