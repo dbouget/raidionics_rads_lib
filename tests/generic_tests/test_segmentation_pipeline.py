@@ -241,6 +241,11 @@ def test_segmentation_pipeline_package_mediastinum(test_dir):
         with open(os.path.join(output_folder, 'test_pipeline.json'), 'w', newline='\n') as outfile:
             json.dump(pipeline_json, outfile, indent=4, sort_keys=True)
 
+        lungs_mask_fn = os.path.join(test_dir, "patients", "patient-UnitTest3-Mediastinum", "inputs", "T0",
+                                                "1_CT_HR_label-lungs.nii.gz")
+        logging.debug(f"Lungs mask already existing at: {lungs_mask_fn}")
+        if os.path.exists(lungs_mask_fn):
+            os.remove(lungs_mask_fn)
         logging.info("Running segmentation pipeline unit test.\n")
         try:
             from raidionicsrads.compute import run_rads
@@ -269,5 +274,5 @@ def test_segmentation_pipeline_package_mediastinum(test_dir):
         raise ValueError(f"Error during segmentation pipeline unit test with {e}\n{traceback.format_exc()}")
 
     logging.info("Segmentation pipeline unit test succeeded.\n")
-    if os.path.exists(output_folder):
-        shutil.rmtree(output_folder)
+    # if os.path.exists(output_folder):
+    #     shutil.rmtree(output_folder)
