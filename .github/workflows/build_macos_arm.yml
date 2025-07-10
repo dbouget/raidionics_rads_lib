@@ -107,3 +107,11 @@ jobs:
             pip install pytest pytest-cov pytest-timeout requests
             cd test_env
             pytest -vvv --cov=raidionicsrads tests/generic_tests --cov-report=xml --timeout=1000 --log-cli-level=DEBUG
+
+        - name: Upload test output for inspection
+          if: always()  # <-- ensures this runs even if previous steps fail
+          uses: actions/upload-artifact@v4
+          with:
+            name: test-results-macos-arm
+            path: |
+              test_env/results/output_postop_seg_package/*.nii.gz

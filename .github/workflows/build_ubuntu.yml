@@ -111,16 +111,22 @@ jobs:
       - name: Clone repo
         uses: actions/checkout@v4
 
+      - name: Create clean test environment
+        run: |
+          mkdir test_env
+          cp -r tests test_env/
+
       - name: Download test resources
         uses: actions/download-artifact@v4
         with:
           name: test-resources
-          path: ./tests/unit_tests_results_dir
+          path: ./test-env/unit_tests_results_dir
 
-      - name: Integration tests
+      - name: Integration tests from clean test environment
         run: |
             pip install pytest pytest-cov pytest-timeout requests
-            pytest -vvv --cov=raidionicsrads ${{github.workspace}}/tests/generic_tests --cov-report=xml --timeout=1000 --log-cli-level=DEBUG
+            cd test_env
+            pytest -vvv --cov=raidionicsrads tests/generic_tests --cov-report=xml --timeout=1000 --log-cli-level=DEBUG
 
       - name: Upload coverage to Codecov
         if: ${{ matrix.os == 'ubuntu-22.04' && matrix.python-version == '3.9' }}

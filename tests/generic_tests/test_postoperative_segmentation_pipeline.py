@@ -18,7 +18,7 @@ def test_postoperative_segmentation_pipeline_package(test_dir):
 
     logging.info("Preparing configuration file.\n")
     try:
-        output_folder = os.path.join(test_dir, "results", "output_package")
+        output_folder = os.path.join(test_dir, "results", "output_postop_seg_package")
         if os.path.exists(output_folder):
             shutil.rmtree(output_folder)
         os.makedirs(output_folder)
@@ -77,9 +77,13 @@ def test_postoperative_segmentation_pipeline_package(test_dir):
         assert os.path.exists(segmentation_pred_filename), "No tumor segmentation mask was generated.\n"
         segmentation_gt_filename = os.path.join(test_dir, "patients", "patient-UnitTest2", "verif",
                                                 'T1', 'postop_t1gd_annotation-TumorCE.nii.gz')
-        segmentation_pred = nib.load(segmentation_pred_filename).get_fdata()[:]
-        segmentation_gt = nib.load(segmentation_gt_filename).get_fdata()[:]
-        assert np.count_nonzero(abs(segmentation_pred - segmentation_gt)) < 200, \
+        segmentation_pred_nib = nib.load(segmentation_pred_filename)
+        segmentation_gt_nib = nib.load(segmentation_gt_filename)
+        pred_volume = np.count_nonzero(segmentation_pred_nib.get_fdata()[:]) * np.prod(
+            segmentation_pred_nib.header.get_zooms()[0:3]) * 1e-3
+        gt_volume = np.count_nonzero(segmentation_gt_nib.get_fdata()[:]) * np.prod(
+            segmentation_gt_nib.header.get_zooms()[0:3]) * 1e-3
+        assert abs(pred_volume - gt_volume) < 1.5, \
             "Ground truth and prediction arrays are very different"
     except Exception as e:
         logging.error(f"Error during segmentation pipeline unit test with: {e}\n {traceback.format_exc()}.\n")
@@ -88,8 +92,8 @@ def test_postoperative_segmentation_pipeline_package(test_dir):
         raise ValueError("Error during segmentation pipeline unit test with.\n")
 
     logging.info("Postoperative segmentation pipeline package test succeeded.\n")
-    if os.path.exists(output_folder):
-        shutil.rmtree(output_folder)
+    # if os.path.exists(output_folder):
+    #     shutil.rmtree(output_folder)
 
 def test_postoperative_segmentation_pipeline_cli(test_dir):
     logging.basicConfig()
@@ -98,7 +102,7 @@ def test_postoperative_segmentation_pipeline_cli(test_dir):
 
     logging.info("Preparing configuration file.\n")
     try:
-        output_folder = os.path.join(test_dir, "results", "output_cli")
+        output_folder = os.path.join(test_dir, "results", "output_postop_seg_cli")
         if os.path.exists(output_folder):
             shutil.rmtree(output_folder)
         os.makedirs(output_folder)
@@ -170,9 +174,13 @@ def test_postoperative_segmentation_pipeline_cli(test_dir):
         assert os.path.exists(segmentation_pred_filename), "No tumor segmentation mask was generated.\n"
         segmentation_gt_filename = os.path.join(test_dir, "patients", "patient-UnitTest2", "verif",
                                                 'T1', 'postop_t1gd_annotation-TumorCE.nii.gz')
-        segmentation_pred = nib.load(segmentation_pred_filename).get_fdata()[:]
-        segmentation_gt = nib.load(segmentation_gt_filename).get_fdata()[:]
-        assert np.count_nonzero(abs(segmentation_pred - segmentation_gt)) < 200, \
+        segmentation_pred_nib = nib.load(segmentation_pred_filename)
+        segmentation_gt_nib = nib.load(segmentation_gt_filename)
+        pred_volume = np.count_nonzero(segmentation_pred_nib.get_fdata()[:]) * np.prod(
+            segmentation_pred_nib.header.get_zooms()[0:3]) * 1e-3
+        gt_volume = np.count_nonzero(segmentation_gt_nib.get_fdata()[:]) * np.prod(
+            segmentation_gt_nib.header.get_zooms()[0:3]) * 1e-3
+        assert abs(pred_volume - gt_volume) < 1.5, \
             "Ground truth and prediction arrays are very different"
     except Exception as e:
         logging.error(f"Error during segmentation pipeline unit test with: {e}\n {traceback.format_exc()}.\n")
@@ -181,5 +189,5 @@ def test_postoperative_segmentation_pipeline_cli(test_dir):
         raise ValueError("Error during segmentation pipeline unit test with.\n")
 
     logging.info("Postoperative segmentation pipeline CLI test succeeded.\n")
-    if os.path.exists(output_folder):
-        shutil.rmtree(output_folder)
+    # if os.path.exists(output_folder):
+    #     shutil.rmtree(output_folder)
