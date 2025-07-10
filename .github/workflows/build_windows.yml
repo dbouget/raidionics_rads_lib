@@ -92,7 +92,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Cleanup test environment
-        run: rm -rf test_env/
+        shell: pwsh
+        run: |
+          if (Test-Path "test_env") {
+            Remove-Item -Recurse -Force "test_env"
+          }
 
       - name: Create clean test environment
         run: |
