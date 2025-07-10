@@ -96,7 +96,13 @@ jobs:
       - name: Clone repo
         uses: actions/checkout@v4
 
-      - name: Integration tests
+      - name: Create clean test environment
+        run: |
+          mkdir test_env
+          cp -r tests test_env/
+
+      - name: Integration tests from clean test environment
         run: |
             pip install pytest pytest-cov pytest-timeout requests
-            pytest -vvv --cov=raidionicsrads ${{github.workspace}}/tests/generic_tests --cov-report=xml --timeout=1000 --log-cli-level=DEBUG
+            cd test_env
+            pytest -vvv --cov=raidionicsrads tests/generic_tests --cov-report=xml --timeout=1000 --log-cli-level=DEBUG

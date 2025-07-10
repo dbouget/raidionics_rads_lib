@@ -216,7 +216,7 @@ def test_segmentation_pipeline_package_mediastinum(test_dir):
         rads_config.add_section('System')
         rads_config.set('System', 'gpu_id', "-1")
         rads_config.set('System', 'input_folder', os.path.join(test_dir, "patients",
-                                                               "patient-UnitTest3", "inputs"))
+                                                               "patient-UnitTest3-Mediastinum", "inputs"))
         rads_config.set('System', 'output_folder', output_folder)
         rads_config.set('System', 'model_folder', os.path.join(test_dir, "models"))
         rads_config.set('System', 'pipeline_filename', os.path.join(output_folder,
@@ -233,10 +233,10 @@ def test_segmentation_pipeline_package_mediastinum(test_dir):
         step_str = str(step_index)
         pipeline_json[step_str] = {}
         pipeline_json[step_str]["task"] = 'Model selection'
-        pipeline_json[step_str]["model"] = 'CT_Lungs'
+        pipeline_json[step_str]["model"] = 'CT_Tumor'
         pipeline_json[step_str]["timestamp"] = 0
         pipeline_json[step_str]["format"] = "thresholding"
-        pipeline_json[step_str]["description"] = "Identifying the best lungs segmentation model for existing inputs"
+        pipeline_json[step_str]["description"] = "Identifying the best tumor segmentation model for existing inputs"
 
         with open(os.path.join(output_folder, 'test_pipeline.json'), 'w', newline='\n') as outfile:
             json.dump(pipeline_json, outfile, indent=4, sort_keys=True)
@@ -250,16 +250,19 @@ def test_segmentation_pipeline_package_mediastinum(test_dir):
 
         logging.info("Collecting and comparing results.\n")
         segmentation_pred_filename = os.path.join(output_folder, 'T0',
-                                                  '1_CT_HR_annotation-Lungs.nii.gz')
-        assert os.path.exists(segmentation_pred_filename), "No lungs segmentation mask was generated.\n"
-        segmentation_gt_filename = os.path.join(test_dir, "patients", "patient-UnitTest3", "verif", "T0",
-                                                "1_CT_HR_labels-Lungs.nii.gz")
-        segmentation_pred = nib.load(segmentation_pred_filename).get_fdata()[:]
-        segmentation_gt = nib.load(segmentation_gt_filename).get_fdata()[:]
-        logging.info(
-            f"Ground truth and prediction arrays difference: {np.count_nonzero(abs(segmentation_gt - segmentation_pred))} pixels")
-        # assert np.array_equal(segmentation_pred,
-        #                       segmentation_gt), "Ground truth and prediction arrays are not identical"
+                                                  '1_CT_HR_annotation-Tumor.nii.gz')
+        assert os.path.exists(segmentation_pred_filename), "No tumor segmentation mask was generated.\n"
+        segmentation_gt_filename = os.path.join(test_dir, "patients", "patient-UnitTest3-Mediastinum", "verif", "T0",
+                                                "1_CT_HR_labels-Tumor.nii.gz")
+        segmentation_pred_nib = nib.load(segmentation_pred_filename)
+        segmentation_gt_nib = nib.load(segmentation_gt_filename)
+        pred_volume = np.count_nonzero(segmentation_pred_nib.get_fdata()[:]) * np.prod(
+            segmentation_pred_nib.header.get_zooms()[0:3]) * 1e-3
+        gt_volume = np.count_nonzero(segmentation_gt_nib.get_fdata()[:]) * np.prod(
+            segmentation_gt_nib.header.get_zooms()[0:3]) * 1e-3
+        logging.info(f"Volume difference: {abs(pred_volume - gt_volume)}\n")
+        assert abs(pred_volume - gt_volume) < 1., \
+            "Ground truth and prediction arrays are very different"
     except Exception as e:
         if os.path.exists(output_folder):
             shutil.rmtree(output_folder)

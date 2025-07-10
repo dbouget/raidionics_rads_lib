@@ -114,4 +114,4 @@ jobs:
           with:
             name: test-results-macos-arm
             path: |
-              test_env/results/output_postop_seg_package/*.nii.gz
+              test_env/unit_tests_results_dir/results/output_postop_seg_package/*.nii.gz

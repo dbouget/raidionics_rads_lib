@@ -10,7 +10,7 @@ def download_resources(test_dir: str):
     try:
         test1_image_url = 'https://github.com/raidionics/Raidionics-models/releases/download/v1.3.0-rc/Samples-RaidionicsRADSLib-UnitTest1.zip'
         test2_image_url = 'https://github.com/raidionics/Raidionics-models/releases/download/v1.3.0-rc/Samples-RaidionicsRADSLib-UnitTest2.zip'
-        test3_image_url = 'https://github.com/raidionics/Raidionics-models/releases/download/v1.3.0-rc/Samples-RaidionicsRADSLib-UnitTest3.zip'
+        test3_image_url = 'https://github.com/raidionics/Raidionics-models/releases/download/v1.3.0-rc/Samples-RaidionicsRADSLib-UnitTest3-Mediastinum.zip'
         dest_dir = os.path.join(test_dir, "patients")
         if os.path.exists(dest_dir):
             shutil.rmtree(dest_dir)
@@ -38,7 +38,7 @@ def download_resources(test_dir: str):
         with zipfile.ZipFile(archive_dl_dest, 'r') as zip_ref:
             zip_ref.extractall(dest_dir)
 
-        archive_dl_dest = os.path.join(dest_dir, 'unittest3_volume.zip')
+        archive_dl_dest = os.path.join(dest_dir, 'unittest3_medi_volume.zip')
         headers = {}
         response = requests.get(test3_image_url, headers=headers, stream=True)
         response.raise_for_status()
@@ -59,7 +59,8 @@ def download_resources(test_dir: str):
         tumorcore_model_url = 'https://github.com/raidionics/Raidionics-models/releases/download/v1.3.0-rc/Raidionics-MRI_TumorCore-v13.zip'
         tumorce_model_url = 'https://github.com/raidionics/Raidionics-models/releases/download/v1.3.0-rc/Raidionics-MRI_TumorCE_Postop-v13.zip'
         flairchanges_model_url = 'https://github.com/raidionics/Raidionics-models/releases/download/v1.3.0-rc/Raidionics-MRI_FLAIRChanges-v13.zip'
-        lungss_model_url = 'https://github.com/raidionics/Raidionics-models/releases/download/v1.3.0-rc/Raidionics-CT_Lungs-v13.zip'
+        lungs_model_url = 'https://github.com/raidionics/Raidionics-models/releases/download/v1.3.0-rc/Raidionics-CT_Lungs-v13.zip'
+        medi_tumor_model_url = 'https://github.com/raidionics/Raidionics-models/releases/download/v1.3.0-rc/Raidionics-CT_Tumor-v13.zip'
         dest_dir = os.path.join(test_dir, "models")
         os.makedirs(dest_dir, exist_ok=True)
 
@@ -120,7 +121,18 @@ def download_resources(test_dir: str):
 
         archive_dl_dest = os.path.join(dest_dir, 'lungs_model.zip')
         headers = {}
-        response = requests.get(lungss_model_url, headers=headers, stream=True)
+        response = requests.get(lungs_model_url, headers=headers, stream=True)
+        response.raise_for_status()
+        if response.status_code == requests.codes.ok:
+            with open(archive_dl_dest, "wb") as f:
+                for chunk in response.iter_content(chunk_size=1048576):
+                    f.write(chunk)
+        with zipfile.ZipFile(archive_dl_dest, 'r') as zip_ref:
+            zip_ref.extractall(dest_dir)
+
+        archive_dl_dest = os.path.join(dest_dir, 'medi_tumor_model.zip')
+        headers = {}
+        response = requests.get(medi_tumor_model_url, headers=headers, stream=True)
         response.raise_for_status()
         if response.status_code == requests.codes.ok:
             with open(archive_dl_dest, "wb") as f:
