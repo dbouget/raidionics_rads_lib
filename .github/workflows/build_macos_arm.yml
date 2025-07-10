@@ -54,9 +54,6 @@ jobs:
           tar -xzf ANTsX-v2.4.3_macos_arm.tar.gz -C ${{github.workspace}}/downloads/
           mv ${{github.workspace}}/downloads/install ${{github.workspace}}/raidionicsrads/ANTs/
 
-      - name: List ANTs install directory
-        run: ls -R ${{github.workspace}}/raidionicsrads/ANTs
-
       - name: Built wheel for ${{matrix.TARGET}}
         run: ${{matrix.CMD_BUILD}}
 
@@ -91,6 +88,12 @@ jobs:
             pip install --upgrade pip
             pip install --default-timeout=100 --find-links=${{github.workspace}} --no-cache-dir --force-reinstall raidionicsrads-*
           shell: bash
+
+        - name: List ANTs install directory
+          run: ls -R ${{github.workspace}}/raidionicsrads/ANTs
+
+        - name: List Atlases directory
+          run: ls -R ${{github.workspace}}/raidionicsrads/Atlases
 
         - name: Test CLI
           run: |
