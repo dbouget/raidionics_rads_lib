@@ -109,14 +109,14 @@ jobs:
           run: |
             pip install pytest pytest-cov pytest-timeout requests
             cd test_env
-            pytest -vvv --cov=raidionicsrads tests/generic_tests/test_segmentation_pipeline.py --cov-report=xml --timeout=1000 --log-cli-level=DEBUG
+            pytest -vvv --cov=raidionicsrads tests/generic_tests --cov-report=xml --timeout=1000 --log-cli-level=DEBUG
 
-        - name: Upload test output for inspection
-          if: always()  # <-- ensures this runs even if previous steps fail
-          uses: actions/upload-artifact@v4
-          with:
-            name: test-results-macos-arm
-            path: |
-              test_env/tests/unit_tests_results_dir/results/output_seg_cli/T0/*.nii.gz
-              test_env/tests/unit_tests_results_dir/results/output_seg_package/T0/*.nii.gz
-              test_env/tests/unit_tests_results_dir/results/output_seg_package_medi/T0/*.nii.gz
+#        - name: Upload test output for inspection
+#          if: always()  # <-- ensures this runs even if previous steps fail
+#          uses: actions/upload-artifact@v4
+#          with:
+#            name: test-results-macos-arm
+#            path: |
+#              test_env/tests/unit_tests_results_dir/results/output_seg_cli/T0/*.nii.gz
+#              test_env/tests/unit_tests_results_dir/results/output_seg_package/T0/*.nii.gz
+#              test_env/tests/unit_tests_results_dir/results/output_seg_package_medi/T0/*.nii.gz
