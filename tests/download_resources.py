@@ -48,7 +48,8 @@ def download_resources(test_dir: str):
                     f.write(chunk)
         with zipfile.ZipFile(archive_dl_dest, 'r') as zip_ref:
             zip_ref.extractall(dest_dir)
-        print(f"Content of the mediastinum patient folder: {os.listdir(dest_dir)}\n")
+        tmp_dir = os.path.join(dest_dir, "patient-UnitTest3-Mediastinum", "inputs", "T0")
+        print(f"Content of the mediastinum patient inputs folder: {os.listdir(tmp_dir)}\n")
 
     except Exception as e:
         logging.error(f"Error during resources download with: {e} \n {traceback.format_exc()}.\n")

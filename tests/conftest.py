@@ -15,5 +15,5 @@ def test_dir():
 
     download_resources(test_dir=test_dir)
     yield test_dir
-    logging.info(f"Removing the temporary directory for tests.")
-    shutil.rmtree(test_dir)
+    # logging.info(f"Removing the temporary directory for tests.")
+    # shutil.rmtree(test_dir)
