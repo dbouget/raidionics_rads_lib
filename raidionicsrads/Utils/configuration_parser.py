@@ -412,7 +412,7 @@ class ResourcesConfiguration:
                 self.caller = self.config['Default']['caller'].split('#')[0].strip()
 
     def __parse_system_parameters(self):
-        # The default location should equate to ~/raidionics_rads_lib/raidionicsrads/ANTs/
+        # The default location should equate to ~/raidionicsrads/ANTs/
         self.ants_root = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'ANTs')
         self.ants_reg_dir = ''
         self.ants_apply_dir = ''
@@ -421,6 +421,17 @@ class ResourcesConfiguration:
             if self.config['System']['ants_root'].split('#')[0].strip() != '' and \
                     os.path.isdir(self.config['System']['ants_root'].split('#')[0].strip()):
                 self.ants_root = self.config['System']['ants_root'].split('#')[0].strip()
+        elif platform.system() == 'Darwin' and platform.processor() == 'arm':  # Specific for macOS ARM processor
+            # No Python ANTs supported for such machines
+            self.system_ants_backend = 'cpp'
+            if not os.path.exists(self.ants_root):
+                try:
+                    from importlib.resources import files
+                    import raidionicsrads
+                    logging.info("Could not find a valid ANTs root repository at {}.\n ".format(self.ants_root))
+                    self.ants_root = files(raidionicsrads).joinpath("ANTs")
+                except Exception as e:
+                    pass
 
         if os.path.exists(self.ants_root) and os.path.exists(os.path.join(self.ants_root, "bin")):
             os.environ["ANTSPATH"] = os.path.join(self.ants_root, "bin")
@@ -429,10 +440,8 @@ class ResourcesConfiguration:
             self.system_ants_backend = 'cpp'
         elif platform.system() == 'Darwin' and platform.processor() == 'arm':  # Specific for macOS ARM processor
             # No Python ANTs supported for such machines
-            self.system_ants_backend = 'cpp'
-            if not os.path.exists(self.ants_root):
-                logging.warning("Could not find a valid ANTs root repository at {}.\n ".format(self.ants_root))
-                logging.warning("A valid ANTs directory with the C++ binaries is mandatory for running registration!")
+            logging.warning("Could not find a valid ANTs root repository at {}.\n ".format(self.ants_root))
+            logging.warning("A valid ANTs directory with the C++ binaries is mandatory for running registration on macOS ARM!")
         else:
             self.system_ants_backend = 'python'
 
