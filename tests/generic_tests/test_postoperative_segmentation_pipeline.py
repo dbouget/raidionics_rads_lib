@@ -23,6 +23,13 @@ def test_postoperative_segmentation_pipeline_package(test_dir):
             shutil.rmtree(output_folder)
         os.makedirs(output_folder)
 
+        test_raw_input_fn = os.path.join(test_dir, "patients", 'patient-UnitTest2', "inputs")
+        tmp_test_input_fn = os.path.join(test_dir, "results", "input_postop_seg_package")
+        if os.path.exists(tmp_test_input_fn):
+            shutil.rmtree(tmp_test_input_fn)
+        os.makedirs(tmp_test_input_fn)
+        shutil.copytree(test_raw_input_fn, tmp_test_input_fn)
+
         using_skull_stripped_inputs = True
 
         rads_config = configparser.ConfigParser()
@@ -31,8 +38,7 @@ def test_postoperative_segmentation_pipeline_package(test_dir):
         rads_config.set('Default', 'caller', '')
         rads_config.add_section('System')
         rads_config.set('System', 'gpu_id', "-1")
-        rads_config.set('System', 'input_folder', os.path.join(test_dir, "patients",
-                                                               'patient-UnitTest2', "inputs"))
+        rads_config.set('System', 'input_folder', tmp_test_input_fn)
         rads_config.set('System', 'output_folder', output_folder)
         rads_config.set('System', 'model_folder', os.path.join(test_dir, "models"))
         rads_config.set('System', 'pipeline_filename', os.path.join(output_folder, 'test_pipeline.json'))
@@ -75,7 +81,7 @@ def test_postoperative_segmentation_pipeline_package(test_dir):
         segmentation_pred_filename = os.path.join(output_folder, 'T1',
                                                   'postop_t1gd_annotation-TumorCE_MRI_TumorCE_Postop.nii.gz')
         assert os.path.exists(segmentation_pred_filename), "No tumor segmentation mask was generated.\n"
-        segmentation_gt_filename = os.path.join(test_dir, "patients", "patient-UnitTest2", "verif",
+        segmentation_gt_filename = os.path.join(tmp_test_input_fn, "verif",
                                                 'T1', 'postop_t1gd_annotation-TumorCE.nii.gz')
         segmentation_pred_nib = nib.load(segmentation_pred_filename)
         segmentation_gt_nib = nib.load(segmentation_gt_filename)
@@ -88,11 +94,15 @@ def test_postoperative_segmentation_pipeline_package(test_dir):
             "Ground truth and prediction arrays are very different"
     except Exception as e:
         logging.error(f"Error during segmentation pipeline unit test with: {e}\n {traceback.format_exc()}.\n")
+        if os.path.exists(tmp_test_input_fn):
+            shutil.rmtree(tmp_test_input_fn)
         if os.path.exists(output_folder):
             shutil.rmtree(output_folder)
         raise ValueError("Error during segmentation pipeline unit test with.\n")
 
     logging.info("Postoperative segmentation pipeline package test succeeded.\n")
+    if os.path.exists(tmp_test_input_fn):
+        shutil.rmtree(tmp_test_input_fn)
     if os.path.exists(output_folder):
         shutil.rmtree(output_folder)
 
@@ -107,6 +117,13 @@ def test_postoperative_segmentation_pipeline_cli(test_dir):
         if os.path.exists(output_folder):
             shutil.rmtree(output_folder)
         os.makedirs(output_folder)
+        test_raw_input_fn = os.path.join(test_dir, "patients", 'patient-UnitTest2', "inputs")
+        tmp_test_input_fn = os.path.join(test_dir, "results", "input_postop_seg_cli")
+        if os.path.exists(tmp_test_input_fn):
+            shutil.rmtree(tmp_test_input_fn)
+        os.makedirs(tmp_test_input_fn)
+        shutil.copytree(test_raw_input_fn, tmp_test_input_fn)
+
         using_skull_stripped_inputs = True
 
         rads_config = configparser.ConfigParser()
@@ -115,8 +132,7 @@ def test_postoperative_segmentation_pipeline_cli(test_dir):
         rads_config.set('Default', 'caller', '')
         rads_config.add_section('System')
         rads_config.set('System', 'gpu_id', "-1")
-        rads_config.set('System', 'input_folder', os.path.join(test_dir, "patients",
-                                                               'patient-UnitTest2', "inputs"))
+        rads_config.set('System', 'input_folder', tmp_test_input_fn)
         rads_config.set('System', 'output_folder', output_folder)
         rads_config.set('System', 'model_folder', os.path.join(test_dir, "models"))
         rads_config.set('System', 'pipeline_filename', os.path.join(output_folder,
@@ -173,7 +189,7 @@ def test_postoperative_segmentation_pipeline_cli(test_dir):
         segmentation_pred_filename = os.path.join(output_folder, 'T1',
                                                   'postop_t1gd_annotation-TumorCE_MRI_TumorCE_Postop.nii.gz')
         assert os.path.exists(segmentation_pred_filename), "No tumor segmentation mask was generated.\n"
-        segmentation_gt_filename = os.path.join(test_dir, "patients", "patient-UnitTest2", "verif",
+        segmentation_gt_filename = os.path.join(tmp_test_input_fn, "verif",
                                                 'T1', 'postop_t1gd_annotation-TumorCE.nii.gz')
         segmentation_pred_nib = nib.load(segmentation_pred_filename)
         segmentation_gt_nib = nib.load(segmentation_gt_filename)
@@ -186,10 +202,14 @@ def test_postoperative_segmentation_pipeline_cli(test_dir):
             "Ground truth and prediction arrays are very different"
     except Exception as e:
         logging.error(f"Error during segmentation pipeline unit test with: {e}\n {traceback.format_exc()}.\n")
+        if os.path.exists(tmp_test_input_fn):
+            shutil.rmtree(tmp_test_input_fn)
         if os.path.exists(output_folder):
             shutil.rmtree(output_folder)
         raise ValueError("Error during segmentation pipeline unit test with.\n")
 
     logging.info("Postoperative segmentation pipeline CLI test succeeded.\n")
+    if os.path.exists(tmp_test_input_fn):
+        shutil.rmtree(tmp_test_input_fn)
     if os.path.exists(output_folder):
         shutil.rmtree(output_folder)
