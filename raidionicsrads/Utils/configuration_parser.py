@@ -428,9 +428,10 @@ class ResourcesConfiguration:
             self.system_ants_backend = 'cpp'
             if not os.path.exists(self.ants_root):
                 try:
+                    logging.info("Could not find a valid ANTs root repository at {}.\n ".format(self.ants_root))
                     from importlib.resources import files
                     import raidionicsrads
-                    logging.info("Could not find a valid ANTs root repository at {}.\n ".format(self.ants_root))
+                    logging.debug(f"Module loaded from: {raidionicsrads.__file__}")
                     self.ants_root = files(raidionicsrads).joinpath("ANTs")
                 except Exception as e:
                     pass
