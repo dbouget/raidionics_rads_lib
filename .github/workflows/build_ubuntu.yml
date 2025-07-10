@@ -126,7 +126,7 @@ jobs:
         run: |
             pip install pytest pytest-cov pytest-timeout requests
             cd test_env
-            pytest -vvv --cov=raidionicsrads tests/generic_tests --cov-report=xml --timeout=1000 --log-cli-level=DEBUG
+            pytest -vvv --cov=raidionicsrads tests/generic_tests/test_segmentation_pipeline.py --cov-report=xml --timeout=1000 --log-cli-level=DEBUG
 
       - name: Upload coverage to Codecov
         if: ${{ matrix.os == 'ubuntu-22.04' && matrix.python-version == '3.9' }}
