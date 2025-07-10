@@ -83,6 +83,11 @@ class FeaturesComputationStep(AbstractPipelineStep):
         pass
 
     def __run_neuro_reporting(self):
+        """
+        # @TODO. What to do to ensure the first radiological volume is correct if multiple.
+        # The FLAIR image might not be the base image for non-ce either... need to find a smarter way to handle this...
+
+        """
         non_available_uid = True
         report_uid = None
         while non_available_uid:
@@ -92,11 +97,8 @@ class FeaturesComputationStep(AbstractPipelineStep):
         report = NeuroReportingStructure(id=report_uid,
                                          output_folder=ResourcesConfiguration.getInstance().output_folder,
                                          timestamp=self.step_json["timestamp"])
-        # @TODO. What to do to ensure the first volume is correct if multiple...?
         base_radiological_volume = self._patient_parameters.get_radiological_volume_for_timestamp_and_sequence(timestamp=self.step_json["timestamp"], sequence=str(MRISequenceType.T1c)) if self.step_json["tumor_type"] == "contrast-enhancing" else self._patient_parameters.get_radiological_volume_for_timestamp_and_sequence(timestamp=self.step_json["timestamp"], sequence=str(MRISequenceType.FLAIR))
         brain_annotation = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(volume_uid=base_radiological_volume[0].unique_id, annotation_class=AnnotationClassType.Brain, return_objects=True)
-        # brain_annotation = self._patient_parameters.get_all_annotations_for_timestamp_and_structure(
-        #     timestamp=self.step_json["timestamp"], structure="Brain")
         brain_nib = None
         if len(brain_annotation) != 0:
             if self.report_space == "Patient":
