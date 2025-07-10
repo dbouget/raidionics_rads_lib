@@ -36,6 +36,10 @@ class ResourcesConfiguration:
         self.config_filename = None
         self.config = None
         self.system_ants_backend = 'python'
+        # The default location should equate to ~/raidionicsrads/ANTs/
+        self.ants_root = '' #os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'ANTs')
+        self.ants_reg_dir = ''
+        self.ants_apply_dir = ''
         self.accepted_image_format = ['nii', 'nii.gz', 'mhd', 'mha', 'nrrd']
 
         self.diagnosis_task = None
@@ -412,11 +416,9 @@ class ResourcesConfiguration:
                 self.caller = self.config['Default']['caller'].split('#')[0].strip()
 
     def __parse_system_parameters(self):
-        # The default location should equate to ~/raidionicsrads/ANTs/
-        self.ants_root = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'ANTs')
-        self.ants_reg_dir = ''
-        self.ants_apply_dir = ''
+        """
 
+        """
         if self.config.has_option('System', 'ants_root'):
             if self.config['System']['ants_root'].split('#')[0].strip() != '' and \
                     os.path.isdir(self.config['System']['ants_root'].split('#')[0].strip()):
@@ -444,6 +446,8 @@ class ResourcesConfiguration:
             logging.warning("A valid ANTs directory with the C++ binaries is mandatory for running registration on macOS ARM!")
         else:
             self.system_ants_backend = 'python'
+        logging.debug(f"ANTs scripts directory: {self.ants_reg_dir}")
+        logging.debug(f"ANTs binary directory: {self.ants_apply_dir}")
 
         if self.config.has_option('System', 'output_folder'):
             if self.config['System']['output_folder'].split('#')[0].strip() != '':
