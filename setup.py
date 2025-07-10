@@ -37,6 +37,12 @@ setup(
     },
     install_requires=required,
     include_package_data=True,
+    package_data={
+        "raidionicsrads": [
+            "ANTs/**/*",  # include all files in ANTs/
+            "Atlases/**/*",  # and all files in Atlases/
+        ],
+    },
     python_requires=">=3.9",
     version='1.3.0',
     author='David Bouget (david.bouget@sintef.no)',
