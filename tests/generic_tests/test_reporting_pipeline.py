@@ -8,17 +8,23 @@ import subprocess
 import traceback
 
 
-def test_reporting_pipeline_package(test_dir):
+def test_reporting_pipeline_package(test_dir, tmp_path):
     logging.basicConfig()
     logging.getLogger().setLevel(logging.DEBUG)
     logging.info("Running segmentation pipeline unit test.\n")
 
     logging.info("Preparing configuration file.\n")
     try:
-        output_folder = os.path.join(test_dir, "output_reporting_package")
+        output_folder = os.path.join(tmp_path, "output_reporting_package")
         if os.path.exists(output_folder):
             shutil.rmtree(output_folder)
         os.makedirs(output_folder)
+
+        test_raw_input_fn = os.path.join(test_dir, "patients", 'patient-UnitTest2')
+        tmp_test_input_fn = os.path.join(tmp_path, "results", "input_reporting_package")
+        if os.path.exists(tmp_test_input_fn):
+            shutil.rmtree(tmp_test_input_fn)
+        shutil.copytree(test_raw_input_fn, tmp_test_input_fn)
 
         using_skull_stripped_inputs = True
 
@@ -28,8 +34,7 @@ def test_reporting_pipeline_package(test_dir):
         rads_config.set('Default', 'caller', '')
         rads_config.add_section('System')
         rads_config.set('System', 'gpu_id', "-1")
-        rads_config.set('System', 'input_folder', os.path.join(test_dir, "patients",
-                                                               "patient-UnitTest2", "inputs"))
+        rads_config.set('System', 'input_folder', os.path.join(tmp_test_input_fn, "inputs"))
         rads_config.set('System', 'output_folder', output_folder)
         rads_config.set('System', 'model_folder', os.path.join(test_dir, "models"))
         rads_config.set('System', 'pipeline_filename', os.path.join(output_folder,
@@ -97,16 +102,20 @@ def test_reporting_pipeline_package(test_dir):
 
     except Exception as e:
         logging.error(f"Error during reporting pipeline unit test with: {e}\n {traceback.format_exc()}.\n")
+        if os.path.exists(tmp_test_input_fn):
+            shutil.rmtree(tmp_test_input_fn)
         if os.path.exists(output_folder):
             shutil.rmtree(output_folder)
         raise ValueError("Error during reporting pipeline unit test with.\n")
 
     logging.info("Reporting pipeline unit test succeeded.\n")
+    if os.path.exists(tmp_test_input_fn):
+        shutil.rmtree(tmp_test_input_fn)
     if os.path.exists(output_folder):
         shutil.rmtree(output_folder)
 
 
-def test_reporting_pipeline_surgical(test_dir):
+def test_reporting_pipeline_surgical(test_dir, tmp_path):
     logging.basicConfig()
     logging.getLogger().setLevel(logging.DEBUG)
     logging.info("Running segmentation pipeline unit test.\n")
@@ -118,14 +127,19 @@ def test_reporting_pipeline_surgical(test_dir):
             shutil.rmtree(output_folder)
         os.makedirs(output_folder)
 
+        test_raw_input_fn = os.path.join(test_dir, "patients", 'patient-UnitTest2')
+        tmp_test_input_fn = os.path.join(tmp_path, "results", "input_reporting_surgical")
+        if os.path.exists(tmp_test_input_fn):
+            shutil.rmtree(tmp_test_input_fn)
+        shutil.copytree(test_raw_input_fn, tmp_test_input_fn)
+
         rads_config = configparser.ConfigParser()
         rads_config.add_section('Default')
         rads_config.set('Default', 'task', 'neuro_diagnosis')
         rads_config.set('Default', 'caller', '')
         rads_config.add_section('System')
         rads_config.set('System', 'gpu_id', "-1")
-        rads_config.set('System', 'input_folder', os.path.join(test_dir, "patients",
-                                                               "patient-UnitTest2", "inputs"))
+        rads_config.set('System', 'input_folder', os.path.join(tmp_test_input_fn, "inputs"))
         rads_config.set('System', 'output_folder', output_folder)
         rads_config.set('System', 'model_folder', os.path.join(test_dir, "models"))
         rads_config.set('System', 'pipeline_filename', os.path.join(output_folder,
@@ -219,10 +233,14 @@ def test_reporting_pipeline_surgical(test_dir):
 
     except Exception as e:
         logging.error(f"Error during reporting pipeline unit test with: {e}\n {traceback.format_exc()}.\n")
+        if os.path.exists(tmp_test_input_fn):
+            shutil.rmtree(tmp_test_input_fn)
         if os.path.exists(output_folder):
             shutil.rmtree(output_folder)
         raise ValueError("Error during reporting pipeline unit test with.\n")
 
     logging.info("Reporting pipeline unit test succeeded.\n")
+    if os.path.exists(tmp_test_input_fn):
+        shutil.rmtree(tmp_test_input_fn)
     if os.path.exists(output_folder):
         shutil.rmtree(output_folder)

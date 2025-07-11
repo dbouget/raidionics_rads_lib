@@ -9,26 +9,32 @@ import traceback
 import zipfile
 
 
-def test_registration_pipeline_package(test_dir):
+def test_registration_pipeline_package(test_dir, tmp_path):
     logging.basicConfig()
     logging.getLogger().setLevel(logging.DEBUG)
     logging.info("Running registration pipeline unit test.\n")
 
     logging.info("Preparing configuration file.\n")
     try:
-        output_folder = os.path.join(test_dir, "output_reg_package")
+        output_folder = os.path.join(tmp_path, "output_reg_package")
         if os.path.exists(output_folder):
             shutil.rmtree(output_folder)
         os.makedirs(output_folder)
 
+        test_raw_input_fn = os.path.join(test_dir, "patients", 'patient-UnitTest1')
+        tmp_test_input_fn = os.path.join(tmp_path, "results", "input_reg_package")
+        if os.path.exists(tmp_test_input_fn):
+            shutil.rmtree(tmp_test_input_fn)
+        shutil.copytree(test_raw_input_fn, tmp_test_input_fn)
+
+        using_skull_stripped_inputs = False
         rads_config = configparser.ConfigParser()
         rads_config.add_section('Default')
         rads_config.set('Default', 'task', 'neuro_diagnosis')
         rads_config.set('Default', 'caller', '')
         rads_config.add_section('System')
         rads_config.set('System', 'gpu_id', "-1")
-        rads_config.set('System', 'input_folder', os.path.join(test_dir, "patients",
-                                                               "patient-UnitTest1", "inputs"))
+        rads_config.set('System', 'input_folder', os.path.join(tmp_test_input_fn, "inputs"))
         rads_config.set('System', 'output_folder', output_folder)
         rads_config.set('System', 'model_folder', os.path.join(test_dir, "models"))
         rads_config.set('System', 'pipeline_filename', os.path.join(output_folder,
@@ -36,6 +42,7 @@ def test_registration_pipeline_package(test_dir):
         rads_config.add_section('Runtime')
         rads_config.set('Runtime', 'reconstruction_method', 'thresholding')
         rads_config.set('Runtime', 'reconstruction_order', 'resample_first')
+        rads_config.set('Runtime', 'use_stripped_data', 'True' if using_skull_stripped_inputs else 'False')
         rads_config_filename = os.path.join(output_folder, 'rads_config.ini')
         with open(rads_config_filename, 'w') as outfile:
             rads_config.write(outfile)
@@ -125,41 +132,52 @@ def test_registration_pipeline_package(test_dir):
         logging.info("Registration CLI unit test succeeded.\n")
     except Exception as e:
         logging.error(f"Error during registration pipeline unit test with: {e}\n {traceback.format_exc()}.\n")
+        if os.path.exists(tmp_test_input_fn):
+            shutil.rmtree(tmp_test_input_fn)
         if os.path.exists(output_folder):
             shutil.rmtree(output_folder)
         raise ValueError("Error during registration pipeline unit test with.\n")
 
     logging.info("Registration pipeline unit test succeeded.\n")
+    if os.path.exists(tmp_test_input_fn):
+        shutil.rmtree(tmp_test_input_fn)
     if os.path.exists(output_folder):
         shutil.rmtree(output_folder)
 
 
-def registration_pipeline_test_cli(test_dir):
+def test_registration_pipeline_cli(test_dir, tmp_path):
     logging.basicConfig()
     logging.getLogger().setLevel(logging.DEBUG)
     logging.info("Running registration pipeline unit test.\n")
 
     logging.info("Preparing configuration file.\n")
     try:
-        output_folder = os.path.join(test_dir, "output_reg_cli")
+        output_folder = os.path.join(tmp_path, "output_reg_cli")
         if os.path.exists(output_folder):
             shutil.rmtree(output_folder)
         os.makedirs(output_folder)
 
+        test_raw_input_fn = os.path.join(test_dir, "patients", 'patient-UnitTest1')
+        tmp_test_input_fn = os.path.join(tmp_path, "results", "input_reg_cli")
+        if os.path.exists(tmp_test_input_fn):
+            shutil.rmtree(tmp_test_input_fn)
+        shutil.copytree(test_raw_input_fn, tmp_test_input_fn)
+
+        using_skull_stripped_inputs = False
         rads_config = configparser.ConfigParser()
         rads_config.add_section('Default')
         rads_config.set('Default', 'task', 'neuro_diagnosis')
         rads_config.set('Default', 'caller', '')
         rads_config.add_section('System')
         rads_config.set('System', 'gpu_id', "-1")
-        rads_config.set('System', 'input_folder', os.path.join(test_dir, "patients",
-                                                               "patient-UnitTest1", "inputs"))
+        rads_config.set('System', 'input_folder', os.path.join(tmp_test_input_fn, "inputs"))
         rads_config.set('System', 'output_folder', output_folder)
         rads_config.set('System', 'model_folder', os.path.join(test_dir, "models"))
         rads_config.set('System', 'pipeline_filename', os.path.join(output_folder, 'test_pipeline.json'))
         rads_config.add_section('Runtime')
         rads_config.set('Runtime', 'reconstruction_method', 'thresholding')
         rads_config.set('Runtime', 'reconstruction_order', 'resample_first')
+        rads_config.set('Runtime', 'use_stripped_data', 'True' if using_skull_stripped_inputs else 'False')
         rads_config_filename = os.path.join(output_folder, 'rads_config.ini')
         with open(rads_config_filename, 'w') as outfile:
             rads_config.write(outfile)
@@ -247,10 +265,14 @@ def registration_pipeline_test_cli(test_dir):
         logging.info("Registration CLI unit test succeeded.\n")
     except Exception as e:
         logging.error(f"Error during registration pipeline unit test with: {e}\n {traceback.format_exc()}.\n")
+        if os.path.exists(tmp_test_input_fn):
+            shutil.rmtree(tmp_test_input_fn)
         if os.path.exists(output_folder):
             shutil.rmtree(output_folder)
         raise ValueError("Error during registration pipeline unit test with.\n")
 
     logging.info("Registration pipeline unit test succeeded.\n")
+    if os.path.exists(tmp_test_input_fn):
+        shutil.rmtree(tmp_test_input_fn)
     if os.path.exists(output_folder):
         shutil.rmtree(output_folder)

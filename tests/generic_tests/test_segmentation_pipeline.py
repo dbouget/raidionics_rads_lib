@@ -9,6 +9,7 @@ import nibabel as nib
 import numpy as np
 import shutil
 import platform
+from io import StringIO
 
 
 def test_segmentation_pipeline_package(test_dir, tmp_path):
@@ -29,6 +30,8 @@ def test_segmentation_pipeline_package(test_dir, tmp_path):
             shutil.rmtree(tmp_test_input_fn)
         shutil.copytree(test_raw_input_fn, tmp_test_input_fn)
 
+        using_skull_stripped_inputs = False
+
         rads_config = configparser.ConfigParser()
         rads_config.add_section('Default')
         rads_config.set('Default', 'task', 'neuro_diagnosis')
@@ -43,6 +46,7 @@ def test_segmentation_pipeline_package(test_dir, tmp_path):
         rads_config.add_section('Runtime')
         rads_config.set('Runtime', 'reconstruction_method', 'thresholding')
         rads_config.set('Runtime', 'reconstruction_order', 'resample_first')
+        rads_config.set('Runtime', 'use_stripped_data', 'True' if using_skull_stripped_inputs else 'False')
         rads_config_filename = os.path.join(output_folder, 'rads_config.ini')
         with open(rads_config_filename, 'w') as outfile:
             rads_config.write(outfile)
@@ -77,10 +81,15 @@ def test_segmentation_pipeline_package(test_dir, tmp_path):
         with open(os.path.join(output_folder, 'test_pipeline.json'), 'w', newline='\n') as outfile:
             json.dump(pipeline_json, outfile, indent=4, sort_keys=True)
 
+        with StringIO() as s:
+            rads_config.write(s)
+            config_string = s.getvalue()
+        logging.debug(f"\n\nExecuted config:\n {config_string}")
+        pip_s = json.dumps(pipeline_json, indent=4)
+        logging.debug(f"\n\nExecuted pipeline:\n {pip_s}")
+
         logging.info("Running segmentation pipeline unit test.\n")
         try:
-            import raidionicsrads.compute as compute
-            print(compute.__dict__)
             from raidionicsrads.compute import run_rads
             run_rads(rads_config_filename)
         except Exception as e:
@@ -128,6 +137,8 @@ def test_segmentation_pipeline_cli(test_dir, tmp_path):
             shutil.rmtree(tmp_test_input_fn)
         shutil.copytree(test_raw_input_fn, tmp_test_input_fn)
 
+        using_skull_stripped_inputs = False
+
         rads_config = configparser.ConfigParser()
         rads_config.add_section('Default')
         rads_config.set('Default', 'task', 'neuro_diagnosis')
@@ -142,6 +153,7 @@ def test_segmentation_pipeline_cli(test_dir, tmp_path):
         rads_config.add_section('Runtime')
         rads_config.set('Runtime', 'reconstruction_method', 'thresholding')
         rads_config.set('Runtime', 'reconstruction_order', 'resample_first')
+        rads_config.set('Runtime', 'use_stripped_data', 'True' if using_skull_stripped_inputs else 'False')
         rads_config_filename = os.path.join(output_folder, 'rads_config.ini')
         with open(rads_config_filename, 'w') as outfile:
             rads_config.write(outfile)
@@ -175,6 +187,13 @@ def test_segmentation_pipeline_cli(test_dir, tmp_path):
 
         with open(os.path.join(output_folder, 'test_pipeline.json'), 'w', newline='\n') as outfile:
             json.dump(pipeline_json, outfile, indent=4, sort_keys=True)
+
+        with StringIO() as s:
+            rads_config.write(s)
+            config_string = s.getvalue()
+        logging.debug(f"\n\nExecuted config:\n {config_string}")
+        pip_s = json.dumps(pipeline_json, indent=4)
+        logging.debug(f"\n\nExecuted pipeline:\n {pip_s}")
 
         logging.info("Standardized reporting CLI unit test started.\n")
         try:
@@ -235,6 +254,8 @@ def test_segmentation_pipeline_package_mediastinum(test_dir, tmp_path):
             shutil.rmtree(tmp_test_input_fn)
         shutil.copytree(test_raw_input_fn, tmp_test_input_fn)
 
+        using_lungs_stripped_inputs = False
+
         rads_config = configparser.ConfigParser()
         rads_config.add_section('Default')
         rads_config.set('Default', 'task', 'mediastinum_diagnosis')
@@ -249,6 +270,7 @@ def test_segmentation_pipeline_package_mediastinum(test_dir, tmp_path):
         rads_config.add_section('Runtime')
         rads_config.set('Runtime', 'reconstruction_method', 'thresholding')
         rads_config.set('Runtime', 'reconstruction_order', 'resample_first')
+        rads_config.set('Runtime', 'use_stripped_data', 'True' if using_lungs_stripped_inputs else 'False')
         rads_config_filename = os.path.join(output_folder, 'rads_config.ini')
         with open(rads_config_filename, 'w') as outfile:
             rads_config.write(outfile)
@@ -266,11 +288,13 @@ def test_segmentation_pipeline_package_mediastinum(test_dir, tmp_path):
         with open(os.path.join(output_folder, 'test_pipeline.json'), 'w', newline='\n') as outfile:
             json.dump(pipeline_json, outfile, indent=4, sort_keys=True)
 
-        lungs_mask_fn = os.path.join(tmp_test_input_fn, "inputs", "T0",
-                                                "1_CT_HR_label-lungs.nii.gz")
-        if os.path.exists(lungs_mask_fn):
-            logging.debug(f"Lungs mask already existing at: {lungs_mask_fn}")
-            os.remove(lungs_mask_fn)
+        with StringIO() as s:
+            rads_config.write(s)
+            config_string = s.getvalue()
+        logging.debug(f"\n\nExecuted config:\n {config_string}")
+        pip_s = json.dumps(pipeline_json, indent=4)
+        logging.debug(f"\n\nExecuted pipeline:\n {pip_s}")
+
         logging.info("Running segmentation pipeline unit test.\n")
         try:
             from raidionicsrads.compute import run_rads
