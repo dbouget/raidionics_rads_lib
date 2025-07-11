@@ -11,20 +11,20 @@ import numpy as np
 import platform
 
 
-def test_postoperative_segmentation_pipeline_package(test_dir):
+def test_postoperative_segmentation_pipeline_package(test_dir, tmp_path):
     logging.basicConfig()
     logging.getLogger().setLevel(logging.DEBUG)
     logging.info("Running postoperative segmentation pipeline unit test.\n")
 
     logging.info("Preparing configuration file.\n")
     try:
-        output_folder = os.path.join(test_dir, "results", "output_postop_seg_package")
+        output_folder = os.path.join(tmp_path, "results", "output_postop_seg_package")
         if os.path.exists(output_folder):
             shutil.rmtree(output_folder)
         os.makedirs(output_folder)
 
         test_raw_input_fn = os.path.join(test_dir, "patients", 'patient-UnitTest2')
-        tmp_test_input_fn = os.path.join(test_dir, "results", "inputs_postop_seg_package")
+        tmp_test_input_fn = os.path.join(tmp_path, "results", "inputs_postop_seg_package")
         if os.path.exists(tmp_test_input_fn):
             shutil.rmtree(tmp_test_input_fn)
         shutil.copytree(test_raw_input_fn, tmp_test_input_fn)
@@ -105,19 +105,19 @@ def test_postoperative_segmentation_pipeline_package(test_dir):
     if os.path.exists(output_folder):
         shutil.rmtree(output_folder)
 
-def test_postoperative_segmentation_pipeline_cli(test_dir):
+def test_postoperative_segmentation_pipeline_cli(test_dir, tmp_path):
     logging.basicConfig()
     logging.getLogger().setLevel(logging.DEBUG)
     logging.info("Running postoperative segmentation pipeline unit test.\n")
 
     logging.info("Preparing configuration file.\n")
     try:
-        output_folder = os.path.join(test_dir, "results", "output_postop_seg_cli")
+        output_folder = os.path.join(tmp_path, "results", "output_postop_seg_cli")
         if os.path.exists(output_folder):
             shutil.rmtree(output_folder)
         os.makedirs(output_folder)
         test_raw_input_fn = os.path.join(test_dir, "patients", 'patient-UnitTest2')
-        tmp_test_input_fn = os.path.join(test_dir, "results", "inputs_postop_seg_cli")
+        tmp_test_input_fn = os.path.join(tmp_path, "results", "inputs_postop_seg_cli")
         if os.path.exists(tmp_test_input_fn):
             shutil.rmtree(tmp_test_input_fn)
         shutil.copytree(test_raw_input_fn, tmp_test_input_fn)

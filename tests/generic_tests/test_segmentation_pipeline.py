@@ -11,20 +11,20 @@ import shutil
 import platform
 
 
-def test_segmentation_pipeline_package(test_dir):
+def test_segmentation_pipeline_package(test_dir, tmp_path):
     logging.basicConfig()
     logging.getLogger().setLevel(logging.DEBUG)
     logging.info("Running segmentation pipeline unit test.\n")
 
     logging.info("Preparing configuration file.\n")
     try:
-        output_folder = os.path.join(test_dir, "results", "output_seg_package")
+        output_folder = os.path.join(tmp_path, "results", "output_seg_package")
         if os.path.exists(output_folder):
             shutil.rmtree(output_folder)
         os.makedirs(output_folder)
 
         test_raw_input_fn = os.path.join(test_dir, "patients", 'patient-UnitTest1')
-        tmp_test_input_fn = os.path.join(test_dir, "results", "input_seg_package")
+        tmp_test_input_fn = os.path.join(tmp_path, "results", "input_seg_package")
         if os.path.exists(tmp_test_input_fn):
             shutil.rmtree(tmp_test_input_fn)
         shutil.copytree(test_raw_input_fn, tmp_test_input_fn)
@@ -108,20 +108,20 @@ def test_segmentation_pipeline_package(test_dir):
     if os.path.exists(output_folder):
         shutil.rmtree(output_folder)
 
-def test_segmentation_pipeline_cli(test_dir):
+def test_segmentation_pipeline_cli(test_dir, tmp_path):
     logging.basicConfig()
     logging.getLogger().setLevel(logging.DEBUG)
     logging.info("Running segmentation pipeline unit test.\n")
 
     logging.info("Preparing configuration file.\n")
     try:
-        output_folder = os.path.join(test_dir, "results", "output_seg_cli")
+        output_folder = os.path.join(tmp_path, "results", "output_seg_cli")
         if os.path.exists(output_folder):
             shutil.rmtree(output_folder)
         os.makedirs(output_folder)
 
         test_raw_input_fn = os.path.join(test_dir, "patients", 'patient-UnitTest1')
-        tmp_test_input_fn = os.path.join(test_dir, "results", "input_seg_cli")
+        tmp_test_input_fn = os.path.join(tmp_path, "results", "input_seg_cli")
         if os.path.exists(tmp_test_input_fn):
             shutil.rmtree(tmp_test_input_fn)
         shutil.copytree(test_raw_input_fn, tmp_test_input_fn)
@@ -217,18 +217,18 @@ def test_segmentation_pipeline_cli(test_dir):
         shutil.rmtree(output_folder)
 
 
-def test_segmentation_pipeline_package_mediastinum(test_dir):
+def test_segmentation_pipeline_package_mediastinum(test_dir, tmp_path):
     logging.basicConfig()
     logging.getLogger().setLevel(logging.DEBUG)
     logging.info("Preparing configuration file.\n")
     try:
-        output_folder = os.path.join(test_dir, "results", "output_seg_package_medi")
+        output_folder = os.path.join(tmp_path, "results", "output_seg_package_medi")
         if os.path.exists(output_folder):
             shutil.rmtree(output_folder)
         os.makedirs(output_folder)
 
         test_raw_input_fn = os.path.join(test_dir, "patients", 'patient-UnitTest3-Mediastinum')
-        tmp_test_input_fn = os.path.join(test_dir, "results", "input_seg_package_medi")
+        tmp_test_input_fn = os.path.join(tmp_path, "results", "input_seg_package_medi")
         if os.path.exists(tmp_test_input_fn):
             shutil.rmtree(tmp_test_input_fn)
         shutil.copytree(test_raw_input_fn, tmp_test_input_fn)
@@ -264,7 +264,7 @@ def test_segmentation_pipeline_package_mediastinum(test_dir):
         with open(os.path.join(output_folder, 'test_pipeline.json'), 'w', newline='\n') as outfile:
             json.dump(pipeline_json, outfile, indent=4, sort_keys=True)
 
-        lungs_mask_fn = os.path.join(patient-UnitTest3-Mediastinum, "inputs", "T0",
+        lungs_mask_fn = os.path.join(tmp_test_input_fn, "inputs", "T0",
                                                 "1_CT_HR_label-lungs.nii.gz")
         if os.path.exists(lungs_mask_fn):
             logging.debug(f"Lungs mask already existing at: {lungs_mask_fn}")
@@ -280,7 +280,7 @@ def test_segmentation_pipeline_package_mediastinum(test_dir):
         segmentation_pred_filename = os.path.join(output_folder, 'T0',
                                                   '1_CT_HR_annotation-Tumor.nii.gz')
         assert os.path.exists(segmentation_pred_filename), "No tumor segmentation mask was generated.\n"
-        segmentation_gt_filename = os.path.join(patient-UnitTest3-Mediastinum, "verif", "T0",
+        segmentation_gt_filename = os.path.join(tmp_test_input_fn, "verif", "T0",
                                                 "1_CT_HR_labels-Tumor.nii.gz")
         segmentation_pred_nib = nib.load(segmentation_pred_filename)
         segmentation_gt_nib = nib.load(segmentation_gt_filename)
