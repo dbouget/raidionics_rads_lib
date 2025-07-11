@@ -6,6 +6,7 @@ import logging
 import sys
 import subprocess
 import traceback
+from io import StringIO
 
 
 def test_reporting_pipeline_package(test_dir, tmp_path):
@@ -83,6 +84,13 @@ def test_reporting_pipeline_package(test_dir, tmp_path):
 
         with open(os.path.join(output_folder, 'test_pipeline.json'), 'w', newline='\n') as outfile:
             json.dump(pipeline_json, outfile, indent=4, sort_keys=True)
+
+        with StringIO() as s:
+            rads_config.write(s)
+            config_string = s.getvalue()
+        logging.debug(f"\n\nExecuted config:\n {config_string}")
+        pip_s = json.dumps(pipeline_json, indent=4)
+        logging.debug(f"\n\nExecuted pipeline:\n {pip_s}")
 
         logging.info("Running standardized reporting unit test.\n")
         from raidionicsrads.compute import run_rads
@@ -218,6 +226,13 @@ def test_reporting_pipeline_surgical(test_dir, tmp_path):
 
         with open(os.path.join(output_folder, 'test_pipeline.json'), 'w', newline='\n') as outfile:
             json.dump(pipeline_json, outfile, indent=4, sort_keys=True)
+
+        with StringIO() as s:
+            rads_config.write(s)
+            config_string = s.getvalue()
+        logging.debug(f"\n\nExecuted config:\n {config_string}")
+        pip_s = json.dumps(pipeline_json, indent=4)
+        logging.debug(f"\n\nExecuted pipeline:\n {pip_s}")
 
         logging.info("Running standardized reporting unit test.\n")
         from raidionicsrads.compute import run_rads

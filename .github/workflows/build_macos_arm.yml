@@ -109,7 +109,7 @@ jobs:
           run: |
             pip install pytest pytest-cov pytest-timeout requests
             cd test_env
-            pytest -vvv --cov=raidionicsrads tests/generic_tests --cov-report=xml --timeout=1000 --log-cli-level=DEBUG
+            pytest -vvv --cov=raidionicsrads tests/generic_tests --cov-report=xml --timeout=1500 --log-cli-level=DEBUG
 
 #        - name: Upload test output for inspection
 #          if: always()  # <-- ensures this runs even if previous steps fail

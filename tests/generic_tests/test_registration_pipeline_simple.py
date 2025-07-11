@@ -7,6 +7,7 @@ import sys
 import subprocess
 import traceback
 import zipfile
+from io import StringIO
 
 
 def test_registration_pipeline_package(test_dir, tmp_path):
@@ -118,6 +119,13 @@ def test_registration_pipeline_package(test_dir, tmp_path):
 
         with open(os.path.join(output_folder, 'test_pipeline.json'), 'w', newline='\n') as outfile:
             json.dump(pipeline_json, outfile, indent=4, sort_keys=True)
+
+        with StringIO() as s:
+            rads_config.write(s)
+            config_string = s.getvalue()
+        logging.debug(f"\n\nExecuted config:\n {config_string}")
+        pip_s = json.dumps(pipeline_json, indent=4)
+        logging.debug(f"\n\nExecuted pipeline:\n {pip_s}")
 
         logging.info("Running registration pipeline unit test.\n")
         from raidionicsrads.compute import run_rads
@@ -236,6 +244,13 @@ def test_registration_pipeline_cli(test_dir, tmp_path):
 
         with open(os.path.join(output_folder, 'test_pipeline.json'), 'w', newline='\n') as outfile:
             json.dump(pipeline_json, outfile, indent=4, sort_keys=True)
+
+        with StringIO() as s:
+            rads_config.write(s)
+            config_string = s.getvalue()
+        logging.debug(f"\n\nExecuted config:\n {config_string}")
+        pip_s = json.dumps(pipeline_json, indent=4)
+        logging.debug(f"\n\nExecuted pipeline:\n {pip_s}")
 
         logging.info("Registration CLI unit test started.\n")
         try:
