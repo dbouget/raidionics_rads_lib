@@ -79,6 +79,8 @@ def test_segmentation_pipeline_package(test_dir, tmp_path):
 
         logging.info("Running segmentation pipeline unit test.\n")
         try:
+            import raidionicsrads.compute as compute
+            print(compute.__dict__)
             from raidionicsrads.compute import run_rads
             run_rads(rads_config_filename)
         except Exception as e:

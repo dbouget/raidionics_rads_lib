@@ -33,15 +33,24 @@ class ResourcesConfiguration:
         """
         Definition of all attributes accessible through this singleton.
         """
-        self.config_filename = None
-        self.config = None
+        self.home_path = ''
+        if os.name == 'posix':  # Linux system
+            self.home_path = os.path.expanduser("~")
+
+        self.scripts_root = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../Scripts')
+        self.__set_neuro_resources()
+        self.accepted_image_format = ['nii', 'nii.gz', 'mhd', 'mha', 'nrrd']
+        self.__reset()
+
+    def __reset(self):
         self.system_ants_backend = 'python'
         # The default location should equate to ~/raidionicsrads/ANTs/
         self.ants_root = '' #os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'ANTs')
         self.ants_reg_dir = ''
         self.ants_apply_dir = ''
-        self.accepted_image_format = ['nii', 'nii.gz', 'mhd', 'mha', 'nrrd']
 
+        self.config_filename = None
+        self.config = None
         self.diagnosis_task = None
         self.diagnosis_full_trace = False
         self.caller = None
@@ -72,16 +81,10 @@ class ResourcesConfiguration:
         self.neuro_features_braingrid = []
 
     def set_environment(self, config_path=None):
-        self.home_path = ''
-        if os.name == 'posix':  # Linux system
-            self.home_path = os.path.expanduser("~")
-
-        self.scripts_root = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../Scripts')
-        self.__set_neuro_resources()
-
+        self.__reset()
         self.config = configparser.ConfigParser()
         if not os.path.exists(config_path):
-            pass
+            raise ValueError(f"A valid configuration file is required as input!")
 
         self.config_filename = config_path
         self.config.read(self.config_filename)
