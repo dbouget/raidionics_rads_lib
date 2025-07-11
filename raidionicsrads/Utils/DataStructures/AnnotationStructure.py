@@ -13,9 +13,12 @@ class AnnotationClassType(Enum):
     _init_ = 'value string'
 
     Brain = 0, 'Brain'
-    Tumor = 1, 'Tumor'
+    Tumor = 1, 'Tumor' # Would correspond to tumor core (contrast-enhancing tumor and necrosis/cysts)
     Cavity = 2, 'Cavity'
-    Edema = 3, 'Edema'
+    FLAIRChanges = 3, 'FLAIR/T2 changes (nonenhancing progression)'
+    TumorCE = 4, 'Contrast-enhancing tumor'
+    Necrosis = 5, 'Necrosis'
+    Edema = 6, 'Surrounding non-enhancing FLAIR hyperintensity'
 
     Lungs = 100, 'Lungs'
     Airways = 101, 'Airways'
@@ -91,10 +94,12 @@ class Annotation:
         self._annotation_subtype = None
         self._registered_volumes = {}
 
-    def get_unique_id(self) -> str:
+    @property
+    def unique_id(self) -> str:
         return self._unique_id
 
-    def get_output_folder(self) -> str:
+    @property
+    def output_folder(self) -> str:
         return self._output_folder
 
     @property
@@ -107,10 +112,12 @@ class Annotation:
     #     # @TODO. To check, might not want to give the option to change input filepath?
     #     self.__init_from_scratch()
 
-    def get_usable_input_filepath(self) -> str:
+    @property
+    def usable_input_filepath(self) -> str:
         return self._usable_input_filepath
 
-    def get_parent_radiological_volume_uid(self) -> str:
+    @property
+    def radiological_volume_uid(self) -> str:
         return self._radiological_volume_uid
 
     def get_annotation_type_enum(self) -> Enum:
@@ -118,6 +125,9 @@ class Annotation:
 
     def get_annotation_type_str(self) -> str:
         return str(self._annotation_type)
+
+    def get_annotation_type_name(self) -> str:
+        return self._annotation_type.name
 
     def set_annotation_type(self, type: str) -> None:
         """
@@ -156,6 +166,23 @@ class Annotation:
         ctype = get_type_from_string(type, value)
         if ctype != -1:
             self._annotation_subtype = ctype
+
+    @property
+    def registered_volumes(self) -> dict:
+        return self._registered_volumes
+
+    def is_registered_volume_included(self, destination_space_uid: str) -> bool:
+        """
+
+        Parameters
+        ----------
+        destination_space_uid
+
+        Returns
+        -------
+
+        """
+        return destination_space_uid in list(self._registered_volumes.keys())
 
     def include_registered_volume(self, filepath: str, registration_uid: str, destination_space_uid: str) -> None:
         if destination_space_uid in list(self._registered_volumes.keys()):

@@ -1,16 +1,15 @@
 import logging
 import traceback
 import numpy as np
-from typing import Tuple
+from typing import Tuple, List, Union
 from scipy.ndimage.measurements import center_of_mass
-from scipy.ndimage import measurements
+from scipy.ndimage import measurements, label
 from skimage.measure import regionprops
 from scipy.ndimage import binary_closing, _ni_support
-from scipy.ndimage.morphology import distance_transform_edt, binary_erosion,\
-    generate_binary_structure
+from scipy.ndimage import distance_transform_edt, binary_erosion, generate_binary_structure
 
 
-def compute_volume(volume: np.ndarray, spacing: tuple) -> float:
+def compute_volume(volume: np.ndarray, spacing: Tuple, brain_mask: np.ndarray = None) -> Tuple[float, float]:
     """
 
     Parameters
@@ -24,21 +23,50 @@ def compute_volume(volume: np.ndarray, spacing: tuple) -> float:
     float
         Object volume in milliliters, rounded at two decimals.
     """
-    result = 0.
+    res_volume = 0.
+    brain_perc = -1.
     try:
         logging.debug("Computing tumor volume.")
         voxel_size = np.prod(spacing[0:3])
         volume_pixels = np.count_nonzero(volume)
         volume_mmcube = voxel_size * volume_pixels
         volume_ml = volume_mmcube * 1e-3
-        result = np.round(volume_ml, 2)
+        res_volume = float(round(volume_ml, 2))
+        if brain_mask is not None:
+            brain_volume = np.count_nonzero(brain_mask) * voxel_size * 1e-3
+            brain_perc = volume_ml / brain_volume
+            brain_perc = round(brain_perc, 4)
     except Exception as e:
         raise ValueError('Volume computation failed with: {}'.format(e))
 
-    return result
+    return res_volume, brain_perc
 
 
-def compute_multifocality(volume: np.ndarray, spacing: tuple,
+def compute_diameters(volume: np.ndarray, spacing: Tuple) -> Tuple[float, float, float, float]:
+    """
+
+    """
+    long_axis = -1.
+    short_axis = -1.
+    feret = -1.
+    equivalent = -1.
+    logging.debug("Computing diameter characteristics.")
+    clusters = measurements.label(volume)[0]
+    clusters_labels = regionprops(clusters)
+
+    max_area = 0.
+    for c in clusters_labels:
+        if c.area > max_area:
+            max_area = c.area
+            long_axis = c.axis_major_length * np.prod(spacing[0:3])
+            short_axis = c.axis_minor_length * np.prod(spacing[0:3])
+            feret = c.feret_diameter_max * np.prod(spacing[0:3])
+            equivalent = c.equivalent_diameter_area * np.prod(spacing[0:3])
+
+    return float(long_axis), float(short_axis), float(feret), float(equivalent)
+
+
+def compute_multifocality(volume: np.ndarray, spacing: Tuple,
                           volume_threshold: float = 0.,
                           distance_threshold: float = 0.) -> Tuple[bool, int, float]:
     """
@@ -67,7 +95,7 @@ def compute_multifocality(volume: np.ndarray, spacing: tuple,
     multifocal_largest_minimum_distance = -1.
 
     try:
-        logging.debug("Computing tumor multifocality.")
+        logging.debug("Computing multifocality characteristics.")
         tumor_clusters = measurements.label(volume)[0]
         tumor_clusters_labels = regionprops(tumor_clusters)
 
@@ -104,7 +132,7 @@ def compute_multifocality(volume: np.ndarray, spacing: tuple,
     except Exception as e:
         raise ValueError('Multifocality computation failed with: {}'.format(e))
 
-    return multifocal_status, multifocal_elements, multifocal_largest_minimum_distance
+    return multifocal_status, multifocal_elements, float(multifocal_largest_minimum_distance)
 
 
 def compute_lateralisation(volume: np.ndarray, brain_mask: np.ndarray,
@@ -134,7 +162,7 @@ def compute_lateralisation(volume: np.ndarray, brain_mask: np.ndarray,
     midline_crossing = False
 
     try:
-        logging.debug("Computing tumor lateralization.")
+        logging.debug("Computing lateralization characteristics.")
         # Computing the lateralisation for the center of mass
         if target == 'com':
             com_lateralisation = None
@@ -160,15 +188,15 @@ def compute_lateralisation(volume: np.ndarray, brain_mask: np.ndarray,
             right_side_percentage = np.count_nonzero((brain_mask == 1) & (volume != 0)) / np.count_nonzero((volume != 0))
             left_side_percentage = np.count_nonzero((brain_mask == 2) & (volume != 0)) / np.count_nonzero((volume != 0))
 
-            left_hemisphere_percentage = np.round(left_side_percentage * 100., 2)
-            right_hemisphere_percentage = np.round(right_side_percentage * 100., 2)
+            left_hemisphere_percentage = round(left_side_percentage * 100., 2)
+            right_hemisphere_percentage = round(right_side_percentage * 100., 2)
             midline_crossing = True if max(left_hemisphere_percentage, right_hemisphere_percentage) < 100. else False
         else:
             pass
     except Exception as e:
         raise ValueError('Lateralisation computation failed with {}'.format(e))
 
-    return left_hemisphere_percentage, right_hemisphere_percentage, midline_crossing
+    return float(left_hemisphere_percentage), float(right_hemisphere_percentage), midline_crossing
 
 
 def compute_resectability_index(volume: np.ndarray, resectability_map: np.ndarray) -> Tuple[float, float, float]:
@@ -205,7 +233,7 @@ def compute_resectability_index(volume: np.ndarray, resectability_map: np.ndarra
         avg_resectability = total_resectability / tumor_voxels_count
     except Exception as e:
         raise ValueError('Resectability index computation failed with {}'.format(e))
-    return residual_tumor_volume, resectable_volume, avg_resectability
+    return float(residual_tumor_volume), float(resectable_volume), float(avg_resectability)
 
 
 def compute_hd95(reference, result, voxelspacing=None, connectivity=1):

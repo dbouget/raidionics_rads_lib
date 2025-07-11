@@ -33,11 +33,24 @@ class ResourcesConfiguration:
         """
         Definition of all attributes accessible through this singleton.
         """
+        self.home_path = ''
+        if os.name == 'posix':  # Linux system
+            self.home_path = os.path.expanduser("~")
+
+        self.scripts_root = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../Scripts')
+        self.__set_neuro_resources()
+        self.accepted_image_format = ['nii', 'nii.gz', 'mhd', 'mha', 'nrrd']
+        self.__reset()
+
+    def __reset(self):
+        self.system_ants_backend = 'python'
+        # The default location should equate to ~/raidionicsrads/ANTs/
+        self.ants_root = '' #os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'ANTs')
+        self.ants_reg_dir = ''
+        self.ants_apply_dir = ''
+
         self.config_filename = None
         self.config = None
-        self.system_ants_backend = 'python'
-        self.accepted_image_format = ['nii', 'nii.gz', 'mhd', 'mha', 'nrrd']
-
         self.diagnosis_task = None
         self.diagnosis_full_trace = False
         self.caller = None
@@ -48,11 +61,16 @@ class ResourcesConfiguration:
         self.model_folder = None
         self.pipeline_filename = None
 
-        self.predictions_non_overlapping = True
+        # Parameters matching the main_config parameters from the raidionics_seg backend
+        self.predictions_overlapping_ratio = 0.
         self.predictions_reconstruction_method = None
         self.predictions_reconstruction_order = None
         self.predictions_use_stripped_data = False
         self.predictions_use_registered_data = False
+        self.predictions_folds_ensembling = False
+        self.predictions_ensembling_strategy = "average"
+        self.predictions_test_time_augmentation_iterations = 0
+        self.predictions_test_time_augmentation_fusion_mode = "average"
 
         self.runtime_brain_mask_filepath = ''
         self.runtime_tumor_mask_filepath = ''
@@ -63,16 +81,10 @@ class ResourcesConfiguration:
         self.neuro_features_braingrid = []
 
     def set_environment(self, config_path=None):
-        self.home_path = ''
-        if os.name == 'posix':  # Linux system
-            self.home_path = os.path.expanduser("~")
-
-        self.scripts_root = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../Scripts')
-        self.__set_neuro_resources()
-
+        self.__reset()
         self.config = configparser.ConfigParser()
         if not os.path.exists(config_path):
-            pass
+            raise ValueError(f"A valid configuration file is required as input!")
 
         self.config_filename = config_path
         self.config.read(self.config_filename)
@@ -407,14 +419,25 @@ class ResourcesConfiguration:
                 self.caller = self.config['Default']['caller'].split('#')[0].strip()
 
     def __parse_system_parameters(self):
-        self.ants_root = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../', 'ANTs')
-        self.ants_reg_dir = ''
-        self.ants_apply_dir = ''
+        """
 
+        """
         if self.config.has_option('System', 'ants_root'):
             if self.config['System']['ants_root'].split('#')[0].strip() != '' and \
                     os.path.isdir(self.config['System']['ants_root'].split('#')[0].strip()):
                 self.ants_root = self.config['System']['ants_root'].split('#')[0].strip()
+        elif platform.system() == 'Darwin' and platform.processor() == 'arm':  # Specific for macOS ARM processor
+            # No Python ANTs supported for such machines
+            self.system_ants_backend = 'cpp'
+            if not os.path.exists(self.ants_root):
+                try:
+                    logging.info("Could not find a valid ANTs root repository at {}.\n ".format(self.ants_root))
+                    from importlib.resources import files
+                    import raidionicsrads
+                    logging.debug(f"Module loaded from: {raidionicsrads.__file__}")
+                    self.ants_root = files(raidionicsrads).joinpath("ANTs")
+                except Exception as e:
+                    pass
 
         if os.path.exists(self.ants_root) and os.path.exists(os.path.join(self.ants_root, "bin")):
             os.environ["ANTSPATH"] = os.path.join(self.ants_root, "bin")
@@ -423,12 +446,12 @@ class ResourcesConfiguration:
             self.system_ants_backend = 'cpp'
         elif platform.system() == 'Darwin' and platform.processor() == 'arm':  # Specific for macOS ARM processor
             # No Python ANTs supported for such machines
-            self.system_ants_backend = 'cpp'
-            if not os.path.exists(self.ants_root):
-                logging.warning("Could not find a valid ANTs root repository at {}.\n ".format(self.ants_root))
-                logging.warning("A valid ANTs directory with the C++ binaries is mandatory for running registration!")
+            logging.warning("Could not find a valid ANTs root repository at {}.\n ".format(self.ants_root))
+            logging.warning("A valid ANTs directory with the C++ binaries is mandatory for running registration on macOS ARM!")
         else:
             self.system_ants_backend = 'python'
+        logging.debug(f"ANTs scripts directory: {self.ants_reg_dir}")
+        logging.debug(f"ANTs binary directory: {self.ants_apply_dir}")
 
         if self.config.has_option('System', 'output_folder'):
             if self.config['System']['output_folder'].split('#')[0].strip() != '':
@@ -447,9 +470,9 @@ class ResourcesConfiguration:
                 self.pipeline_filename = self.config['System']['pipeline_filename'].split('#')[0].strip()
 
     def __parse_runtime_parameters(self):
-        if self.config.has_option('Runtime', 'non_overlapping'):
-            if self.config['Runtime']['non_overlapping'].split('#')[0].strip() != '':
-                self.predictions_non_overlapping = True if self.config['Runtime']['non_overlapping'].split('#')[0].strip().lower() == 'true' else False
+        if self.config.has_option('Runtime', 'overlapping_ratio'):
+            if self.config['Runtime']['overlapping_ratio'].split('#')[0].strip() != '':
+                self.predictions_overlapping_ratio = float(self.config['Runtime']['overlapping_ratio'].split('#')[0].strip())
 
         if self.config.has_option('Runtime', 'reconstruction_method'):
             if self.config['Runtime']['reconstruction_method'].split('#')[0].strip() != '':
@@ -466,6 +489,31 @@ class ResourcesConfiguration:
         if self.config.has_option('Runtime', 'use_registered_data'):
             if self.config['Runtime']['use_registered_data'].split('#')[0].strip() != '':
                 self.predictions_use_registered_data = True if self.config['Runtime']['use_registered_data'].split('#')[0].strip().lower() == 'true' else False
+
+        if self.config.has_option('Runtime', 'folds_ensembling'):
+            if self.config['Runtime']['folds_ensembling'].split('#')[0].strip() != '':
+                self.predictions_folds_ensembling = True if self.config['Runtime']['folds_ensembling'].split('#')[0].lower().strip()\
+                                                       == 'true' else False
+
+        if self.config.has_option('Runtime', 'ensembling_strategy'):
+            if self.config['Runtime']['ensembling_strategy'].split('#')[0].strip() != '':
+                self.predictions_ensembling_strategy = self.config['Runtime']['ensembling_strategy'].split('#')[0].lower().strip()
+        if self.predictions_ensembling_strategy not in ["maximum", "average"]:
+            self.predictions_ensembling_strategy = "average"
+            logging.warning("""Value provided in [Runtime][ensembling_strategy] is not recognized.
+             setting to default parameter with value: {}""".format(self.predictions_ensembling_strategy))
+
+        if self.config.has_option('Runtime', 'test_time_augmentation_iteration'):
+            if self.config['Runtime']['test_time_augmentation_iteration'].split('#')[0].strip() != '':
+                self.predictions_test_time_augmentation_iterations = int(self.config['Runtime']['test_time_augmentation_iteration'].split('#')[0].strip())
+
+        if self.config.has_option('Runtime', 'test_time_augmentation_fusion_mode'):
+            if self.config['Runtime']['test_time_augmentation_fusion_mode'].split('#')[0].strip() != '':
+                self.predictions_test_time_augmentation_fusion_mode = self.config['Runtime']['test_time_augmentation_fusion_mode'].split('#')[0].strip().lower()
+        if self.predictions_test_time_augmentation_fusion_mode not in ["maximum", "average"]:
+            self.predictions_test_time_augmentation_fusion_mode = "average"
+            logging.warning("""Value provided in [Runtime][test_time_augmentation_fusion_mode] is not recognized.
+             setting to default parameter with value: {}""".format(self.predictions_test_time_augmentation_fusion_mode))
 
         if self.diagnosis_task == 'neuro_diagnosis':
             self.__parse_runtime_neuro_parameters()

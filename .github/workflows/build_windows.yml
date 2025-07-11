@@ -14,7 +14,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: windows-2019
+          - os: windows-2022
             TARGET: windows
             CMD_BUILD: python setup.py bdist_wheel --plat-name win_amd64
     steps:
@@ -63,8 +63,8 @@ jobs:
     needs: build
     strategy:
       matrix:
-        os: [ windows-2019, windows-2022 ]
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        os: [ windows-2022, windows-2025 ]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -91,14 +91,20 @@ jobs:
       - name: Clone repo
         uses: actions/checkout@v4
 
-      - name: Segmentation pipeline unit test
-        run: cd ${{github.workspace}}/tests && python segmentation_pipeline_test.py
+      - name: Cleanup test environment
+        shell: pwsh
+        run: |
+          if (Test-Path "test_env") {
+            Remove-Item -Recurse -Force "test_env"
+          }
 
-      - name: Reporting pipeline unit test
-        run: cd ${{github.workspace}}/tests && python reporting_pipeline_test.py
+      - name: Create clean test environment
+        run: |
+          mkdir test_env
+          cp -r tests test_env/
 
-      - name: Reporting pipeline with BrainGrid unit test
-        run: cd ${{github.workspace}}/tests && python reporting_pipeline_braingrid_test.py
-
-      - name: Registration pipeline unit test with Python backend
-        run: cd ${{github.workspace}}/tests && python registration_pipeline_test.py
+      - name: Integration tests from clean test environment
+        run: |
+            pip install pytest pytest-cov pytest-timeout requests
+            cd test_env
+            pytest -vvv --cov=raidionicsrads tests/generic_tests --cov-report=xml --timeout=1000 --log-cli-level=DEBUG

@@ -1,5 +1,6 @@
 import numpy as np
 from copy import deepcopy
+import nibabel as nib
 from skimage.transform import resize
 from scipy.ndimage import binary_fill_holes, measurements
 from skimage.measure import regionprops
@@ -93,40 +94,42 @@ def volume_cropping(volume, mask, output_filename):
     pass
 
 
-def prediction_binary_dilation(prediction: np.ndarray, voxel_volume: float, arg: int) -> np.ndarray:
+def prediction_binary_dilation(prediction_filepath: str, arg: int) -> None:
     """
     Perform iterative dilation over a binary segmentation mask. The dilation process continues until a volume
     increase exceeding the provided arg is reached.\n
     The dilation is not applied over the whole mask, but over each focus after performing a connected component step.
 
-    :param prediction: Binary segmentation mask to dilate
-    :param voxel_volume: Size of one volume voxel in cubic ml.
+    :param prediction_filepath: Filepath where the segmentation mask to dilate is stored
     :param arg: Volume increase percentage to reach for stopping the dilation process.
-    :return: Dilated prediction as a numpy array, with same dimensions as the original volume
+    :return: Nothing, the dilated volume is saved in place.
     """
-    # @TODO. Should assert that the prediction file is binary
-    res = np.zeros(prediction.shape)
+    pred_ni = nib.load(prediction_filepath)
+    pred = pred_ni.get_fdata()[:].astype('uint8')
+    pred_volume_initial = np.count_nonzero(pred) * np.prod(pred_ni.header.get_zooms()[0:3]) * 1e-3
+    res = np.zeros(pred.shape, dtype=pred.dtype)
 
-    if np.count_nonzero(prediction) == 0:
+    if np.count_nonzero(pred) == 0:
         logging.warning("[SegmentationRefinement] Step was skipped - Segmentation file is empty!")
-        res = prediction
+        res = pred
 
     # Identifying the different focus, for potential volume-based dilation
-    detection_labels = measurements.label(prediction)[0]
+    detection_labels = measurements.label(pred)[0]
     for c in range(1, np.max(detection_labels) + 1):
         focus_img = np.zeros(detection_labels.shape)
         focus_img[detection_labels == c] = 1
-        initial_focus_volume_ml = np.count_nonzero(focus_img) * voxel_volume
+        initial_focus_volume_ml = np.count_nonzero(focus_img) * pred_volume_initial
         kernel = ball(radius=1)
         stop_flag = False
         while not stop_flag:
             ori_focus_img = deepcopy(focus_img)
             focus_img = binary_dilation(focus_img, footprint=kernel)
-            focus_volume_ml = np.count_nonzero(focus_img) * voxel_volume
+            focus_volume_ml = np.count_nonzero(focus_img) * pred_volume_initial
             if ((focus_volume_ml - initial_focus_volume_ml) / initial_focus_volume_ml) * 100 > arg:
                 focus_img = ori_focus_img
                 stop_flag = True
         seg_dil = focus_img.astype('uint8')
         res[seg_dil == 1] = 1
 
-    return res
+    res_ni = nib.Nifti1Image(res.astype('uint8'), affine=pred_ni.affine, header=pred_ni.header)
+    nib.save(res_ni, prediction_filepath)

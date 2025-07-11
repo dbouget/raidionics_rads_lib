@@ -2,6 +2,8 @@ import numpy as np
 import scipy.ndimage.measurements as smeas
 import scipy.ndimage.morphology as smo
 from copy import deepcopy
+import nibabel as nib
+from skimage import measure
 
 
 def mediastinum_clipping(volume, parameters):
@@ -48,3 +50,33 @@ def mediastinum_clipping(volume, parameters):
 
     print('Cropped mediastinum values: {}'.format(lungs_boundingbox))
     return cropped_volume, crop_bbox
+
+def perform_lungs_overlap_refinement(predictions_filepath: str, mask_filepath: str):
+    """
+    In-place refinement of the predictions.
+
+    @TODO. Should be better designed to only exclude everthing on the outer parts of the lungs but not inside.
+    Parameters
+    ----------
+    predictions_filepath
+    mask_filepath
+
+    Returns
+    -------
+
+    """
+    try:
+        return
+        pred_nib = nib.load(predictions_filepath)
+        mask_nib = nib.load(mask_filepath)
+        pred = pred_nib.get_fdata()[:]
+        lungs_mask = mask_nib.get_fdata()[:].astype('uint8')
+
+        pred_binary = np.zeros(pred.shape, dtype='uint8')
+        pred_binary[pred > 1e-3] = 1
+        final_pred = np.zeros(pred.shape, dtype='uint8')
+        final_pred[(lungs_mask == 1) & (pred_binary == 1)] = 1
+        final_pred_nib = nib.Nifti1Image(final_pred, affine=pred_nib.affine, header=pred_nib.header)
+        nib.save(final_pred_nib, predictions_filepath)
+    except Exception as e:
+        raise ValueError("Lungs overlap refinement failed with: {}.".format(e))

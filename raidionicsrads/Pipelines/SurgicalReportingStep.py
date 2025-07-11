@@ -15,10 +15,13 @@ class SurgicalReportingStep(AbstractPipelineStep):
     """
     _patient_parameters = None
     _report = None
+    _tumor_type = None
 
     def __init__(self, step_json: dict) -> None:
         super(SurgicalReportingStep, self).__init__(step_json=step_json)
         self.__reset()
+        step_keys = list(self._step_json.keys())
+        self._tumor_type = self._step_json["tumor_type"] if "tumor_type" in step_keys else None
 
     def __reset(self):
         """
@@ -27,6 +30,15 @@ class SurgicalReportingStep(AbstractPipelineStep):
         """
         self._patient_parameters = None
         self._report = None
+        self._tumor_type = None
+
+    @property
+    def tumor_type(self) -> str:
+        return self._tumor_type
+
+    @tumor_type.setter
+    def tumor_type(self, value: str) -> None:
+        self._tumor_type = value
 
     def setup(self, patient_parameters):
         self._patient_parameters = patient_parameters
@@ -40,12 +52,15 @@ class SurgicalReportingStep(AbstractPipelineStep):
                     ResourcesConfiguration.getInstance().diagnosis_task))
                 pass
         except Exception as e:
-            raise ValueError("[SurgicalReportingStep] Step execution failed with: {}.".format(e))
+            raise ValueError(f"[SurgicalReportingStep] Step execution failed with: {e}.")
         return self._patient_parameters
+
+    def cleanup(self):
+        pass
 
     def __run_neuro_surgical_reporting(self):
         """
-
+        @TODO. Should it be possible to compute some volume/change values for each timestamp also?
         """
         try:
             non_available_uid = True
@@ -56,16 +71,79 @@ class SurgicalReportingStep(AbstractPipelineStep):
                     non_available_uid = False
             report = NeuroSurgicalReportingStructure(id=report_uid,
                                                      output_folder=ResourcesConfiguration.getInstance().output_folder)
-            preop_t1ce_uid = self._patient_parameters.get_radiological_volume_uid(timestamp=0, sequence="T1-CE")
-            postop_t1ce_uid = self._patient_parameters.get_radiological_volume_uid(timestamp=1, sequence="T1-CE")
-            preop_tumor_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
-                volume_uid=preop_t1ce_uid, annotation_class=AnnotationClassType.Tumor)
-            postop_tumor_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
-                volume_uid=postop_t1ce_uid, annotation_class=AnnotationClassType.Tumor)
-            if len(preop_tumor_uid) > 0 and len(postop_tumor_uid) > 0:
-                compute_surgical_report(self._patient_parameters.get_annotation(preop_tumor_uid[0]).get_usable_input_filepath(),
-                                        self._patient_parameters.get_annotation(postop_tumor_uid[0]).get_usable_input_filepath(), report)
+            if self.tumor_type.lower() == "contrast-enhancing":
+                preop_t1ce_uid = self._patient_parameters.get_radiological_volume_uid(timestamp=0, sequence="T1-CE")
+                postop_t1ce_uid = self._patient_parameters.get_radiological_volume_uid(timestamp=1, sequence="T1-CE")
+                preop_tumor_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
+                    volume_uid=preop_t1ce_uid, annotation_class=AnnotationClassType.Tumor)
+                preop_brain_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
+                    volume_uid=preop_t1ce_uid, annotation_class=AnnotationClassType.Brain)
+                preop_flairchanges_fns = self._patient_parameters.get_all_annotations_fns_class_radiological_volume(
+                    volume_uid=preop_t1ce_uid, annotation_class=AnnotationClassType.FLAIRChanges, include_coregistrations=True)
+                preop_necrosis_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
+                    volume_uid=preop_t1ce_uid, annotation_class=AnnotationClassType.Necrosis)
+                postop_tumor_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
+                    volume_uid=postop_t1ce_uid, annotation_class=AnnotationClassType.TumorCE)
+                postop_flairchanges_fns = self._patient_parameters.get_all_annotations_fns_class_radiological_volume(
+                    volume_uid=postop_t1ce_uid, annotation_class=AnnotationClassType.FLAIRChanges, include_coregistrations=True)
+                postop_cavity_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
+                    volume_uid=postop_t1ce_uid, annotation_class=AnnotationClassType.Cavity)
+                postop_brain_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
+                    volume_uid=postop_t1ce_uid, annotation_class=AnnotationClassType.Brain)
+                postop_necrosis_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
+                    volume_uid=postop_t1ce_uid, annotation_class=AnnotationClassType.Necrosis)
+                if len(preop_tumor_uid) > 0 and len(postop_tumor_uid) > 0:
+                    preop_brain_fn = self._patient_parameters.get_annotation(annotation_uid=preop_brain_uid[0]).usable_input_filepath
+                    postop_brain_fn = self._patient_parameters.get_annotation(annotation_uid=postop_brain_uid[0]).usable_input_filepath
+                    preop_fn = self._patient_parameters.get_annotation(annotation_uid=preop_tumor_uid[0]).usable_input_filepath
+                    postop_fn = self._patient_parameters.get_annotation(annotation_uid=postop_tumor_uid[0]).usable_input_filepath
+                    flairchanges_preop_fn = preop_flairchanges_fns[0] if len(preop_flairchanges_fns) > 0 else None
+                    flairchanges_fn = postop_flairchanges_fns[0] if len(postop_flairchanges_fns) > 0 else None
+                    cavity_postop_fn = self._patient_parameters.get_annotation(
+                        annotation_uid=postop_cavity_uid[0]).usable_input_filepath if len(
+                        postop_cavity_uid) > 0 else None
+                    necrosis_preop_fn = self._patient_parameters.get_annotation(
+                        annotation_uid=preop_necrosis_uid[0]).usable_input_filepath if len(
+                        preop_necrosis_uid) > 0 else None
+                    necrosis_postop_fn = self._patient_parameters.get_annotation(
+                        annotation_uid=postop_necrosis_uid[0]).usable_input_filepath if len(
+                        postop_necrosis_uid) > 0 else None
+                    compute_surgical_report(brain_preop_fn=preop_brain_fn, brain_postop_fn=postop_brain_fn,
+                                            tumor_preop_fn=preop_fn, tumor_postop_fn=postop_fn,
+                                            necrosis_preop_fn=necrosis_preop_fn, necrosis_postop_fn=necrosis_postop_fn,
+                                            flairchanges_preop_fn=flairchanges_preop_fn,
+                                            flairchanges_postop_fn=flairchanges_fn, cavity_postop_fn=cavity_postop_fn,
+                                            report=report)
+                else:
+                    raise ValueError("Missing either the preoperative or postoperative tumor segmentation.")
+            elif self.tumor_type.lower() == "non contrast-enhancing":
+                preop_uid = self._patient_parameters.get_radiological_volume_uid(timestamp=0, sequence="FLAIR")
+                postop_uid = self._patient_parameters.get_radiological_volume_uid(timestamp=1, sequence="FLAIR")
+                preop_tumor_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
+                    volume_uid=preop_uid, annotation_class=AnnotationClassType.FLAIRChanges)
+                postop_tumor_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
+                    volume_uid=postop_uid, annotation_class=AnnotationClassType.FLAIRChanges)
+                postop_cavity_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
+                    volume_uid=postop_uid, annotation_class=AnnotationClassType.Cavity)
+                preop_brain_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
+                    volume_uid=preop_uid, annotation_class=AnnotationClassType.Brain)
+                postop_brain_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
+                    volume_uid=postop_uid, annotation_class=AnnotationClassType.Brain)
+                if len(preop_tumor_uid) > 0 and len(postop_tumor_uid) > 0:
+                    preop_brain_fn = self._patient_parameters.get_annotation(annotation_uid=preop_brain_uid[0]).usable_input_filepath
+                    postop_brain_fn = self._patient_parameters.get_annotation(annotation_uid=postop_brain_uid[0]).usable_input_filepath
+                    preop_fn = self._patient_parameters.get_annotation(annotation_uid=preop_tumor_uid[0]).usable_input_filepath
+                    postop_fn = self._patient_parameters.get_annotation(annotation_uid=postop_tumor_uid[0]).usable_input_filepath
+                    cavity_postop_fn = self._patient_parameters.get_annotation(
+                        annotation_uid=postop_cavity_uid[0]).usable_input_filepath if len(
+                        postop_cavity_uid) > 0 else None
+                    compute_surgical_report(brain_preop_fn=preop_brain_fn, brain_postop_fn=postop_brain_fn,
+                                            tumor_preop_fn=preop_fn, tumor_postop_fn=postop_fn,
+                                            cavity_postop_fn=cavity_postop_fn,
+                                            report=report)
+                else:
+                    raise ValueError("Missing either the preoperative or postoperative FLAIR changes segmentation.")
             self._patient_parameters.include_reporting(report_uid, report)
-            report.to_json()
+            report.to_disk()
         except Exception as e:
-            raise ValueError("[SurgicalReportingStep] Neuro surgical reporting failed with: {}.".format(e))
+            raise ValueError(f"[SurgicalReportingStep] Neurosurgical reporting failed with: {e}.")

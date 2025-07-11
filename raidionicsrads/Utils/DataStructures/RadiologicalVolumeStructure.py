@@ -84,16 +84,20 @@ class RadiologicalVolume:
         self._timestamp_id = None
         self._registered_volumes = {}
 
-    def get_unique_id(self) -> str:
+    @property
+    def unique_id(self) -> str:
         return self._unique_id
 
-    def get_output_folder(self) -> str:
+    @property
+    def output_folder(self) -> str:
         return self._output_folder
 
-    def get_raw_input_filepath(self) -> str:
+    @property
+    def raw_input_filepath(self) -> str:
         return self._raw_input_filepath
 
-    def get_usable_input_filepath(self) -> str:
+    @property
+    def usable_input_filepath(self) -> str:
         return self._usable_input_filepath
 
     def get_sequence_type_enum(self) -> Enum:
@@ -121,6 +125,23 @@ class RadiologicalVolume:
                 self._sequence_type = ctype
         elif isinstance(type, radiological_type):
             self._sequence_type = type
+
+    @property
+    def registered_volumes(self) -> dict:
+        return self._registered_volumes
+
+    def is_registered_volume_included(self, destination_space_uid: str) -> bool:
+        """
+
+        Parameters
+        ----------
+        destination_space_uid
+
+        Returns
+        -------
+
+        """
+        return destination_space_uid in list(self._registered_volumes.keys())
 
     def include_registered_volume(self, filepath: str, registration_uid: str, destination_space_uid: str) -> None:
         self._registered_volumes[destination_space_uid] = {"filepath": filepath, "registration_uid": registration_uid}

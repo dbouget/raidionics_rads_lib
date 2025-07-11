@@ -33,7 +33,20 @@ def run_rads(config_filename: str, logging_filename: str = None) -> None:
         logging.error("""[Backend error] Patient data setup phase of failed with:\n{}""".format(e))
         logging.debug("Traceback: {}.".format(traceback.format_exc()))
         return
-    patient_parameters = pip.execute(patient_parameters=patient_parameters)
+    try:
+        patient_parameters = pip.setup(patient_parameters=patient_parameters)
+    except Exception as e:
+        logging.error("""[Backend error] Patient data setup phase for models in automatic selection failed with:\n{}""".format(e))
+        logging.debug("Traceback: {}.".format(traceback.format_exc()))
+        return
+    try:
+        patient_parameters = pip.execute(patient_parameters=patient_parameters)
+        pip.cleanup()
+    except Exception as e:
+        logging.error("""[Backend error] Patient data execution phase of failed with:\n{}""".format(e))
+        logging.debug("Traceback: {}.".format(traceback.format_exc()))
+        pip.cleanup()
+        return
     logging.info('Total elapsed time for executing the pipeline: {} seconds.'.format(time.time() - start))
 
 

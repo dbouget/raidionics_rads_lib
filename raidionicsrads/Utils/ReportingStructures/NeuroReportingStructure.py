@@ -6,34 +6,478 @@ import numpy as np
 import operator
 import json
 import pandas as pd
+from typing import Dict
 import collections
 from ..configuration_parser import ResourcesConfiguration
 from ..io import generate_cortical_structures_labels_for_slicer, generate_subcortical_structures_labels_for_slicer, generate_braingrid_structures_labels_for_slicer
 
 
+class NeuroRadiologicalVolumeStatistics:
+    _dimension_x = None
+    _dimension_y = None
+    _dimension_z = None
+    _spacing_x = None
+    _spacing_y = None
+    _spacing_z = None
+
+    def __init__(self, dim_x: int = None, dim_y: int = None, dim_z: int = None, spac_x: float = None,
+                 spac_y: float = None, spac_z: float = None):
+        self._dimension_x = dim_x
+        self._dimension_y = dim_y
+        self._dimension_z = dim_z
+        self._spacing_x = spac_x
+        self._spacing_y = spac_y
+        self._spacing_z = spac_z
+
+    @property
+    def dimension_x(self) -> int:
+        return self._dimension_x
+
+    @dimension_x.setter
+    def dimension_x(self, value: int) -> None:
+        self._dimension_x = value
+
+    @property
+    def dimension_y(self) -> int:
+        return self._dimension_y
+
+    @dimension_y.setter
+    def dimension_y(self, value: int) -> None:
+        self._dimension_y = value
+
+    @property
+    def dimension_z(self) -> int:
+        return self._dimension_z
+
+    @dimension_z.setter
+    def dimension_z(self, value: int) -> None:
+        self._dimension_z = value
+
+    @property
+    def spacing_x(self) -> float:
+        return self._spacing_x
+
+    @spacing_x.setter
+    def spacing_x(self, value: float) -> None:
+        self._spacing_x = value
+
+    @property
+    def spacing_y(self) -> float:
+        return self._spacing_y
+
+    @spacing_y.setter
+    def spacing_y(self, value: float) -> None:
+        self._spacing_y = value
+
+    @property
+    def spacing_z(self) -> float:
+        return self._spacing_z
+
+    @spacing_z.setter
+    def spacing_z(self, value: float) -> None:
+        self._spacing_z = value
+
+
+class NeuroAcquisitionInfo:
+    _t1c_stats = None
+    _t1w_stats = None
+    _t2f_stats = None
+    _t2w_stats = None
+
+    def __init__(self, t1c_stats: NeuroRadiologicalVolumeStatistics = None,
+                 t1w_stats: NeuroRadiologicalVolumeStatistics = None,
+                 t2f_stats: NeuroRadiologicalVolumeStatistics = None,
+                 t2w_stats: NeuroRadiologicalVolumeStatistics = None):
+        self._t1c_stats = t1c_stats
+        self._t1w_stats = t1w_stats
+        self._t2f_stats = t2f_stats
+        self._t2w_stats = t2w_stats
+
+    @property
+    def t1c_stats(self) -> NeuroRadiologicalVolumeStatistics:
+        return self._t1c_stats
+
+    @t1c_stats.setter
+    def t1c_stats(self, value: NeuroRadiologicalVolumeStatistics) -> None:
+        self._t1c_stats = value
+
+    @property
+    def t1w_stats(self) -> NeuroRadiologicalVolumeStatistics:
+        return self._t1w_stats
+
+    @t1w_stats.setter
+    def t1w_stats(self, value: NeuroRadiologicalVolumeStatistics) -> None:
+        self._t1w_stats = value
+
+    @property
+    def t2f_stats(self) -> NeuroRadiologicalVolumeStatistics:
+        return self._t2f_stats
+
+    @t2f_stats.setter
+    def t2f_stats(self, value: NeuroRadiologicalVolumeStatistics) -> None:
+        self._t2f_stats = value
+
+    @property
+    def t2w_stats(self) -> NeuroRadiologicalVolumeStatistics:
+        return self._t2w_stats
+
+    @t2w_stats.setter
+    def t2w_stats(self, value: NeuroRadiologicalVolumeStatistics) -> None:
+        self._t2w_stats = value
+
+
+class NeuroVolumeStatistics:
+    _volume = -1.
+    _brain_percentage = -1.
+
+    def __init__(self, volume: float = -1., brain_percentage: float = -1.):
+        self._volume = volume
+        self._brain_percentage = brain_percentage
+
+    @property
+    def volume(self) -> float:
+        return self._volume
+
+    @volume.setter
+    def volume(self, value: float) -> None:
+        self._volume = value
+
+    @property
+    def brain_percentage(self) -> float:
+        return self._brain_percentage
+
+    @brain_percentage.setter
+    def brain_percentage(self, value: float) -> None:
+        self._brain_percentage = value
+
+class NeuroDiameterStatistics:
+    _long_axis_diameter = -1.
+    _short_axis_diameter = -1.
+    _feret_diameter = -1.
+    _equivalent_diameter_area = -1.
+
+    def __init__(self, long_axis_diameter: float = -1., short_axis_diameter: float = -1.,
+                 feret_diameter: float = -1., equivalent_diameter_area: float = -1.):
+        self._long_axis_diameter = long_axis_diameter
+        self._short_axis_diameter = short_axis_diameter
+        self._feret_diameter = feret_diameter
+        self._equivalent_diameter_area = equivalent_diameter_area
+
+    @property
+    def long_axis_diameter(self) -> float:
+        return self._long_axis_diameter
+
+    @long_axis_diameter.setter
+    def long_axis_diameter(self, value: float) -> None:
+        self._long_axis_diameter = value
+
+    @property
+    def short_axis_diameter(self) -> float:
+        return self._short_axis_diameter
+
+    @short_axis_diameter.setter
+    def short_axis_diameter(self, value: float) -> None:
+        self._short_axis_diameter = value
+
+    @property
+    def feret_diameter(self) -> float:
+        return self._feret_diameter
+
+    @feret_diameter.setter
+    def feret_diameter(self, value: float) -> None:
+        self._feret_diameter = value
+
+    @property
+    def equivalent_diameter_area(self) -> float:
+        return self._equivalent_diameter_area
+
+    @equivalent_diameter_area.setter
+    def equivalent_diameter_area(self, value: float) -> None:
+        self._equivalent_diameter_area = value
+
+
+class NeuroMultifocalityStatistics:
+    _multifocality = None
+    _nb_parts = -1
+    _max_distance = -1.
+    def __init__(self, status: bool = None, parts: int = -1, distance: float = -1.):
+        self._multifocality = status
+        self._nb_parts = parts
+        self._max_distance = distance
+
+    @property
+    def multifocality(self) -> bool:
+        return self._multifocality
+
+    @multifocality.setter
+    def multifocality(self, value: bool) -> None:
+        self._multifocality = value
+
+    @property
+    def nb_parts(self) -> int:
+        return self._nb_parts
+
+    @nb_parts.setter
+    def nb_parts(self, value: int) -> None:
+        self._nb_parts = value
+
+    @property
+    def max_distance(self) -> float:
+        return self._max_distance
+
+    @max_distance.setter
+    def max_distance(self, value: float) -> None:
+        self._max_distance = value
+
+class NeuroLocationStatistics:
+    _left_laterality_percentage = -1.
+    _right_laterality_percentage = -1.
+    _laterality_midline_crossing = None
+
+    def __init__(self, left: float = -1., right: float = -1., crossing: bool = None):
+        self._left_laterality_percentage = left
+        self._right_laterality_percentage = right
+        self._laterality_midline_crossing = crossing
+
+    @property
+    def left_laterality_percentage(self) -> float:
+        return self._left_laterality_percentage
+
+    @left_laterality_percentage.setter
+    def left_laterality_percentage(self, value: float) -> None:
+        self._left_laterality_percentage = value
+
+    @property
+    def right_laterality_percentage(self) -> float:
+        return self._right_laterality_percentage
+
+    @right_laterality_percentage.setter
+    def right_laterality_percentage(self, value: float) -> None:
+        self._right_laterality_percentage = value
+
+    @property
+    def laterality_midline_crossing(self) -> bool:
+        return self._laterality_midline_crossing
+
+    @laterality_midline_crossing.setter
+    def laterality_midline_crossing(self, value: bool) -> None:
+        self._laterality_midline_crossing = value
+
+
+class NeuroResectabilityStatistics:
+    _expected_resectable_tumor_volume = -1.
+    _expected_residual_tumor_volume = -1.
+    _resectability_index = -1.
+
+    def __init__(self, resectable: float = -1., residual: float = -1., index: float = -1.):
+        self._expected_resectable_tumor_volume = resectable
+        self._expected_residual_tumor_volume = residual
+        self._resectability_index = index
+
+    @property
+    def expected_resectable_tumor_volume(self) -> float:
+        return self._expected_resectable_tumor_volume
+
+    @expected_resectable_tumor_volume.setter
+    def expected_resectable_tumor_volume(self, value: float) -> None:
+        self._expected_resectable_tumor_volume = value
+
+    @property
+    def expected_residual_tumor_volume(self) -> float:
+        return self._expected_residual_tumor_volume
+
+    @expected_residual_tumor_volume.setter
+    def expected_residual_tumor_volume(self, value: float) -> None:
+        self._expected_residual_tumor_volume = value
+
+    @property
+    def resectability_index(self) -> float:
+        return self._resectability_index
+
+    @resectability_index.setter
+    def resectability_index(self, value: float) -> None:
+        self._resectability_index = value
+
+
+class NeuroCorticalStatistics:
+    _cortical_structures_overlap = None
+    _cortical_structures_distance = None
+
+    def __init__(self, overlap: {} = None, distance: {} = None):
+        self._cortical_structures_overlap = overlap
+        self._cortical_structures_distance = distance
+
+    @property
+    def cortical_structures_overlap(self) -> {}:
+        return self._cortical_structures_overlap
+
+    @cortical_structures_overlap.setter
+    def cortical_structures_overlap(self, value: {}) -> None:
+        self._cortical_structures_overlap = value
+
+    @property
+    def cortical_structures_distance(self) -> {}:
+        return self._cortical_structures_distance
+
+    @cortical_structures_distance.setter
+    def cortical_structures_distance(self, value: {}) -> None:
+        self._cortical_structures_distance = value
+
+
+class NeuroSubCorticalStatistics:
+    _subcortical_structures_overlap = None
+    _subcortical_structures_distance = None
+
+    def __init__(self, overlap: {} = None, distance: {} = None):
+        self._subcortical_structures_overlap = overlap
+        self._subcortical_structures_distance = distance
+
+    @property
+    def subcortical_structures_overlap(self) -> {}:
+        return self._subcortical_structures_overlap
+
+    @subcortical_structures_overlap.setter
+    def subcortical_structures_overlap(self, value: {}) -> None:
+        self._subcortical_structures_overlap = value
+
+    @property
+    def subcortical_structures_distance(self) -> {}:
+        return self._subcortical_structures_distance
+
+    @subcortical_structures_distance.setter
+    def subcortical_structures_distance(self, value: {}) -> None:
+        self._subcortical_structures_distance = value
+
+class NeuroInfiltrationStatistics:
+    _overlap = None
+    _count = None
+
+    def __init__(self, overlap: {} = None, count: int = None):
+        self._overlap = overlap
+        self._count = count
+
+    @property
+    def overlap(self) -> {}:
+        return self._overlap
+
+    @overlap.setter
+    def overlap(self, value: {}) -> None:
+        self._overlap = value
+
+    @property
+    def count(self) -> {}:
+        return self._count
+
+    @count.setter
+    def count(self, value: {}) -> None:
+        self._count = value
+
+
+class NeuroStructureStatistics:
+    """
+    Specific class for holding the computed characteristics/features.
+    """
+    _volume = None
+    _diameters = None
+    _multifocality = None
+    _location = None
+    _resectability = None
+    _cortical = None
+    _subcortical = None
+    _infiltration = None
+
+    def __init__(self):
+        self._volume = NeuroVolumeStatistics()
+        self._diameters = NeuroDiameterStatistics()
+        self._multifocality = NeuroMultifocalityStatistics()
+        self._location = NeuroLocationStatistics()
+        self._resectability = NeuroResectabilityStatistics()
+        self._cortical = {}
+        self._subcortical = {}
+        self._infiltration = {}
+
+    @property
+    def volume(self) -> NeuroVolumeStatistics:
+        return self._volume
+
+    @volume.setter
+    def volume(self, value: NeuroVolumeStatistics) -> None:
+        self._volume = value
+
+    @property
+    def diameters(self) -> NeuroDiameterStatistics:
+        return self._diameters
+
+    @diameters.setter
+    def diameters(self, value: NeuroDiameterStatistics) -> None:
+        self._diameters = value
+
+    @property
+    def multifocality(self) -> NeuroLocationStatistics:
+        return self._multifocality
+
+    @multifocality.setter
+    def multifocality(self, value: NeuroMultifocalityStatistics) -> None:
+        self._multifocality = value
+
+    @property
+    def location(self) -> NeuroLocationStatistics:
+        return self._location
+
+    @location.setter
+    def location(self, value: NeuroLocationStatistics) -> None:
+        self._location = value
+
+    @property
+    def resectability(self) -> NeuroResectabilityStatistics:
+        return self._resectability
+
+    @resectability.setter
+    def resectability(self, value: NeuroResectabilityStatistics) -> None:
+        self._resectability = value
+
+    @property
+    def cortical(self) -> Dict[str, NeuroCorticalStatistics]:
+        return self._cortical
+
+    @cortical.setter
+    def cortical(self, value: Dict[str, NeuroCorticalStatistics]) -> None:
+        self._cortical = value
+
+    @property
+    def subcortical(self) -> Dict[str, NeuroSubCorticalStatistics]:
+        return self._subcortical
+
+    @subcortical.setter
+    def subcortical(self, value: Dict[str, NeuroSubCorticalStatistics]) -> None:
+        self._subcortical = value
+
+    @property
+    def infiltration(self) -> Dict[str, NeuroInfiltrationStatistics]:
+        return self._infiltration
+
+    @infiltration.setter
+    def infiltration(self, value: Dict[str, NeuroInfiltrationStatistics]) -> None:
+        self._infiltration = value
+
 class NeuroReportingStructure:
     """
-    Reporting at a single timestamp with characteristics/features for the tumor.
+    Reporting at a single timestamp with characteristics/features for the different structures.
     """
     _unique_id = None  # Internal unique identifier for the report
-    _radiological_volume_uid = None  # Parent CT/MRI volume to which the report is attached
+    _timestamp = None  # Timestamp attached to the report
     _output_folder = None
-    _tumor_type = None  # Type of brain tumor identified
-    _tumor_multifocal = False  # Boolean status about multifocality
-    _tumor_parts = 0  #
-    _tumor_multifocal_distance = -1.  #
+    _tumor_type = None  # Type of CNS tumor identified
+    _acquisition_infos = None
     _statistics = {}
 
-    def __init__(self, id: str, parent_uid: str, output_folder: str):
+    def __init__(self, id: str, output_folder: str, timestamp: str):
         """
         """
         self.__reset()
         self._unique_id = id
-        self._radiological_volume_uid = parent_uid
         self._output_folder = output_folder
-        self._statistics['Main'] = {}
-        self._statistics['Main']['Overall'] = TumorStatistics()
-        self._statistics['Main']['CoM'] = TumorStatistics()
+        self._timestamp = timestamp
 
     def __reset(self):
         """
@@ -41,32 +485,67 @@ class NeuroReportingStructure:
         An instance or non-static variables are different for different objects (every object has a copy).
         """
         self._unique_id = None
-        self._radiological_volume_uid = None
         self._output_folder = None
         self._tumor_type = None
-        self._tumor_multifocal = False
-        self._tumor_parts = 0
-        self._tumor_multifocal_distance = -1.
         self._statistics = {}
+        self._acquisition_infos = None
 
-    def setup(self, tumor_type: str, tumor_elements: int) -> None:
-        self._tumor_type = tumor_type
-        self._tumor_parts = tumor_elements
-        if tumor_elements > 1:
-            self._tumor_multifocal = True
-        else:
-            self._tumor_multifocal = False
+    @property
+    def unique_id(self) -> str:
+        return self._unique_id
 
-        if self._tumor_multifocal:
-            for p in range(tumor_elements):
-                self._statistics[str(p+1)] = {}
-                self._statistics[str(p+1)]['Overall'] = TumorStatistics()
-                self._statistics[str(p+1)]['CoM'] = TumorStatistics()
+    @property
+    def output_folder(self) -> str:
+        return self._output_folder
+
+    @property
+    def statistics(self) -> dict:
+        return self._statistics
+
+    @statistics.setter
+    def statistics(self, value: dict) -> None:
+        self._statistics = value
+
+    def include_statistics(self, structure: str, space: str, statistics: NeuroStructureStatistics):
+        if structure not in list(self.statistics.keys()):
+            self.statistics[structure] = {}
+        self.statistics[structure][space] = statistics
+
+    @property
+    def timestamp(self) -> str:
+        return self._timestamp
+
+    @timestamp.setter
+    def timestamp(self, value: str) -> None:
+        self._timestamp = value
+
+    @property
+    def tumor_type(self) -> str:
+        return self._tumor_type
+
+    @tumor_type.setter
+    def tumor_type(self, value: str) -> None:
+        self._tumor_type = value
+
+    @property
+    def acquisition_infos(self) -> NeuroAcquisitionInfo:
+        return self._acquisition_infos
+
+    @acquisition_infos.setter
+    def acquisition_infos(self, value: NeuroAcquisitionInfo) -> None:
+        self._acquisition_infos = value
+
+    def to_disk(self) -> None:
+        self.to_txt()
+        self.to_csv()
+        self.to_json()
+        self.dump_descriptions()
+        self.dump_acquisition_infos()
 
     def to_txt(self) -> None:
         """
 
-        Exporting the computed tumor characteristics and standardized report in filename.
+        Exporting the computed standardized characteristics report in filename.
 
         Parameters
         ----------
@@ -76,242 +555,261 @@ class NeuroReportingStructure:
         None
         """
         try:
-            filename = os.path.join(self._output_folder, "neuro_clinical_report.txt")
-            logging.info("Exporting neuro-parameters to text in {}.".format(filename))
+            filename = os.path.join(self._output_folder, "reporting",
+                                    "T" + str(self.timestamp), "neuro_clinical_report.txt")
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
+
+            logging.info(f"Exporting standardized report for timestamp timestamp {self.timestamp} to text in {filename}.")
             pfile = open(filename, 'w')
-            pfile.write('########### Raidionics clinical report ###########\n')
-            pfile.write('Tumor type: {}\n'.format(self._tumor_type))
-            pfile.write('Tumor multifocality: {}\n'.format(self._tumor_multifocal))
-            pfile.write('  * Number tumor parts: {}\n'.format(self._tumor_parts))
-            pfile.write('  * Largest distance between components: {} (mm)\n'.format(np.round(self._tumor_multifocal_distance, 2)))
+            pfile.write('########### Raidionics standardized report for timestamp {} in MNI space ###########\n'.format(self.timestamp))
+            pfile.write('Tumor type: {}\n'.format(self.tumor_type))
 
-            pfile.write('\nVolumes\n')
-            if self._statistics['Main']['Overall'].original_space_tumor_volume:
-                pfile.write('  * Original space: {} (ml)\n'.format(np.round(self._statistics['Main']['Overall'].original_space_tumor_volume, 2)))
-            if self._statistics['Main']['Overall'].mni_space_tumor_volume:
-                pfile.write('  * MNI space: {} (ml)\n'.format(self._statistics['Main']['Overall'].mni_space_tumor_volume))
+            for s in self.statistics.keys():
+                pfile.write(f'\n Features for {s} category.\n')
+                pfile.write(' Volumes: \n')
+                pfile.write(f'  * Volume: {round(self.statistics[s]["MNI"].volume.volume, 2)} (ml)\n')
+                pfile.write(f'  * Brain percentage: {round(self.statistics[s]["MNI"].volume.brain_percentage * 100., 2)} (%)\n')
 
-            pfile.write('\nLaterality\n')
-            pfile.write('  * Left hemisphere: {}%\n'.format(self._statistics['Main']['Overall'].left_laterality_percentage))
-            pfile.write('  * Right hemisphere: {}%\n'.format(self._statistics['Main']['Overall'].right_laterality_percentage))
-            pfile.write('  * Midline crossing: {}\n'.format(self._statistics['Main']['Overall'].laterality_midline_crossing))
+                pfile.write(' Diameters: \n')
+                pfile.write(f'  * Long-axis diameter: {round(self.statistics[s]["MNI"].diameters.long_axis_diameter, 2)} (mm)\n')
+                pfile.write(f'  * Short-axis diameter: {round(self.statistics[s]["MNI"].diameters.short_axis_diameter, 2)} (mm)\n')
+                pfile.write(f'  * Feret diameter maximum: {round(self.statistics[s]["MNI"].diameters.feret_diameter, 2)} (mm)\n')
+                pfile.write(f'  * Equivalent diameter area: {round(self.statistics[s]["MNI"].diameters.equivalent_diameter_area, 2)} (mm)\n\n')
 
-            if self._tumor_type == 'Glioblastoma':
-                pfile.write('\nResectability\n')
-                pfile.write('  * Expected residual volume: {} (ml)\n'.format(np.round(self._statistics['Main']['Overall'].mni_space_expected_residual_tumor_volume, 2)))
-                pfile.write('  * Resection index: {}\n'.format(np.round(self._statistics['Main']['Overall'].mni_space_resectability_index, 3)))
+                pfile.write(' Multifocality: \n')
+                pfile.write(f'  * Status: {self.statistics[s]["MNI"].multifocality.multifocality}\n')
+                pfile.write(f'  * Number parts: {self.statistics[s]["MNI"].multifocality.nb_parts}\n')
+                pfile.write(f'  * Largest distance between components: {round(self.statistics[s]["MNI"].multifocality.max_distance, 2)} (mm)\n\n')
 
-            pfile.write('\nCortical structures overlap\n')
-            for t in self._statistics['Main']['Overall'].mni_space_cortical_structures_overlap.keys():
-                pfile.write('  * {} atlas\n'.format(t))
-                lobes_ordered = collections.OrderedDict(sorted(self._statistics['Main']['Overall'].mni_space_cortical_structures_overlap[t].items(), key=operator.itemgetter(1), reverse=True))
-                for r in lobes_ordered.keys():
-                    if lobes_ordered[r] != 0:
-                        lobe_name = ' '.join(r.lower().replace('main', '').split('_')[:])
-                        pfile.write('    - {}: {}%\n'.format(lobe_name, lobes_ordered[r]))
+                pfile.write(' Location: \n')
+                pfile.write(f'  * Left hemisphere: {self.statistics[s]["MNI"].location.left_laterality_percentage}\n')
+                pfile.write(f'  * Right hemisphere: {self.statistics[s]["MNI"].location.right_laterality_percentage}\n')
+                pfile.write(f'  * Midline crossing: {self.statistics[s]["MNI"].location.laterality_midline_crossing}\n\n')
 
-            pfile.write('\nSubcortical structures overlap or distance\n')
-            for t in self._statistics['Main']['Overall'].mni_space_subcortical_structures_overlap.keys():
-                pfile.write('  * {} atlas\n'.format(t))
-                tracts_ordered = collections.OrderedDict(sorted(self._statistics['Main']['Overall'].mni_space_subcortical_structures_overlap[t].items(), key=operator.itemgetter(1), reverse=True))
-                for r in tracts_ordered.keys():
-                    if tracts_ordered[r] != 0:
-                        tract_name = ' '.join(r.lower().replace('main', '').replace('mni', '').split('.')[0].split('_'))
-                        pfile.write('    - {}: {}% overlap\n'.format(tract_name, np.round(tracts_ordered[r], 2)))
+                # @TODO. Should have an if tumor type is GBM
+                if "Tumor" in s:
+                    pfile.write(' Resectability: \n\n')
+                    pfile.write(f'  * Index: {self.statistics[s]["MNI"].resectability.resectability_index}\n')
+                    pfile.write(f'  * Resectable volume: {self.statistics[s]["MNI"].resectability.expected_resectable_tumor_volume} ml\n')
+                    pfile.write(f'  * Residual volume: {self.statistics[s]["MNI"].resectability.expected_residual_tumor_volume} ml\n\n')
 
-                pfile.write('\n')
-                tracts_ordered = collections.OrderedDict(sorted(self._statistics['Main']['Overall'].mni_space_subcortical_structures_distance[t].items(), key=operator.itemgetter(1), reverse=False))
-                for r in tracts_ordered.keys():
-                    if tracts_ordered[r] != -1.:
-                        tract_name = ' '.join(r.lower().replace('main', '').replace('mni', '').split('.')[0].split('_'))
-                        pfile.write('    - {}: {}mm away\n'.format(tract_name, np.round(tracts_ordered[r], 2)))
+                if len(ResourcesConfiguration.getInstance().neuro_features_cortical_structures) != 0:
+                    pfile.write(' Cortical structures profile\n')
+                    for t in self.statistics[s]["MNI"].cortical.keys():
+                        pfile.write('  * {} atlas\n'.format(t))
+                        structures_ordered = collections.OrderedDict(
+                            sorted(self.statistics[s]["MNI"].cortical[t].cortical_structures_overlap.items(),
+                                   key=operator.itemgetter(1), reverse=True))
+                        for r in structures_ordered.keys():
+                            if structures_ordered[r] != 0:
+                                struct_name = ' '.join(r.lower().replace('main', '').split('_')[:])
+                                pfile.write('    - {}: {}%\n'.format(struct_name, structures_ordered[r]))
 
-            if len(ResourcesConfiguration.getInstance().neuro_features_braingrid) != 0:
-                pfile.write('\nBrainGrid infiltration\n')
-                pfile.write('Total infiltrated regions: {}\n'.format(self._statistics['Main']['Overall'].mni_space_braingrid_infiltration_count))
-                for t in self._statistics['Main']['Overall'].mni_space_braingrid_infiltration_overlap.keys():
-                    pfile.write('  * {} atlas\n'.format(t))
-                    voxels_ordered = collections.OrderedDict(sorted(self._statistics['Main']['Overall'].mni_space_braingrid_infiltration_overlap[t].items(), key=operator.itemgetter(1), reverse=True))
-                    for r in voxels_ordered.keys():
-                        if voxels_ordered[r] != 0:
-                            voxel_name = ' '.join(r.lower().replace('main', '').split('_')[:])
-                            pfile.write('    - {}: {}%\n'.format(voxel_name, voxels_ordered[r]))
+                if len(ResourcesConfiguration.getInstance().neuro_features_subcortical_structures) != 0:
+                    pfile.write('\n Subcortical structures profile\n')
+                    for t in self.statistics[s]["MNI"].subcortical.keys():
+                        pfile.write('  * {} atlas\n'.format(t))
+                        tracts_ordered = collections.OrderedDict(
+                            sorted(self.statistics[s]["MNI"].subcortical[t].subcortical_structures_overlap.items(),
+                                   key=operator.itemgetter(1), reverse=True))
+                        for r in tracts_ordered.keys():
+                            if tracts_ordered[r] != 0:
+                                tract_name = ' '.join(
+                                    r.lower().replace('main', '').replace('mni', '').split('.')[0].split('_'))
+                                pfile.write('    - {}: {}% overlap\n'.format(tract_name, np.round(tracts_ordered[r], 2)))
 
-            # Parameters for each tumor element
-            # if self.tumor_multifocal:
-            #     for p in range(self.tumor_parts):
-            #         tumor_component = str(p+1)
-            #         pfile.write('\nTumor part {}\n'.format(tumor_component))
+                        pfile.write('\n')
+                        tracts_ordered = collections.OrderedDict(
+                            sorted(self.statistics[s]["MNI"].subcortical[t].subcortical_structures_distance.items(),
+                                   key=operator.itemgetter(1), reverse=False))
+                        for r in tracts_ordered.keys():
+                            if tracts_ordered[r] != -1.:
+                                tract_name = ' '.join(
+                                    r.lower().replace('main', '').replace('mni', '').split('.')[0].split('_'))
+                                pfile.write('    - {}: {}mm away\n'.format(tract_name, np.round(tracts_ordered[r], 2)))
 
+                if len(ResourcesConfiguration.getInstance().neuro_features_braingrid) != 0:
+                    pfile.write('\n Infiltration profile\n')
+                    for t in self.statistics[s]["MNI"].infiltration.keys():
+                        pfile.write('  * {} atlas\n'.format(t))
+                        pfile.write('  Total infiltrated regions: {}\n'.format(self.statistics[s]["MNI"].infiltration[t].count))
+                        voxels_ordered = collections.OrderedDict(
+                            sorted(self.statistics[s]["MNI"].infiltration[t].overlap.items(),
+                                   key=operator.itemgetter(1), reverse=True))
+                        for r in voxels_ordered.keys():
+                            if voxels_ordered[r] != 0:
+                                voxel_name = ' '.join(r.lower().replace('main', '').split('_')[:])
+                                pfile.write('    - {}: {}%\n'.format(voxel_name, voxels_ordered[r]))
             pfile.close()
         except Exception as e:
-            raise RuntimeError("Neuro-parameters neuro report dump on disk as text failed with {}".format(e))
+            raise RuntimeError(f"Exporting standardized report on disk as text failed with {e}")
         return
 
     def to_json(self) -> None:
-        # @TODO. to modify
         try:
-            filename = os.path.join(self._output_folder, "neuro_clinical_report.json")
-            logging.info("Exporting neuro-parameters to json in {}.".format(filename))
+            filename = os.path.join(self._output_folder, "reporting",
+                                    "T" + str(self.timestamp), "neuro_clinical_report.json")
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
+
+            logging.info(f"Exporting standardized report for timestamp timestamp {self.timestamp} to json in {filename}.")
             param_json = {}
-            param_json['Overall'] = {}
-            # param_json['Overall']['Presence'] = self._tumor_presence_state
-            # if not self._tumor_presence_state:
-            #     with open(filename, 'w') as outfile:
-            #         json.dump(param_json, outfile)
-            #     return
+            for i, s in enumerate(self.statistics.keys()):
+                param_json[s] = {}
+                param_json[s]["Patient"] = {}
+                param_json[s]["Patient"]["Type"] = str(self.tumor_type)
+                param_json[s]["Patient"]["Volume (ml)"] = float(self.statistics[s]["Patient"].volume.volume)
 
-            param_json['Overall']['Type'] = self._tumor_type
-            param_json['Overall']['Multifocality'] = self._tumor_multifocal
-            param_json['Overall']['Tumor parts nb'] = self._tumor_parts
-            param_json['Overall']['Multifocal distance (mm)'] = np.round(self._tumor_multifocal_distance, 2)
+                param_json[s]["MNI"] = {}
+                param_json[s]["MNI"]["Volume (ml)"] = float(self.statistics[s]["MNI"].volume.volume)
+                param_json[s]["MNI"]["Brain percentage (%)"] = float(self.statistics[s]["MNI"].volume.brain_percentage)
 
-            param_json['Main'] = {}
-            # param_json['Main']['CenterOfMass'] = {}
-            # param_json['Main']['CenterOfMass']['Laterality'] = self.statistics['Main']['CoM'].laterality
-            # param_json['Main']['CenterOfMass']['Laterality_perc'] = self.statistics['Main']['CoM'].laterality_percentage
-            # param_json['Main']['CenterOfMass']['Lobe'] = []
-            # for l in self.statistics['Main']['CoM'].mni_space_cortical_structures_overlap.keys():
-            #     param_json['Main']['CenterOfMass']['Lobe'].append([l, self.statistics['Main']['CoM'].mni_space_cortical_structures_overlap[l]])
+                param_json[s]["MNI"]["Diameters"] = {}
+                param_json[s]["MNI"]["Diameters"]["Long-axis diameter (mm)"] = float(self.statistics[s]["MNI"].diameters.long_axis_diameter)
+                param_json[s]["MNI"]["Diameters"]["Short-axis diameter (mm)"] = float(self.statistics[s]["MNI"].diameters.short_axis_diameter)
+                param_json[s]["MNI"]["Diameters"]["Feret diameter (mm)"] = float(self.statistics[s]["MNI"].diameters.feret_diameter)
+                param_json[s]["MNI"]["Diameters"]["Equivalent diameter area (mm)"] = float(self.statistics[s]["MNI"].diameters.equivalent_diameter_area)
 
-            param_json['Main']['Total'] = {}
-            param_json['Main']['Total']['Volume original (ml)'] = self._statistics['Main']['Overall'].original_space_tumor_volume
-            param_json['Main']['Total']['Volume in MNI (ml)'] = self._statistics['Main']['Overall'].mni_space_tumor_volume
-            param_json['Main']['Total']['Left laterality (%)'] = self._statistics['Main']['Overall'].left_laterality_percentage
-            param_json['Main']['Total']['Right laterality (%)'] = self._statistics['Main']['Overall'].right_laterality_percentage
-            param_json['Main']['Total']['Midline crossing'] = self._statistics['Main']['Overall'].laterality_midline_crossing
+                param_json[s]["MNI"]["Multifocality"] = {}
+                param_json[s]["MNI"]["Multifocality"]["Status"] = self.statistics[s]["MNI"].multifocality.multifocality
+                param_json[s]["MNI"]["Multifocality"]["Elements"] = self.statistics[s]["MNI"].multifocality.nb_parts
+                param_json[s]["MNI"]["Multifocality"]["Max distance (mm)"] = float(self.statistics[s]["MNI"].multifocality.max_distance)
 
-            if self._tumor_type == 'Glioblastoma':
-                param_json['Main']['Total']['ExpectedResidualVolume (ml)'] = np.round(self._statistics['Main']['Overall'].mni_space_expected_residual_tumor_volume, 2)
-                param_json['Main']['Total']['ResectionIndex'] = np.round(self._statistics['Main']['Overall'].mni_space_resectability_index, 3)
+                param_json[s]["MNI"]["Location"] = {}
+                param_json[s]["MNI"]["Location"]["Left laterality (%)"] = float(self.statistics[s]["MNI"].location.left_laterality_percentage)
+                param_json[s]["MNI"]["Location"]["Right laterality (%)"] = float(self.statistics[s]["MNI"].location.right_laterality_percentage)
+                param_json[s]["MNI"]["Location"]["Midline crossing"] = self.statistics[s]["MNI"].location.laterality_midline_crossing
 
-            param_json['Main']['Total']['CorticalStructures'] = {}
-            for t in self._statistics['Main']['Overall'].mni_space_cortical_structures_overlap.keys():
-                param_json['Main']['Total']['CorticalStructures'][t] = {}
-                for r in self._statistics['Main']['Overall'].mni_space_cortical_structures_overlap[t].keys():
-                    param_json['Main']['Total']['CorticalStructures'][t][r] = self._statistics['Main']['Overall'].mni_space_cortical_structures_overlap[t][r]
 
-            param_json['Main']['Total']['SubcorticalStructures'] = {}
+                # @TODO. Should be only for glioblastoma, but no tumor type classification yet
+                if "Tumor" in s:
+                    param_json[s]["MNI"]["Resectability"] = {}
+                    param_json[s]["MNI"]["Resectability"]["Index"] = self.statistics[s]["MNI"].resectability.resectability_index
+                    param_json[s]["MNI"]["Resectability"]["Resectable volume (ml)"] = float(self.statistics[s]["MNI"].resectability.expected_resectable_tumor_volume)
+                    param_json[s]["MNI"]["Resectability"]["Expected residual volume (ml)"] = float(self.statistics[s]["MNI"].resectability.expected_residual_tumor_volume)
 
-            for t in self._statistics['Main']['Overall'].mni_space_subcortical_structures_overlap.keys():
-                param_json['Main']['Total']['SubcorticalStructures'][t] = {}
-                param_json['Main']['Total']['SubcorticalStructures'][t]['Overlap'] = {}
-                param_json['Main']['Total']['SubcorticalStructures'][t]['Distance'] = {}
-                for ov in self._statistics['Main']['Overall'].mni_space_subcortical_structures_overlap[t].keys():
-                    param_json['Main']['Total']['SubcorticalStructures'][t]['Overlap'][ov] = self._statistics['Main']['Overall'].mni_space_subcortical_structures_overlap[t][ov]
-                for di in self._statistics['Main']['Overall'].mni_space_subcortical_structures_distance[t].keys():
-                    param_json['Main']['Total']['SubcorticalStructures'][t]['Distance'][di] = self._statistics['Main']['Overall'].mni_space_subcortical_structures_distance[t][di]
+                param_json[s]["MNI"]["Cortical Profile"] = {}
+                for t in self.statistics[s]["MNI"].cortical.keys():
+                    param_json[s]["MNI"]["Cortical Profile"][t] = {}
+                    param_json[s]["MNI"]["Cortical Profile"][t]["Overlap"] = {}
+                    for r in self.statistics[s]["MNI"].cortical[t].cortical_structures_overlap.keys():
+                        param_json[s]["MNI"]["Cortical Profile"][t]["Overlap"][r] = float(self.statistics[s]["MNI"].cortical[t].cortical_structures_overlap[r])
 
-            if len(ResourcesConfiguration.getInstance().neuro_features_braingrid) != 0:
-                param_json['Main']['Total']['BrainGrid'] = {}
-                param_json['Main']['Total']['BrainGrid']['Infiltration count'] = self._statistics['Main']['Overall'].mni_space_braingrid_infiltration_count
-                for t in self._statistics['Main']['Overall'].mni_space_braingrid_infiltration_overlap.keys():
-                    param_json['Main']['Total']['BrainGrid'][t] = {}
-                    for r in self._statistics['Main']['Overall'].mni_space_braingrid_infiltration_overlap[t].keys():
-                        param_json['Main']['Total']['BrainGrid'][t][r] = \
-                        self._statistics['Main']['Overall'].mni_space_braingrid_infiltration_overlap[t][r]
+                param_json[s]["MNI"]["Subcortical Profile"] = {}
+                for t in self.statistics[s]["MNI"].subcortical.keys():
+                    param_json[s]["MNI"]["Subcortical Profile"][t] = {}
+                    param_json[s]["MNI"]["Subcortical Profile"][t]["Overlap"] = {}
+                    for r in self.statistics[s]["MNI"].subcortical[t].subcortical_structures_overlap.keys():
+                        param_json[s]["MNI"]["Subcortical Profile"][t]["Overlap"][r] = float(self.statistics[s]["MNI"].subcortical[t].subcortical_structures_overlap[r])
+                    param_json[s]["MNI"]["Subcortical Profile"][t]["Distance"] = {}
+                    for r in self.statistics[s]["MNI"].subcortical[t].subcortical_structures_distance.keys():
+                        param_json[s]["MNI"]["Subcortical Profile"][t]["Distance"][r] = float(self.statistics[s]["MNI"].subcortical[t].subcortical_structures_distance[r])
 
-            # Parameters for each tumor element
-            # if self.tumor_multifocal:
-            #     for p in range(self.tumor_parts):
-            #         tumor_component = str(p+1)
-            #         param_json[tumor_component] = {}
-            #         param_json[tumor_component]['CenterOfMass'] = {}
-            #         param_json[tumor_component]['CenterOfMass']['Laterality'] = self.statistics[tumor_component]['CoM'].laterality
-            #         param_json[tumor_component]['CenterOfMass']['Laterality_perc'] = self.statistics[tumor_component]['CoM'].laterality_percentage
-            #         param_json[tumor_component]['CenterOfMass']['Lobe'] = []
-            #         for l in self.statistics[tumor_component]['CoM'].mni_space_cortical_structures_overlap.keys():
-            #             param_json[tumor_component]['CenterOfMass']['Lobe'].append([l, self.statistics[tumor_component]['CoM'].mni_space_cortical_structures_overlap[l]])
-            #
-            #         param_json[tumor_component]['Total'] = {}
-            #         param_json[tumor_component]['Total']['Volume'] = self.statistics[tumor_component]['Overall'].mni_space_tumor_volume
-            #         param_json[tumor_component]['Total']['Laterality'] = self.statistics[tumor_component]['Overall'].laterality
-            #         param_json[tumor_component]['Total']['Laterality_perc'] = np.round(self.statistics[tumor_component]['Overall'].laterality_percentage * 100., 2)
-            #         param_json[tumor_component]['Total']['Resectability'] = np.round(self.statistics[tumor_component]['Overall'].mni_space_resectability_score * 100., 2)
-            #
-            #         param_json[tumor_component]['Total']['Lobe'] = []
-            #
-            #         for l in self.statistics[tumor_component]['Overall'].mni_space_cortical_structures_overlap.keys():
-            #             param_json[tumor_component]['Total']['Lobe'].append([l, self.statistics[tumor_component]['Overall'].mni_space_cortical_structures_overlap[l]])
-            #
-            #         param_json[tumor_component]['Total']['Tract'] = {}
-            #         param_json[tumor_component]['Total']['Tract']['Distance'] = []
-            #
-            #         for l in self.statistics[tumor_component]['Overall'].mni_space_tracts_distance.keys():
-            #             if self.statistics[tumor_component]['Overall'].mni_space_tracts_distance[l] != -1.:
-            #                 param_json[tumor_component]['Total']['Tract']['Distance'].append([l, np.round(self.statistics[tumor_component]['Overall'].mni_space_tracts_distance[l], 2)])
-            #
-            #         param_json[tumor_component]['Total']['Tract']['Overlap'] = []
-            #         for l in self.statistics[tumor_component]['Overall'].mni_space_tracts_overlap.keys():
-            #             if self.statistics[tumor_component]['Overall'].mni_space_tracts_overlap[l] > 0:
-            #                 param_json[tumor_component]['Total']['Tract']['Overlap'].append([l, np.round(self.statistics[tumor_component]['Overall'].mni_space_tracts_overlap[l] * 100., 2)])
+                if len(ResourcesConfiguration.getInstance().neuro_features_braingrid) != 0:
+                    param_json[s]["MNI"]["Infiltration"] = {}
+                    for t in self.statistics[s]["MNI"].infiltration.keys():
+                        param_json[s]["MNI"]["Infiltration"][t] = {}
+                        param_json[s]["MNI"]["Infiltration"][t]["Count"] = self.statistics[s]["MNI"].infiltration[t].count
+                        param_json[s]["MNI"]["Infiltration"][t]["Overlap"] = {}
+                        for r in self.statistics[s]["MNI"].infiltration[t].overlap.keys():
+                            param_json[s]["MNI"]["Infiltration"][t]["Overlap"][r] = float(self.statistics[s]["MNI"].infiltration[t].overlap[r])
 
             with open(filename, 'w', newline='\n') as outfile:
                 json.dump(param_json, outfile, indent=4, sort_keys=True)
         except Exception as e:
-            raise RuntimeError("Neuro-parameters neuro report dump on disk as json failed with {}".format(e))
+            raise RuntimeError(f"Standardized report dump on disk for T{self.timestamp} as json failed with {e}.\n")
 
         return
 
     def to_csv(self) -> None:
         """
-        Exporting the neuro report to a csv file on disk.
+        Exporting the standardized report to a csv file on disk.
         """
         try:
-            filename = os.path.join(self._output_folder, "neuro_clinical_report.csv")
-            logging.info("Exporting neuro-parameters to csv in {}.".format(filename))
+            filename = os.path.join(self._output_folder, "reporting",
+                                    "T" + str(self.timestamp), "neuro_clinical_report.csv")
+            logging.info(f"Exporting standardized report for T{self.timestamp} to csv in {filename}.")
+            column_names = []
+            all_values = []
+            for i, s in enumerate(self.statistics.keys()):
+                structure_values = []
+                if i == 0:
+                    column_names.extend(["Structure", "Type"])
+                structure_values.extend([s, str(self.tumor_type)])
+                if i == 0:
+                    column_names.extend(["Volume patient space (ml)"])
+                structure_values.extend([self.statistics[s]["Patient"].volume.volume])
 
-            # if not self._tumor_presence_state:
-            #     return
-            values = [self._tumor_multifocal, self._tumor_parts, np.round(self._tumor_multifocal_distance, 2)]
-            column_names = ['Multifocality', 'Tumor parts nb', 'Multifocal distance (mm)']
+                if i == 0:
+                    column_names.extend(["Volume MNI space (ml)", "Brain percentage (%)"])
+                structure_values.extend([self.statistics[s]["MNI"].volume.volume,
+                                         self.statistics[s]["MNI"].volume.brain_percentage])
 
-            values.extend([self._statistics['Main']['Overall'].original_space_tumor_volume, self._statistics['Main']['Overall'].mni_space_tumor_volume])
-            column_names.extend(['Volume original (ml)', 'Volume in MNI (ml)'])
+                if i == 0:
+                    column_names.extend(["Long-axis diameter (mm)", "Short-axis diameter (mm)",
+                                         "Feret diameter maximum (mm)", "Equivalent diameter area (mm)"])
+                structure_values.extend([self.statistics[s]["MNI"].diameters.long_axis_diameter,
+                                         self.statistics[s]["MNI"].diameters.short_axis_diameter,
+                                         self.statistics[s]["MNI"].diameters.feret_diameter,
+                                         self.statistics[s]["MNI"].diameters.equivalent_diameter_area])
 
-            values.extend([self._statistics['Main']['Overall'].left_laterality_percentage,
-                           self._statistics['Main']['Overall'].right_laterality_percentage,
-                           self._statistics['Main']['Overall'].laterality_midline_crossing])
-            column_names.extend(['Left laterality (%)', 'Right laterality (%)', 'Midline crossing'])
+                if i == 0:
+                    column_names.extend(["Multifocality", "Number parts", "Multifocal distance (mm)"])
+                structure_values.extend([self.statistics[s]["MNI"].multifocality.multifocality,
+                                         self.statistics[s]["MNI"].multifocality.nb_parts,
+                                         self.statistics[s]["MNI"].multifocality.max_distance])
 
-            if self._tumor_type == 'Glioblastoma':
-                values.extend([np.round(self._statistics['Main']['Overall'].mni_space_expected_residual_tumor_volume, 2),
-                               np.round(self._statistics['Main']['Overall'].mni_space_resectability_index, 3)])
-                column_names.extend(['ExpectedResidualVolume (ml)', 'ResectionIndex'])
+                if i == 0:
+                    column_names.extend(['Left laterality (%)', 'Right laterality (%)', 'Midline crossing'])
+                structure_values.extend([self.statistics[s]["MNI"].location.left_laterality_percentage,
+                                         self.statistics[s]["MNI"].location.right_laterality_percentage,
+                                         self.statistics[s]["MNI"].location.laterality_midline_crossing])
 
-            for t in self._statistics['Main']['Overall'].mni_space_cortical_structures_overlap.keys():
-                for r in self._statistics['Main']['Overall'].mni_space_cortical_structures_overlap[t].keys():
-                    values.extend([self._statistics['Main']['Overall'].mni_space_cortical_structures_overlap[t][r]])
-                    column_names.extend([t + '_' + r.split('.')[0].lower().strip() + '_overlap'])
+                # @TODO. Should be only for glioblastoma, but no tumor type classification yet
+                if "Tumor" in s:
+                    if i == 0:
+                        column_names.extend(['ResectionIndex', 'ExpectedResectableVolume (ml)',
+                                             'ExpectedResidualVolume (ml)'])
+                    structure_values.extend([self.statistics[s]["MNI"].resectability.resectability_index,
+                                             self.statistics[s]["MNI"].resectability.expected_resectable_tumor_volume,
+                                             self.statistics[s]["MNI"].resectability.expected_residual_tumor_volume])
 
-            for t in self._statistics['Main']['Overall'].mni_space_subcortical_structures_overlap.keys():
-                for r in self._statistics['Main']['Overall'].mni_space_subcortical_structures_overlap[t].keys():
-                    values.extend([self._statistics['Main']['Overall'].mni_space_subcortical_structures_overlap[t][r]])
-                    if t == "MNI":
-                        column_names.extend([t + '_' + r.split('.')[0][:-4] + '_overlap'])
-                    else:
-                        column_names.extend([t + '_' + r.split('.')[0] + '_overlap'])
+                for t in self.statistics[s]["MNI"].cortical.keys():
+                    for r in self.statistics[s]["MNI"].cortical[t].cortical_structures_overlap.keys():
+                        if i == 0:
+                            column_names.extend([t + '_' + r.split('.')[0].lower().strip() + '_overlap'])
+                        structure_values.extend([self.statistics[s]["MNI"].cortical[t].cortical_structures_overlap[r]])
 
-            for t in self._statistics['Main']['Overall'].mni_space_subcortical_structures_distance.keys():
-                for r in self._statistics['Main']['Overall'].mni_space_subcortical_structures_overlap[t].keys():
-                    values.extend([self._statistics['Main']['Overall'].mni_space_subcortical_structures_distance[t][r]])
-                    if t == "MNI":
-                        column_names.extend([t + '_' + r.split('.')[0][:-4] + '_distance'])
-                    else:
-                        column_names.extend([t + '_' + r.split('.')[0] + '_distance'])
+                for t in self.statistics[s]["MNI"].subcortical.keys():
+                    for r in self.statistics[s]["MNI"].subcortical[t].subcortical_structures_overlap.keys():
+                        if i == 0:
+                            if t == "MNI":
+                                column_names.extend([t + '_' + r.split('.')[0][:-4] + '_overlap'])
+                            else:
+                                column_names.extend([t + '_' + r.split('.')[0] + '_overlap'])
+                        structure_values.extend([self.statistics[s]["MNI"].subcortical[t].subcortical_structures_overlap[r]])
+                    for r in self.statistics[s]["MNI"].subcortical[t].subcortical_structures_distance.keys():
+                        if i == 0:
+                            if t == "MNI":
+                                column_names.extend([t + '_' + r.split('.')[0][:-4] + '_distance'])
+                            else:
+                                column_names.extend([t + '_' + r.split('.')[0] + '_distance'])
+                        structure_values.extend([self.statistics[s]["MNI"].subcortical[t].subcortical_structures_distance[r]])
 
-            if len(ResourcesConfiguration.getInstance().neuro_features_braingrid) != 0:
-                values.extend([self._statistics['Main']['Overall'].mni_space_braingrid_infiltration_count])
-                column_names.extend(['Total infiltrated voxels (BrainGrid)'])
-                for t in self._statistics['Main']['Overall'].mni_space_braingrid_infiltration_overlap.keys():
-                    for r in self._statistics['Main']['Overall'].mni_space_braingrid_infiltration_overlap[t].keys():
-                        values.extend([self._statistics['Main']['Overall'].mni_space_braingrid_infiltration_overlap[t][r]])
-                        column_names.extend([t + '_' + r.split('.')[0] + '_overlap'])
+                if len(ResourcesConfiguration.getInstance().neuro_features_braingrid) != 0:
+                    for t in self.statistics[s]["MNI"].infiltration.keys():
+                        if i == 0:
+                            column_names.extend([f'{t} - Infiltration count'])
+                        structure_values.extend([self.statistics[s]["MNI"].infiltration[t].count])
+                        for r in self.statistics[s]["MNI"].infiltration[t].overlap.keys():
+                            if i == 0:
+                                column_names.extend([t + '_' + r.split('.')[0] + '_overlap'])
+                            structure_values.extend([self.statistics[s]["MNI"].infiltration[t].overlap[r]])
+                all_values.append(structure_values)
 
-            values_df = pd.DataFrame(np.asarray(values).reshape((1, len(values))), columns=column_names)
+            values_df = pd.DataFrame(np.asarray(all_values), columns=column_names)
             values_df.to_csv(filename, index=False)
         except Exception as e:
-            raise RuntimeError("Neuro-parameters neuro report dump on disk as csv failed with {}".format(e))
+            raise RuntimeError(f"Standardized report dump on disk for T{self.timestamp} as csv failed with {e}")
 
     def dump_descriptions(self) -> None:
         """
@@ -345,23 +843,48 @@ class NeuroReportingStructure:
                 shutil.copyfile(src=ResourcesConfiguration.getInstance().braingrid_structures['MNI'][a]['Mask'],
                                 dst=os.path.join(atlas_desc_dir, 'MNI_' + a + '_structures.nii.gz'))
         except Exception as e:
-            raise RuntimeError("Neuro-parameters atlas descriptions dump failed with {}".format(e))
+            raise RuntimeError(f"Neuro-parameters atlas descriptions dump failed with {e}")
 
-class TumorStatistics:
-    """
-    Specific class for holding the computed tumor characteristics/features.
-    """
-    def __init__(self):
-        self.left_laterality_percentage = None
-        self.right_laterality_percentage = None
-        self.laterality_midline_crossing = None
-        self.original_space_tumor_volume = None
-        self.mni_space_tumor_volume = None
-        self.mni_space_expected_resectable_tumor_volume = None
-        self.mni_space_expected_residual_tumor_volume = None
-        self.mni_space_resectability_index = None
-        self.mni_space_cortical_structures_overlap = {}
-        self.mni_space_subcortical_structures_overlap = {}
-        self.mni_space_subcortical_structures_distance = {}
-        self.mni_space_braingrid_infiltration_overlap = {}
-        self.mni_space_braingrid_infiltration_count = -1
+    def dump_acquisition_infos(self):
+        try:
+            filename = os.path.join(self._output_folder, "reporting",
+                                    "T" + str(self.timestamp), "radiological_acquisition_infos.csv")
+            column_names = ["Sequence", "DimX", "DimY", "DimZ", "SpacX", "SpacY", "SpacZ"]
+
+            t1c_values = ["t1c", None, None, None, None, None, None]
+            t1w_values = ["t1w", None, None, None, None, None, None]
+            t2f_values = ["t2f", None, None, None, None, None, None]
+            t2w_values = ["t2w", None, None, None, None, None, None]
+            if self.acquisition_infos.t1c_stats is not None:
+                t1c_values[1] = self.acquisition_infos.t1c_stats.dimension_x
+                t1c_values[2] = self.acquisition_infos.t1c_stats.dimension_y
+                t1c_values[3] = self.acquisition_infos.t1c_stats.dimension_z
+                t1c_values[4] = self.acquisition_infos.t1c_stats.spacing_x
+                t1c_values[5] = self.acquisition_infos.t1c_stats.spacing_y
+                t1c_values[6] = self.acquisition_infos.t1c_stats.spacing_z
+            if self.acquisition_infos.t1w_stats is not None:
+                t1w_values[1] = self.acquisition_infos.t1w_stats.dimension_x
+                t1w_values[2] = self.acquisition_infos.t1w_stats.dimension_y
+                t1w_values[3] = self.acquisition_infos.t1w_stats.dimension_z
+                t1w_values[4] = self.acquisition_infos.t1w_stats.spacing_x
+                t1w_values[5] = self.acquisition_infos.t1w_stats.spacing_y
+                t1w_values[6] = self.acquisition_infos.t1w_stats.spacing_z
+            if self.acquisition_infos.t2f_stats is not None:
+                t2f_values[1] = self.acquisition_infos.t2f_stats.dimension_x
+                t2f_values[2] = self.acquisition_infos.t2f_stats.dimension_y
+                t2f_values[3] = self.acquisition_infos.t2f_stats.dimension_z
+                t2f_values[4] = self.acquisition_infos.t2f_stats.spacing_x
+                t2f_values[5] = self.acquisition_infos.t2f_stats.spacing_y
+                t2f_values[6] = self.acquisition_infos.t2f_stats.spacing_z
+            if self.acquisition_infos.t2w_stats is not None:
+                t2w_values[1] = self.acquisition_infos.t2w_stats.dimension_x
+                t2w_values[2] = self.acquisition_infos.t2w_stats.dimension_y
+                t2w_values[3] = self.acquisition_infos.t2w_stats.dimension_z
+                t2w_values[4] = self.acquisition_infos.t2w_stats.spacing_x
+                t2w_values[5] = self.acquisition_infos.t2w_stats.spacing_y
+                t2w_values[6] = self.acquisition_infos.t2w_stats.spacing_z
+            all_values = [t1c_values, t1w_values, t2f_values, t2w_values]
+            values_df = pd.DataFrame(np.asarray(all_values), columns=column_names)
+            values_df.to_csv(filename, index=False)
+        except Exception as e:
+            logging.error(f"Dumping acquisition infos on disk failed with: {e}")

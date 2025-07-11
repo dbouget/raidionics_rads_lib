@@ -8,10 +8,11 @@ import nibabel as nib
 from skimage.morphology import ball
 from scipy.ndimage import binary_closing
 from ..Processing.tumor_features_computation import *
+from ..Utils.DataStructures.RadiologicalVolumeStructure import MRISequenceType
 from ..Utils.io import load_nifti_volume
 from ..Utils.configuration_parser import ResourcesConfiguration
-from ..Utils.ReportingStructures.NeuroReportingStructure import NeuroReportingStructure
-from ..Utils.ReportingStructures.NeuroSurgicalReportingStructure import ResectionCategoryType
+from ..Utils.ReportingStructures.NeuroReportingStructure import *
+from ..Utils.ReportingStructures.NeuroSurgicalReportingStructure import *
 
 
 def compute_neuro_report(input_filename: str, report: NeuroReportingStructure) -> NeuroReportingStructure:
@@ -121,6 +122,82 @@ def compute_neuro_report(input_filename: str, report: NeuroReportingStructure) -
         raise ValueError("{}".format(e))
 
 
+def compute_structure_statistics(input_mask: nib.Nifti1Image,
+                                 brain_mask: nib.Nifti1Image = None) -> NeuroStructureStatistics:
+    """
+
+    Return
+    -------
+
+    """
+    try:
+        result = NeuroStructureStatistics()
+        input_array = input_mask.get_fdata()[:]
+
+        # Cleaning the segmentation mask just in case, removing potential small and noisy areas
+        cluster_size_cutoff_in_pixels = 100
+        kernel = ball(radius=2)
+        img_ero = binary_closing(input_array, structure=kernel, iterations=1)
+        tumor_clusters = measurements.label(img_ero)[0]
+        refined_image = deepcopy(tumor_clusters)
+        for c in range(1, np.max(tumor_clusters) + 1):
+            if np.count_nonzero(tumor_clusters == c) < cluster_size_cutoff_in_pixels:
+                refined_image[refined_image == c] = 0
+        refined_image[refined_image != 0] = 1
+
+        brain_array = None
+        if brain_mask:
+            brain_array = brain_mask.get_fdata()[:]
+        volume, brain_perc = compute_volume(volume=refined_image, spacing=input_mask.header.get_zooms(),
+                                            brain_mask=brain_array)
+        result.volume = NeuroVolumeStatistics(volume=volume, brain_percentage=brain_perc)
+
+        longa, shorta, feret, equi = compute_diameters(volume=refined_image, spacing=input_mask.header.get_zooms())
+        result.diameters = NeuroDiameterStatistics(long_axis_diameter=longa, short_axis_diameter=shorta, feret_diameter=feret,
+                                               equivalent_diameter_area=equi)
+
+        status, nb, dist = compute_multifocality(volume=refined_image, spacing=input_mask.header.get_zooms(),
+                                                 volume_threshold=0.1, distance_threshold=5.0)
+        result.multifocality = NeuroMultifocalityStatistics(status=status, parts=nb, distance=dist)
+
+        # Computing localisation features
+        brain_lateralisation_mask_ni = load_nifti_volume(
+            ResourcesConfiguration.getInstance().mni_atlas_lateralisation_mask_filepath)
+        brain_lateralisation_mask = brain_lateralisation_mask_ni.get_fdata()[:]
+        left, right, crossing = compute_lateralisation(volume=refined_image, brain_mask=brain_lateralisation_mask)
+        result.location = NeuroLocationStatistics(left=left, right=right, crossing=crossing)
+
+        # Compute resectability parameters -- @TODO. Should add a check on tumor type (should be only available for GBM)
+        if left >= 50.0:
+                map_filepath = ResourcesConfiguration.getInstance().mni_resection_maps['Probability']['Left']
+        else:
+            map_filepath = ResourcesConfiguration.getInstance().mni_resection_maps['Probability']['Right']
+        resection_probability_map_ni = nib.load(map_filepath)
+        resection_probability_map = resection_probability_map_ni.get_fdata()[:]
+
+        residual, resectable, average = compute_resectability_index(volume=refined_image,
+                                                                    resectability_map=resection_probability_map)
+        result.resectability = NeuroResectabilityStatistics(resectable=resectable, residual=residual, index=average)
+        
+        # Computing cortical, subcortical, and infiltration profiles
+        for s in ResourcesConfiguration.getInstance().neuro_features_cortical_structures:
+            overlaps = compute_cortical_structures_location(volume=refined_image, reference=s)
+            result.cortical[s] = NeuroCorticalStatistics(overlap=overlaps, distance=None)
+        for s in ResourcesConfiguration.getInstance().neuro_features_subcortical_structures:
+            overlaps, distances = compute_subcortical_structures_location(volume=refined_image,
+                                                                          category='Main', reference=s)
+            result.subcortical[s] = NeuroSubCorticalStatistics(overlap=overlaps, distance=distances)
+        for s in ResourcesConfiguration.getInstance().neuro_features_braingrid:
+            overlap_per_voxel, infiltrated_voxels = compute_braingrid_voxels_infiltration(volume=refined_image,
+                                                                                           category='Main',
+                                                                                           reference=s)
+            result.infiltration[s] = NeuroInfiltrationStatistics(overlap=overlap_per_voxel, count=infiltrated_voxels)
+
+        return result
+    except Exception as e:
+        raise ValueError(f"Structure features computation failed with: {e}")
+
+
 def compute_cortical_structures_location(volume, reference='MNI'):
     logging.debug("Computing cortical structures location with {}.".format(reference))
     regions_data = ResourcesConfiguration.getInstance().cortical_structures['MNI'][reference]
@@ -148,7 +225,7 @@ def compute_cortical_structures_location(volume, reference='MNI'):
     for li in total_lobes_labels:
         overlap = volume[region_mask == li]
         ratio_in_lobe = np.count_nonzero(overlap) / np.count_nonzero(volume)
-        overlap = np.round(ratio_in_lobe * 100., 2)
+        overlap = float(round(ratio_in_lobe * 100., 2))
         region_name = ''
         if reference == 'MNI':
             region_name = '-'.join(str(lobes_description.loc[lobes_description['Label'] == li]['Region'].values[0]).strip().split(' ')) + '_' + (str(lobes_description.loc[lobes_description['Label'] == li]['Laterality'].values[0]).strip() if str(lobes_description.loc[lobes_description['Label'] == li]['Laterality'].values[0]).strip() != 'None' else '')
@@ -188,7 +265,7 @@ def compute_subcortical_structures_location(volume, category=None, reference='BC
                 overlaps_columns.append('overlap_' + tfn.split('.')[0] + '_' + category)
             if np.count_nonzero(overlap_volume) != 0:
                 distances[tfn] = dist
-                overlaps[tfn] = (np.count_nonzero(overlap_volume) / np.count_nonzero(volume)) * 100.
+                overlaps[tfn] = float((np.count_nonzero(overlap_volume) / np.count_nonzero(volume)) * 100.)
             else:
                 if np.count_nonzero(reg_tract) > 0:
                     dist = compute_hd95(volume, reg_tract, voxelspacing=reg_tract_ni.header.get_zooms(), connectivity=1)
@@ -214,7 +291,7 @@ def compute_braingrid_voxels_infiltration(volume, category=None, reference='Voxe
     for li in total_voxels_labels:
         overlap = volume[region_mask == li]
         ratio_in_voxel = np.count_nonzero(overlap) / np.count_nonzero(volume)
-        overlap = np.round(ratio_in_voxel * 100., 2)
+        overlap = float(round(ratio_in_voxel * 100., 2))
         region_name = ''
         if reference == 'Voxels':
             region_name = '_'.join(lobes_description.loc[lobes_description['Label'] == li]['Region'].values[0].strip().split(' '))
@@ -225,26 +302,108 @@ def compute_braingrid_voxels_infiltration(volume, category=None, reference='Voxe
     return overlap_per_voxel, infiltrated_voxels
 
 
-def compute_surgical_report(preop_filename, postop_filename, report):
+def compute_surgical_report(brain_preop_fn: str, brain_postop_fn: str, tumor_preop_fn: str, tumor_postop_fn: str,
+                            necrosis_preop_fn: str, necrosis_postop_fn: str, report, flairchanges_preop_fn: str = None,
+                            flairchanges_postop_fn: str = None, cavity_postop_fn: str = None) -> None:
     """
     Update the report in-place with the computed values.
+    What do the RANO guidelines say about contrast-enhancing versus not, regarding the assessment?
+    How to check for supramaximal resection? => beyond CE tumor borders
+    Is it correct to compare the tumorcore preop and tumorCE postop?
     """
-    preop_annotation_ni = nib.load(preop_filename)
-    postop_annotation_ni = nib.load(postop_filename)
-    preop_volume = compute_volume(preop_annotation_ni.get_fdata()[:], preop_annotation_ni.header.get_zooms())
-    postop_volume = compute_volume(postop_annotation_ni.get_fdata()[:], postop_annotation_ni.header.get_zooms())
+    try:
+        preop_brain_annotation_ni = nib.load(brain_preop_fn)
+        postop_brain_annotation_ni = nib.load(brain_postop_fn)
+        preop_brain_volume, _ = compute_volume(preop_brain_annotation_ni.get_fdata()[:], preop_brain_annotation_ni.header.get_zooms())
+        postop_brain_volume, _ = compute_volume(postop_brain_annotation_ni.get_fdata()[:], postop_brain_annotation_ni.header.get_zooms())
 
-    eor = ((preop_volume - postop_volume) / preop_volume) * 100.
-    report._statistics.preop_volume = preop_volume
-    report._statistics.postop_volume = postop_volume
-    report._statistics.extent_of_resection = eor
+        preop_annotation_ni = nib.load(tumor_preop_fn)
+        postop_annotation_ni = nib.load(tumor_postop_fn)
+        preop_volume, _ = compute_volume(preop_annotation_ni.get_fdata()[:], preop_annotation_ni.header.get_zooms())
+        postop_volume, _ = compute_volume(postop_annotation_ni.get_fdata()[:], postop_annotation_ni.header.get_zooms())
 
-    if eor > 99.9:
-        report._statistics.resection_category = ResectionCategoryType.ComR
-    elif eor >= 95.0 and postop_volume <= 1.0:
-        report._statistics.resection_category = ResectionCategoryType.NeaR
-    elif eor >= 80.0 and postop_volume <= 5.0:
-        report._statistics.resection_category = ResectionCategoryType.SubR
-    else:
-        report._statistics.resection_category = ResectionCategoryType.ParR
+        flairchanges_preop_volume = None
+        if flairchanges_preop_fn is not None:
+            flairchanges_preop_ni = nib.load(flairchanges_preop_fn)
+            flairchanges_preop_volume, _ = compute_volume(flairchanges_preop_ni.get_fdata()[:],
+                                                       flairchanges_preop_ni.header.get_zooms())
 
+        flairchanges_postop_volume = None
+        if flairchanges_postop_fn is not None:
+            flairchanges_postop_ni = nib.load(flairchanges_postop_fn)
+            flairchanges_postop_volume, _ = compute_volume(flairchanges_postop_ni.get_fdata()[:],
+                                                        flairchanges_postop_ni.header.get_zooms())
+        necrosis_preop_volume = None
+        if necrosis_preop_fn is not None:
+            necrosis_preop_ni = nib.load(necrosis_preop_fn)
+            necrosis_preop_volume, _ = compute_volume(necrosis_preop_ni.get_fdata()[:],
+                                                       necrosis_preop_ni.header.get_zooms())
+        necrosis_postop_volume = None
+        if necrosis_postop_fn is not None:
+            necrosis_postop_ni = nib.load(necrosis_postop_fn)
+            necrosis_postop_volume, _ = compute_volume(necrosis_postop_ni.get_fdata()[:],
+                                                       necrosis_postop_ni.header.get_zooms())
+        cavity_postop_volume = None
+        if cavity_postop_fn is not None:
+            cavity_postop_ni = nib.load(cavity_postop_fn)
+            cavity_postop_volume, _ = compute_volume(cavity_postop_ni.get_fdata()[:], cavity_postop_ni.header.get_zooms())
+
+        eor = ((preop_volume - postop_volume) / preop_volume) * 100.
+        report.statistics.tumor_volume_preop = preop_volume
+        report.statistics.tumor_volume_postop = postop_volume
+        report.statistics.extent_of_resection = eor
+        report.statistics.flairchanges_volume_preop = flairchanges_preop_volume
+        report.statistics.flairchanges_volume_postop = flairchanges_postop_volume
+        report.statistics.necrosis_volume_preop = necrosis_preop_volume
+        report.statistics.necrosis_volume_postop = necrosis_postop_volume
+        report.statistics.cavity_volume_postop = cavity_postop_volume
+        report.statistics.brain_volume_preop = preop_brain_volume
+        report.statistics.brain_volume_postop = postop_brain_volume
+        report.statistics.brain_volume_change =  ((preop_brain_volume - postop_brain_volume) / preop_brain_volume) * 100.
+        report.statistics.tumor_to_brain_ratio_preop = (preop_volume / preop_brain_volume) * 100.
+        report.statistics.tumor_to_brain_ratio_postop = (postop_volume / postop_brain_volume) * 100.
+
+        if flairchanges_preop_volume and flairchanges_postop_volume:
+            eor_flair =  ((flairchanges_preop_volume - flairchanges_postop_volume) / flairchanges_preop_volume) * 100.
+            report.statistics.extent_of_resection_flair = eor_flair
+
+        if necrosis_preop_volume and necrosis_postop_volume:
+            eor_necro =  ((necrosis_preop_volume - necrosis_postop_volume) / necrosis_preop_volume) * 100.
+            report.statistics.necrosis_volume_change = eor_necro
+
+        if eor > 99.9:
+            report.statistics.resection_category = ResectionCategoryType.ComR
+        elif eor >= 95.0 and postop_volume <= 10.0:
+            report.statistics.resection_category = ResectionCategoryType.NeaR
+        elif eor >= 80.0 and postop_volume <= 50.0:
+            report.statistics.resection_category = ResectionCategoryType.SubR
+        else:
+            report.statistics.resection_category = ResectionCategoryType.ParR
+    except Exception as e:
+        raise ValueError(f"Surgical report computation failed with {e}\n")
+
+def compute_acquisition_infos(radiological_volumes: List[str]) -> NeuroAcquisitionInfo:
+    """
+    @TODO. If multiple scans for a same sequence, only the info for the "best" sequence should be reported. The best
+    scan being the one also used for running the segmentation models (e.g., highest resolution/smallest spacing).
+    """
+    t1c_stats = None
+    t1w_stats = None
+    t2f_stats = None
+    t2w_stats = None
+    for v in radiological_volumes:
+        rad_vol_nib = nib.load(v.usable_input_filepath)
+        stats = NeuroRadiologicalVolumeStatistics(dim_x=rad_vol_nib.shape[0], dim_y=rad_vol_nib.shape[1],
+                                                  dim_z=rad_vol_nib.shape[2], spac_x=rad_vol_nib.header.get_zooms()[0],
+                                                  spac_y=rad_vol_nib.header.get_zooms()[1],
+                                                  spac_z=rad_vol_nib.header.get_zooms()[2])
+        if v.get_sequence_type_enum() == MRISequenceType.T1c:
+            t1c_stats = stats
+        elif v.get_sequence_type_enum() == MRISequenceType.T1w:
+            t1w_stats = stats
+        elif v.get_sequence_type_enum() == MRISequenceType.FLAIR:
+            t2f_stats = stats
+        elif v.get_sequence_type_enum() == MRISequenceType.T2:
+            t2w_stats = stats
+    infos = NeuroAcquisitionInfo(t1c_stats=t1c_stats, t1w_stats=t1w_stats, t2w_stats=t2w_stats, t2f_stats=t2f_stats)
+    return infos

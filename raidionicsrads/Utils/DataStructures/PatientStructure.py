@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import re
+import glob
 import pandas as pd
 import logging
 import nibabel as nib
@@ -48,6 +49,30 @@ class PatientParameters:
         self._atlas_volumes = {}
         self._registrations = {}
         self._reportings = {}
+
+    @property
+    def unique_id(self) -> str:
+        return self._unique_id
+
+    @property
+    def input_filepath(self) -> str:
+        return self._input_filepath
+
+    @property
+    def radiological_volumes(self) -> dict:
+        return self._radiological_volumes
+
+    @property
+    def annotation_volumes(self) -> dict:
+        return self._annotation_volumes
+
+    @property
+    def registrations(self) -> dict:
+        return self._registrations
+
+    @property
+    def reportings(self) -> dict:
+        return self._reportings
 
     def __init_from_scratch(self):
         """
@@ -115,20 +140,36 @@ class PatientParameters:
                         non_available_uid = True
                         while non_available_uid:
                             data_uid = 'A' + str(np.random.randint(0, 10000)) + '_' + base_name
-                            if data_uid not in list(self._annotation_volumes.keys()):
+                            if data_uid not in list(self.annotation_volumes.keys()):
                                 non_available_uid = False
                         if ResourcesConfiguration.getInstance().caller == 'raidionics':
                             class_name = os.path.basename(f).strip().split('.')[0].split('annotation')[1][1:]
                         else:
                             class_name = os.path.basename(f).strip().split('.')[0].split('label')[1][1:]
-                        self._annotation_volumes[data_uid] = Annotation(uid=data_uid,
+                        self.annotation_volumes[data_uid] = Annotation(uid=data_uid,
                                                                         input_filename=os.path.join(ts_folder, f),
-                                                                        output_folder=self._radiological_volumes[parent_uid].get_output_folder(),
+                                                                        output_folder=self._radiological_volumes[parent_uid].output_folder,
                                                                         radiological_volume_uid=parent_uid,
                                                                         annotation_class=class_name)
                     else:
                         # Case where the annotation does not match any radiological volume, has to be left aside
                         pass
+                registration_folders = [os.path.join(ts_folder, d) for d in os.listdir(ts_folder) if os.path.isdir(os.path.join(ts_folder, d))]
+                for rf in registration_folders:
+                    registered_radiological_volumes = []
+                    registered_labels = []
+                    for _, _, files in os.walk(rf):
+                        for f in files:
+                            if "label" in f or "annotation" in f:
+                                registered_labels.append(f)
+                            else:
+                                registered_radiological_volumes.append(f)
+                    for rr in registered_radiological_volumes:
+                        fixed_volume = self.get_radiological_volume_by_base_filename(base_fn=os.path.basename(rf[:-1]).replace("_space", ""))
+                        reg_volume = self.get_radiological_volume_by_base_filename(base_fn=rr.split('_reg')[0])
+                        reg_volume.include_registered_volume(filepath=os.path.join(rf, rr), registration_uid=None,
+                                                             destination_space_uid=fixed_volume.unique_id)
+
             sequences_filename = os.path.join(self._input_filepath, 'mri_sequences.csv')
             if os.path.exists(sequences_filename):
                 df = pd.read_csv(sequences_filename)
@@ -145,12 +186,12 @@ class PatientParameters:
                 target_type = AnnotationClassType.Brain if ResourcesConfiguration.getInstance().diagnosis_task == 'neuro_diagnosis' else AnnotationClassType.Lungs
                 for uid in self.get_all_radiological_volume_uids():
                     volume = self.get_radiological_volume(uid)
-                    volume_nib = nib.load(volume.get_raw_input_filepath())
+                    volume_nib = nib.load(volume.raw_input_filepath)
                     img_data = volume_nib.get_fdata()[:]
                     mask = np.zeros(img_data.shape)
                     mask[img_data != 0] = 1
-                    mask_fn = os.path.join(volume.get_output_folder(),
-                                           os.path.basename(volume.get_raw_input_filepath()).split('.')[0] + '_label_' + str(target_type) + '.nii.gz')
+                    mask_fn = os.path.join(volume.output_folder,
+                                           os.path.basename(volume.raw_input_filepath).split('.')[0] + '_label_' + str(target_type) + '.nii.gz')
 
                     nib.save(nib.Nifti1Image(mask, affine=volume_nib.affine), mask_fn)
                     non_available_uid = True
@@ -159,21 +200,21 @@ class PatientParameters:
                         anno_uid = 'A' + str(np.random.randint(0, 10000))
                         if anno_uid not in self.get_all_annotations_uids():
                             non_available_uid = False
-                    self._annotation_volumes[anno_uid] = Annotation(uid=data_uid, input_filename=mask_fn,
-                                                                    output_folder=volume.get_output_folder(),
+                    self.annotation_volumes[anno_uid] = Annotation(uid=data_uid, input_filename=mask_fn,
+                                                                    output_folder=volume.output_folder,
                                                                     radiological_volume_uid=uid,
                                                                     annotation_class=target_type)
         except Exception as e:
             raise ValueError("Patient structure setup from disk folder failed with: {}".format(e))
 
     def include_annotation(self, anno_uid, annotation):
-        self._annotation_volumes[anno_uid] = annotation
+        self.annotation_volumes[anno_uid] = annotation
 
     def include_registration(self, reg_uid, registration):
-        self._registrations[reg_uid] = registration
+        self.registrations[reg_uid] = registration
 
     def include_reporting(self, report_uid, report):
-        self._reportings[report_uid] = report
+        self.reportings[report_uid] = report
 
     def get_input_from_json(self, input_json: dict):
         """
@@ -227,7 +268,7 @@ class PatientParameters:
                 # Use-case where the provided inputs are already co-registered
             elif ResourcesConfiguration.getInstance().predictions_use_registered_data:
                 volume = self.get_radiological_volume(volume_uid=volume_uid)
-                input_fp = volume.get_usable_input_filepath()
+                input_fp = volume.usable_input_filepath
                 if not os.path.exists(input_fp):
                     raise ValueError("No radiological volume for {}.".format(input_json))
                 else:
@@ -241,51 +282,135 @@ class PatientParameters:
                     return volume
 
     def get_all_radiological_volume_uids(self) -> List[str]:
-        return list(self._radiological_volumes.keys())
+        return list(self.radiological_volumes.keys())
+
+    def get_all_radiological_volumes_for_timestamp(self, timestamp: int) -> List[RadiologicalVolume]:
+        res_list = []
+        for v in self.radiological_volumes.keys():
+            if self.radiological_volumes[v]._timestamp_id == "T" + str(timestamp):
+                res_list.append(self.radiological_volumes[v])
+        return res_list
+
+    def get_all_radiological_volumes_uids_for_timestamp(self, timestamp: int) -> List[str]:
+        res_list = []
+        for v in self.radiological_volumes.keys():
+            if self.radiological_volumes[v]._timestamp_id == "T" + str(timestamp):
+                res_list.append(v)
+        return res_list
 
     def get_radiological_volume_uid(self, timestamp: int, sequence: str) -> str:
-        for v in self._radiological_volumes.keys():
-            if self._radiological_volumes[v]._timestamp_id == "T" + str(timestamp) and str(self._radiological_volumes[v]._sequence_type) == sequence:
+        for v in self.radiological_volumes.keys():
+            if self.radiological_volumes[v]._timestamp_id == "T" + str(timestamp) and str(self.radiological_volumes[v]._sequence_type) == sequence:
                 return v
         return "-1"
 
     def get_radiological_volume(self, volume_uid: str) -> RadiologicalVolume:
-        return self._radiological_volumes[volume_uid]
+        return self.radiological_volumes[volume_uid] if volume_uid in self.radiological_volumes.keys() else None
 
     def get_radiological_volume_by_base_filename(self, base_fn: str):
         result = None
-        for im in self._radiological_volumes:
-            if os.path.basename(self._radiological_volumes[im].get_usable_input_filepath()) == base_fn:
-                return self._radiological_volumes[im]
+        for im in self.radiological_volumes:
+            if os.path.basename(self.radiological_volumes[im].usable_input_filepath).split('.')[0] == base_fn:
+                return self.radiological_volumes[im]
         return result
 
+    def get_radiological_volume_for_timestamp_and_sequence(self, timestamp: int,
+                                                           sequence: str) -> List[RadiologicalVolume]:
+        res_list = []
+        volumes = self.get_all_radiological_volumes_uids_for_timestamp(timestamp=timestamp)
+        for v in volumes:
+            if self.radiological_volumes[v].get_sequence_type_str() == sequence:
+                res_list.append(self.radiological_volumes[v])
+        return res_list
+
     def get_all_annotations_uids(self) -> List[str]:
-        return list(self._annotation_volumes.keys())
+        return list(self.annotation_volumes.keys())
 
     def get_annotation(self, annotation_uid: str) -> Annotation:
-        return self._annotation_volumes[annotation_uid]
+        return self.annotation_volumes[annotation_uid]
+
+    def get_all_annotations_radiological_volume(self, volume_uid: str) -> List[Annotation]:
+        res = []
+        for v in self.annotation_volumes.keys():
+            if self.annotation_volumes[v]._radiological_volume_uid == volume_uid:
+                res.append(self.annotation_volumes[v])
+        return res
+
+    def get_all_annotations_for_timestamp(self, timestamp: int) -> List[Annotation]:
+        res_list = []
+        volumes = self.get_all_radiological_volumes_uids_for_timestamp(timestamp=timestamp)
+        for a in self.annotation_volumes:
+            if a.radiological_volume_uid in volumes:
+                res_list.append(a)
+        return res_list
+
+    def get_all_annotations_for_timestamp_and_structure(self, timestamp: int,
+                                                        structure: str) -> List[Annotation]:
+        res_list = []
+        volumes = self.get_all_radiological_volumes_uids_for_timestamp(timestamp=timestamp)
+        for a in list(self.annotation_volumes.keys()):
+            if self.annotation_volumes[a].radiological_volume_uid in volumes and self.annotation_volumes[a].get_annotation_type_name() == structure:
+                res_list.append(self.annotation_volumes[a])
+        return res_list
 
     def get_all_annotations_uids_radiological_volume(self, volume_uid: str) -> List[str]:
         res = []
-        for v in self._annotation_volumes.keys():
-            if self._annotation_volumes[v]._radiological_volume_uid == volume_uid:
+        for v in self.annotation_volumes.keys():
+            if self.annotation_volumes[v]._radiological_volume_uid == volume_uid:
                 res.append(v)
         return res
 
-    def get_all_annotations_uids_class_radiological_volume(self, volume_uid: str,
-                                                           annotation_class: AnnotationClassType) -> List[str]:
+    def get_all_registered_annotations_uids_radiological_volume(self, volume_uid: str) -> List[str]:
         res = []
-        for v in self._annotation_volumes.keys():
-            if self._annotation_volumes[v]._radiological_volume_uid == volume_uid and \
-                    self._annotation_volumes[v]._annotation_type == annotation_class:
-                res.append(v)
+        for v in self.annotation_volumes.keys():
+            for r in self.annotation_volumes[v].registered_volumes.keys():
+                if r == volume_uid:
+                    res.append(v)
+        return res
+
+    def get_all_annotations_uids_class_radiological_volume(self, volume_uid: str,
+                                                           annotation_class: AnnotationClassType,
+                                                           include_coregistrations: bool = False,
+                                                           return_objects=False) -> List[str]:
+        res = []
+        for v in self.annotation_volumes.keys():
+            if self.annotation_volumes[v]._radiological_volume_uid == volume_uid and \
+                    self.annotation_volumes[v]._annotation_type == annotation_class:
+                if not return_objects:
+                    res.append(v)
+                else:
+                    res.append(self.annotation_volumes[v])
+            if include_coregistrations:
+                if volume_uid in self.annotation_volumes[v].registered_volumes.keys() and \
+                        self.annotation_volumes[v]._annotation_type == annotation_class:
+                    if not return_objects:
+                        res.append(v)
+                    else:
+                        res.append(self.annotation_volumes[v])
+        return res
+
+    def get_all_annotations_fns_class_radiological_volume(self, volume_uid: str,
+                                                           annotation_class: AnnotationClassType,
+                                                           include_coregistrations: bool = False) -> List[str]:
+        """
+        @TODO. What if the volume_uid is an atlas?
+        """
+        res = []
+        for v in self.annotation_volumes.keys():
+            if self.annotation_volumes[v]._radiological_volume_uid == volume_uid and \
+                    self.annotation_volumes[v]._annotation_type == annotation_class:
+                res.append(self.annotation_volumes[v].usable_input_filepath)
+            if include_coregistrations:
+                if volume_uid in self.annotation_volumes[v].registered_volumes.keys() and \
+                        self.annotation_volumes[v]._annotation_type == annotation_class:
+                    res.append(self.annotation_volumes[v].registered_volumes[volume_uid]["filepath"])
         return res
 
     def get_registration_by_uids(self, fixed_uid: str, moving_uid: str) -> Registration:
         registration = None
-        for r in list(self._registrations.keys()):
-            if self._registrations[r]._fixed_uid == fixed_uid and self._registrations[r]._moving_uid == moving_uid:
-                return self._registrations[r]
+        for r in list(self.registrations.keys()):
+            if self.registrations[r].fixed_uid == fixed_uid and self.registrations[r].moving_uid == moving_uid:
+                return self.registrations[r]
         return registration
 
     def get_registration_by_json(self, fixed: dict, moving: dict) -> Registration:
@@ -310,7 +435,7 @@ class PatientParameters:
         return self.get_registration_by_uids(fixed_uid=fixed_uid, moving_uid=moving_uid)
 
     def get_all_reportings_uids(self) -> List[str]:
-        return list(self._reportings.keys())
+        return list(self.reportings.keys())
 
 
 class TimestampParameters:
@@ -333,6 +458,10 @@ class TimestampParameters:
         """
         self._unique_id = None
         self._input_filepath = None
+
+    @property
+    def unique_id(self) -> str:
+        return self._unique_id
 
     def __init_from_scratch(self):
         pass

@@ -47,8 +47,37 @@ class Registration:
         self._fixed_uid = None
         self._moving_uid = None
 
-    def get_unique_id(self) -> str:
+    @property
+    def unique_id(self) -> str:
         return self._unique_id
+
+    @property
+    def fixed_uid(self) -> str:
+        return self._fixed_uid
+
+    @property
+    def moving_uid(self) -> str:
+        return self._moving_uid
+
+    @property
+    def output_folder(self) -> str:
+        return self._output_folder
+
+    @property
+    def forward_filepaths(self) -> List[str]:
+        return self._forward_filepaths
+
+    @forward_filepaths.setter
+    def forward_filepaths(self, fp: List[str]) -> None:
+        self._forward_filepaths = fp
+
+    @property
+    def inverse_filepaths(self) -> List[str]:
+        return self._inverse_filepaths
+
+    @inverse_filepaths.setter
+    def inverse_filepaths(self, fp: List[str]) -> None:
+        self._inverse_filepaths = fp
 
     def get_fixed_uid(self) -> str:
         return self._fixed_uid

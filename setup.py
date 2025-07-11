@@ -12,7 +12,7 @@ if platform.system() == 'Darwin' and platform.processor() == 'arm':   # Specific
     required.append('scikit-learn')
     required.append('statsmodels')
 else:
-    required.append('antspyx==0.4.2')
+    required.append('antspyx')
 
 setup(
     name='raidionicsrads',
@@ -37,8 +37,14 @@ setup(
     },
     install_requires=required,
     include_package_data=True,
-    python_requires=">=3.8",
-    version='1.2.1',
+    package_data={
+        "raidionicsrads": [
+            "ANTs/**/*",  # include all files in ANTs/
+            "Atlases/**/*",  # and all files in Atlases/
+        ],
+    },
+    python_requires=">=3.9",
+    version='1.3.0',
     author='David Bouget (david.bouget@sintef.no)',
     license='BSD 2-Clause',
     description='Raidionics reporting and data system backend (RADS)',
