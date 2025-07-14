@@ -45,19 +45,10 @@ jobs:
           tar -xzf ANTsX-v2.4.3_macos_arm.tar.gz -C ${{github.workspace}}/downloads/
           mv ${{github.workspace}}/downloads/install ${{github.workspace}}/raidionicsrads/ANTs/
 
-      - name: List extracted ANTs files
-        if: matrix.arch == 'arm64'
-        run: ls -lR raidionicsrads/ANTs/
-
       - name: Build wheels
         run: |
-          if [ "${{ matrix.arch }}" = "x86_64" ]; then
-              echo "Building universal (pure Python) wheel with `build`..."
-              python -m build --wheel --outdir dist/
-          else
-              echo "Building arm64 wheel with cibuildwheel..."
-              CIBW_ARCHS=arm64 cibuildwheel --output-dir dist/
-          fi
+          python -m build --wheel --outdir dist/
+
         env:
           CIBW_BUILD: "cp39-* cp310-* cp311-* cp312-* cp313-*"
           CIBW_BUILD_VERBOSITY: 2
