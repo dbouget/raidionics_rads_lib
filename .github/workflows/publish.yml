@@ -11,7 +11,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-22.04, ubuntu-24-04, windows-2022, windows-2025, macos-13, macos-14, macos-15]
+        os: [ubuntu-22.04, ubuntu-24.04, windows-2022, windows-2025, macos-13, macos-14, macos-15]
         include:
           - os: ubuntu-22.04
             cibw_build: "cp39-* cp310-* cp311-* cp312-* cp313-*"
