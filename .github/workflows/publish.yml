@@ -32,8 +32,8 @@ jobs:
       - name: Build wheels
         run: |
           if [ "${{ matrix.arch }}" = "x86_64" ]; then
-              echo "Building x86_64 wheel with cibuildwheel..."
-              CIBW_ARCHS=x86_64 cibuildwheel --output-dir dist/
+              echo "Building universal (pure Python) wheel with `build`..."
+              python -m build --wheel --outdir dist/
           else
               echo "Building arm64 wheel with cibuildwheel..."
               CIBW_ARCHS=arm64 cibuildwheel --output-dir dist/
