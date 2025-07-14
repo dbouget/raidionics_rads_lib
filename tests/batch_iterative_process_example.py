@@ -8,29 +8,54 @@ import subprocess
 import traceback
 import argparse
 import platform
+from tqdm import tqdm
 
 
 def batch_iterative_process_example():
     """
-    Example code for running a pipeline iteratively over a set of patients. Custom pipelines can be performed by
-    feeding a local json file to the following line below in the code:
-    rads_config.set('System', 'pipeline_filename', os.path.join(models_folderpath, 'MRI_Tumor_Postop', 'pipeline.json'))
+    Example code for running a pipeline iteratively over a set of patients. Custom pipelines can be created, the
+    examples provided in the notebooks are a good place to start.
 
     All trained models, necessary for running the segmentation tasks selected in the pipeline, must be manually
-    downloaded (https://github.com/dbouget/Raidionics-models/releases/tag/1.2.0), extracted and placed within an overall
+    downloaded (https://github.com/dbouget/Raidionics-models/releases/tag/1.3.0-rc), extracted and placed within an overall
     models folder.
+
+    For using Docker as processing backend, please first download the following image: dbouget/raidionics-rads:v1.3-py39-cpu
+
+    The expected patient data structure is as follows:
+    └── path/to/data/cohort/
+        └── Pat001/
+            ├── T0/
+                ├── Pat001_t1c_pre.nii.gz
+                ├── Pat001_t1c_pre_label_brain.nii.gz
+                └── Pat001_t1w_pre.nii.gz
+            └── T1/
+                ├── Pat001_t1c_post.nii.gz
+                ├── Pat001_t1c_post_label_brain.nii.gz
+                ├── Pat001_t1w_post.nii.gz
+                ├── Pat001_t2f_post.nii.gz
+                └── Pat001_t2w_post.nii.gz
+        [...]
+        └── PatXXX/
+            ├── T0/
+                ├── PatXXX_t1c_pre.nii.gz
+                └── PatXXX_t1c_pre_label_brain.nii.gz
+            └── T1/
+                ├── PatXXX_t1c_post.nii.gz
+                └── PatXXX_t1c_post_label_brain.nii.gz
+    Images inside each patient folder are expected to be in nifti format (nii.gz), and placed inside their respective
+    timestamp subfolders: e.g., T0 folder for preoperative data and T1 folder for early postoperative data.
+    For already existing segmentation/annotation files, the -label_target suffix must be provided (i.e., label_tumor),
+    appended to the same name as the MRI image it corresponds to (e.g., input0.nii.gz and input0_label_tumor.nii.gz).
+    The list of support label names can be viewed in raidionicsrads > Utils > AnnotationStructure.py (AnnotationClassType)
 
     Parameters
     ----------
-    --input Folder path containing sub-folders, one for each patient, to process. Images inside each patient folder are
-    expected to be in nifti format (nii.gz) and their names must contain their MRI sequence type (i.e., t1gd for T1-CE,
-    t1 for T1-w, flair for FLAIR) or the -label_target suffix for annotations (i.e., label_tumor) appended to the same
-    name as the MRI image it corresponds to.
-    --output Destination folder where the processed results will be dumped. Sub-folders, one for each patient, will be
-    automatically generated.
+    --input Folder path containing the patient cohort to process.
+    --output Destination folder where the processed results will be dumped.
     --models Folder path where all trained models are located on disk.
     --backend Indication to either perform all processing directly (assuming located inside a proper venv) or inside
-    a Docker container. To chose from [local, docker].
+    a Docker container. To select from [local, docker].
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('--input', metavar='input', help='Path to the input patients folder')
@@ -64,7 +89,7 @@ def batch_iterative_process_example():
             patients.append(d)
         break
 
-    for pat in patients:
+    for pat in tqdm(patients):
         tmp_folder = ''
         try:
             # Setting up directories
@@ -80,6 +105,30 @@ def batch_iterative_process_example():
                 shutil.rmtree(tmp_folder)
             os.makedirs(tmp_folder)
 
+            # Prepare the underlying pipeline
+            pipeline_json = {}
+            step_index = 1
+            step_str = str(step_index)
+            pipeline_json[step_str] = {}
+            pipeline_json[step_str]["task"] = "Classification"
+            pipeline_json[step_str]["inputs"] = {}  # Empty input means running it on all existing data for the patient
+            pipeline_json[step_str]["target"] = ["MRSequence"]
+            pipeline_json[step_str]["model"] = "MRI_SequenceClassifier"
+            pipeline_json[step_str]["description"] = "Classification of the MRI sequence type for all input scans."
+
+            step_index = step_index + 1
+            step_str = str(step_index)
+            pipeline_json[step_str] = {}
+            pipeline_json[step_str]["task"] = 'Model selection'
+            pipeline_json[step_str]["model"] = 'MRI_TumorCore'
+            pipeline_json[step_str]["timestamp"] = 0
+            pipeline_json[step_str]["format"] = "thresholding"
+            pipeline_json[step_str][
+                "description"] = "Identifying the best rest tumor core segmentation model for existing inputs"
+
+            with open(os.path.join(dest_pat_folder, 'batch_iterative_pipeline.json'), 'w', newline='\n') as outfile:
+                json.dump(pipeline_json, outfile, indent=4)
+
             # Setting up the configuration file
             rads_config = configparser.ConfigParser()
             rads_config.add_section('Default')
@@ -90,11 +139,15 @@ def batch_iterative_process_example():
             rads_config.set('System', 'input_folder', input_pat_folder)
             rads_config.set('System', 'output_folder', dest_pat_folder)
             rads_config.set('System', 'model_folder', models_folderpath)
-            rads_config.set('System', 'pipeline_filename', os.path.join(models_folderpath, 'MRI_Tumor_Postop', 'pipeline.json'))
+            rads_config.set('System', 'pipeline_filename', os.path.join(dest_pat_folder, 'batch_iterative_pipeline.json'))
             rads_config.add_section('Runtime')
             rads_config.set('Runtime', 'reconstruction_method', 'probabilities')  # thresholding, probabilities
             rads_config.set('Runtime', 'reconstruction_order', 'resample_first')
             rads_config.set('Runtime', 'use_preprocessed_data', 'False')
+
+            rads_config_filename = os.path.join(dest_pat_folder, 'rads_config.ini')
+            with open(rads_config_filename, 'w') as outfile:
+                rads_config.write(outfile)
 
             # Running the process
             if process_backend == 'local':
@@ -110,26 +163,29 @@ def batch_iterative_process_example():
                                            '{config}'.format(config=rads_config_filename),
                                            '--verbose', args.verbose])
             elif process_backend == 'docker':
-                # @TODO. For using Docker, models and pipelines should also be copied in a temp input folder to mount.
-                # In addition, the paths going into the config should be based on the /home/ubuntu/resources mounted space.
+                # @OBS. For using Docker, the mounted folder should contain all necessary resources
+                # (i.e., models folder in addition to input/output folders).
+                # The following is an example where those folders are copied inside a temporary folder to be fed to
+                # the Docker image (lots of copying overhead). The process can be greatly improved speed-wise!
                 docker_folder = os.path.join(tmp_folder, 'docker')
                 os.makedirs(docker_folder)
 
                 shutil.copytree(src=models_folderpath, dst=os.path.join(docker_folder, 'models'))
                 shutil.copytree(src=input_pat_folder, dst=os.path.join(docker_folder, 'inputs'))
-                os.makedirs(os.path.join(docker_folder, 'outputs'))
+                shutil.copytree(src=dest_pat_folder, dst=os.path.join(docker_folder, 'outputs'))
 
-                rads_config.set('System', 'input_folder', '/home/ubuntu/resources/inputs')
-                rads_config.set('System', 'output_folder', '/home/ubuntu/resources/outputs')
-                rads_config.set('System', 'model_folder', '/home/ubuntu/resources/models')
+                rads_config.set('System', 'input_folder', '/workspace/resources/inputs')
+                rads_config.set('System', 'output_folder', '/workspace/resources/outputs')
+                rads_config.set('System', 'model_folder', '/workspace/resources/models')
                 rads_config.set('System', 'pipeline_filename',
-                                '/home/ubuntu/resources/models/MRI_Tumor_Postop/pipeline.json')
-                rads_config_filename = os.path.join(docker_folder, 'rads_config.ini')
+                                '/workspace/resources/outputs/batch_iterative_pipeline.json')
+                rads_config_filename = os.path.join(docker_folder, 'outputs', 'rads_config.ini')
                 with open(rads_config_filename, 'w') as outfile:
                     rads_config.write(outfile)
-                cmd_docker = ['docker', 'run', '-v', '{}:/home/ubuntu/resources'.format(docker_folder),
-                              '--runtime=nvidia', '--network=host', '--ipc=host', 'dbouget/raidionics-rads:v1.2',
-                              '-c', '/home/ubuntu/resources/rads_config.ini', '-v', args.verbose]
+                cmd_docker = ['docker', 'run', '-v', '{}:/workspace/resources'.format(docker_folder),
+                              '--network=host', '--ipc=host', '--user', str(os.geteuid()),
+                              'dbouget/raidionics-rads:v1.3-py39-cpu',
+                              '-c', f'/workspace/resources/outputs/rads_config.ini', '-v', args.verbose]
                 if platform.system() == 'Windows':
                     subprocess.check_call(cmd_docker, shell=True)
                 else:
@@ -138,6 +194,7 @@ def batch_iterative_process_example():
                 logging.error("Backend option not supported, please select from [local, docker]")
                 return
 
+            shutil.copytree(src=os.path.join(docker_folder, 'outputs'), dst=dest_pat_folder, dirs_exist_ok=True)
             # Clean-up
             if os.path.exists(tmp_folder):
                 shutil.rmtree(tmp_folder)
