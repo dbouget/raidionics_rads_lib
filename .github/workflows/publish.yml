@@ -29,6 +29,22 @@ jobs:
           python -m pip install --upgrade pip
           pip install cibuildwheel build
 
+      - name: Download ANTs
+        if: matrix.arch == 'arm64'
+        uses: robinraju/release-downloader@main
+        with:
+          repository: "raidionics/Raidionics-dependencies"
+          latest: true
+          fileName: "ANTsX-v2.4.3_macos_arm.tar.gz"
+          out-file-path: "downloads"
+
+      - name: Extract ANTs
+        if: matrix.arch == 'arm64'
+        run: |
+          cd ${{github.workspace}}/downloads/
+          tar -xzf ANTsX-v2.4.3_macos_arm.tar.gz -C ${{github.workspace}}/downloads/
+          mv ${{github.workspace}}/downloads/install ${{github.workspace}}/raidionicsrads/ANTs/
+
       - name: Build wheels
         run: |
           if [ "${{ matrix.arch }}" = "x86_64" ]; then
