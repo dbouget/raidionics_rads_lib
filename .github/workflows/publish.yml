@@ -27,10 +27,14 @@ jobs:
           pip install cibuildwheel build
 
       - name: Build wheels
-        run: cibuildwheel --output-dir dist
-        env:
-          CIBW_BUILD: ${{ matrix.arch }}
-          CIBW_BUILD_VERBOSITY: 1
+        run: |
+          if [ "${{ matrix.arch }}" = "x86_64" ]; then
+              echo "Building universal wheel..."
+              python -m build --wheel --outdir dist/
+          else
+              echo "Building platform-specific wheel with cibuildwheel..."
+              cibuildwheel --output-dir dist/
+          fi
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
