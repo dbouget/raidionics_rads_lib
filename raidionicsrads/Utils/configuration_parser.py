@@ -431,13 +431,22 @@ class ResourcesConfiguration:
             self.system_ants_backend = 'cpp'
             if not os.path.exists(self.ants_root):
                 try:
-                    logging.info("Could not find a valid ANTs root repository at {}.\n ".format(self.ants_root))
+                    logging.info(f"Could not find a valid ANTs root repository at {self.ants_root}.\n ")
                     from importlib.resources import files
                     import raidionicsrads
                     logging.debug(f"Module loaded from: {raidionicsrads.__file__}")
                     self.ants_root = files(raidionicsrads).joinpath("ANTs")
                 except Exception as e:
-                    pass
+                    logging.warning(f"ANTs folder not found in package: {e}")
+                    self.ants_root = os.path.join(os.path.dirname(__file__), "..", "ANTs")
+                if not os.path.exists(self.ants_root) or not os.listdir(self.ants_root):
+                    logging.info("ANTs binaries not found, attempting download...")
+                    try:
+                        from ..Utils.ants_downloader import ensure_ants_present
+                        ensure_ants_present()
+                    except Exception as e:
+                        logging.error(f"Failed to download ANTs binaries: {e}")
+                        raise RuntimeError("ANTs required but not available.")
 
         if os.path.exists(self.ants_root) and os.path.exists(os.path.join(self.ants_root, "bin")):
             os.environ["ANTSPATH"] = os.path.join(self.ants_root, "bin")
