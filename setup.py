@@ -8,12 +8,6 @@ with open("README.md", "r", errors='ignore') as f:
 with open('requirements.txt', 'r', encoding='utf-16', errors='ignore') as ff:
     required = ff.read().splitlines()
 
-if platform.system() == 'Darwin' and platform.processor() == 'arm':   # Specific for Apple M1 chips
-    required.append('scikit-learn')
-    required.append('statsmodels')
-else:
-    required.append('antspyx')
-
 setup(
     name='raidionicsrads',
     packages=find_packages(
@@ -34,7 +28,13 @@ setup(
             'raidionicsrads = raidionicsrads.__main__:main'
         ]
     },
-    install_requires=required,
+    install_requires=required + [
+        "scikit-learn; platform_system=='Darwin' and platform_machine=='arm64'",
+        "statsmodels; platform_system=='Darwin' and platform_machine=='arm64'",
+        "antspyx==0.4.2; platform_system=='Windows' and python_version<'3.10'",
+        "antspyx==0.6.1; platform_system=='Windows' and python_version>='3.10'",
+        "antspyx==0.6.1; platform_system!='Windows' and platform_machine!='arm64'",
+    ],
     include_package_data=True,
     package_data={
         "raidionicsrads": [
