@@ -3,6 +3,8 @@
 [![License](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
 [![](https://img.shields.io/badge/python-3.9|3.10|3.11|3.12|3.13-blue.svg)](https://www.python.org/downloads/)
 [![Paper](https://zenodo.org/badge/DOI/10.3389/fneur.2022.932219.svg)](https://www.frontiersin.org/articles/10.3389/fneur.2022.932219/full)
+[![PyPI version](https://img.shields.io/pypi/v/raidionicsrads.svg)](https://pypi.org/project/raidionicsrads/)
+[![codecov](https://codecov.io/gh/dbouget/raidionics_rads_lib/branch/master/graph/badge.svg?token=ZSPQVR7RKX)](https://codecov.io/gh/dbouget/raidionics_rads_lib)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/gist/dbouget/ae5f318af4826ef8bf5ff0f27e7c0817/01_run_simple_segmentation.ipynb)
 
 The code corresponds to the Raidionics backend for running processing pipelines over MRI/CT scans. The segmentation of
@@ -12,18 +14,10 @@ The module can either be used as a Python library, as CLI, or as Docker containe
 ## [Installation](https://github.com/dbouget/raidionics_rads_lib#installation)
 
 ```
+pip install raidionicsrads
+or
 pip install git+https://github.com/dbouget/raidionics_rads_lib.git
 ```
-
-## [Continuous integration](https://github.com/dbouget/raidionics_rads_lib#continuous-integration)
-
-| Operating System | Status                                                                                                                                                                                                                      |
-|------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Windows**      | [![Build Windows](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_windows.yml/badge.svg)](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_windows.yml)                        |
-| **Ubuntu**       | [![Build Ubuntu](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_ubuntu.yml/badge.svg)](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_ubuntu.yml)                           |
-| **macOS**        | [![Build macOS](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_macos.yml/badge.svg)](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_macos.yml)                              |
-| **macOS ARM**    | [![Build macOS ARM](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_macos_arm.yml/badge.svg?branch=macos_arm)](https://github.com/dbouget/raidionics_rads_lib/actions/workflows/build_macos_arm.yml) |
-
 
 ## [Getting started](https://github.com/dbouget/raidionics_rads_lib#getting-started)
 
@@ -86,12 +80,12 @@ examples, but it can be given in a more hard-coded fashion if known by the user.
 
 :warning: The Docker image can only perform inference using the CPU, there is no GPU support at this stage.
 ```
-docker pull dbouget/raidionics-rads:v1.1-py38-cpu
+docker pull dbouget/raidionics-rads:v1.3-py39-cpu
 ```
 
 For opening the Docker image and interacting with it, run:  
 ```
-docker run --entrypoint /bin/bash -v /home/<username>/<resources_path>:/workspace/resources -t -i --runtime=nvidia --network=host --ipc=host --user $(id -u) dbouget/raidionics-rads:v1.1-py38-cpu
+docker run --entrypoint /bin/bash -v /home/<username>/<resources_path>:/workspace/resources -t -i --runtime=nvidia --network=host --ipc=host --user $(id -u) dbouget/raidionics-rads:v1.3-py39-cpu
 ```
 
 The `/home/<username>/<resources_path>` before the column sign has to be changed to match a directory on your local 
@@ -101,7 +95,7 @@ be placed.
 
 For launching the Docker image as a CLI, run:  
 ```
-docker run -v /home/<username>/<resources_path>:/workspace/resources -t -i --runtime=nvidia --network=host --ipc=host --user $(id -u) dbouget/raidionics-rads:v1.1-py38-cpu -c /workspace/resources/<path>/<to>/main_config.ini -v <verbose>
+docker run -v /home/<username>/<resources_path>:/workspace/resources -t -i --runtime=nvidia --network=host --ipc=host --user $(id -u) dbouget/raidionics-rads:v1.3-py39-cpu -c /workspace/resources/<path>/<to>/main_config.ini -v <verbose>
 ```
 
 The `<path>/<to>/main_config.ini` must point to a valid configuration file on your machine, as a relative path to the `/home/<username>/<resources_path>` described above.
@@ -149,23 +143,5 @@ For the preliminary preoperative tumor segmentation validation and software feat
 </summary>
 
 The trained models are automatically downloaded when running Raidionics or Raidionics-Slicer.
-Alternatively, all existing Raidionics models can be browsed [here](https://github.com/dbouget/Raidionics-models/releases/tag/1.2.0) directly.
-</details>
-
-<details>
-<summary>
-
-## [Developers](https://github.com/dbouget/raidionics_rads_lib#developers)
-</summary>
-
-```
-git clone https://github.com/dbouget/raidionics_rads_lib.git --recurse-submodules
-```
-For running inference on GPU through the raidionics_seg_lib backend, your machine must be properly configured
-(cf. [here](https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html))  
-
-The ANTs library can be manually installed (from source) and be used as a cpp backend rather than Python.
-Visit https://github.com/ANTsX/ANTs.
-
-
+Alternatively, all existing Raidionics models can be browsed [here](https://github.com/raidionics/Raidionics-models/releases/tag/v1.3.0-rc) directly.
 </details>
