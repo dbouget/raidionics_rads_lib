@@ -181,9 +181,15 @@ class RegistrationStep(AbstractPipelineStep):
     def __registration(self, fixed_filepath, moving_filepath):
         try:
             registration_method = 'SyN'
-            logging.info("[RegistrationStep] Using {} ANTs backend.".format(ResourcesConfiguration.getInstance().system_ants_backend))
+            logging.info("[RegistrationStep] Using {} ANTs backend.".format(
+                ResourcesConfiguration.getInstance().system_ants_backend))
             if ResourcesConfiguration.getInstance().system_ants_backend == "cpp":
-                logging.info("[RegistrationStep] ANTs root located in {}.".format(ResourcesConfiguration.getInstance().ants_root))
+                logging.info("[RegistrationStep] ANTs root located in {}.".format(
+                    ResourcesConfiguration.getInstance().ants_root))
+                logging.info("[RegistrationStep] ANTs bin located in {}.".format(
+                    ResourcesConfiguration.getInstance().ants_apply_dir))
+                logging.info("[RegistrationStep] ANTs scripts located in {}.".format(
+                    ResourcesConfiguration.getInstance().ants_reg_dir))
             try:
                 self._registration_runner.compute_registration(fixed=fixed_filepath, moving=moving_filepath,
                                                                registration_method=registration_method)

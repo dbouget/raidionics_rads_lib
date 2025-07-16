@@ -33,6 +33,7 @@ setup(
         "statsmodels; platform_system=='Darwin' and platform_machine=='arm64'",
         "antspyx==0.4.2; platform_system=='Windows' and python_version<'3.10'",
         "antspyx==0.6.1; platform_system=='Windows' and python_version>='3.10'",
+        "antspyx==0.4.2; platform_system=='Darwin' and platform_machine!='arm64' and python_version<'3.10'",
         "antspyx==0.6.1; platform_system!='Windows' and platform_machine!='arm64'",
     ],
     include_package_data=True,
