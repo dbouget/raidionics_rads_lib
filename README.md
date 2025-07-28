@@ -6,6 +6,7 @@
 [![PyPI version](https://img.shields.io/pypi/v/raidionicsrads.svg)](https://pypi.org/project/raidionicsrads/)
 [![codecov](https://codecov.io/gh/dbouget/raidionics_rads_lib/branch/master/graph/badge.svg?token=ZSPQVR7RKX)](https://codecov.io/gh/dbouget/raidionics_rads_lib)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/gist/dbouget/ae5f318af4826ef8bf5ff0f27e7c0817/01_run_simple_segmentation.ipynb)
+<a target="_blank" href="https://huggingface.co/spaces/dbouget/raidionics"><img src="https://img.shields.io/badge/🤗%20Hugging%20Face-Spaces-yellow.svg"></a>
 
 The code corresponds to the Raidionics backend for running processing pipelines over MRI/CT scans. The segmentation of
 a few organs or tumor types, as well as the generation of standardized reports are included.  
