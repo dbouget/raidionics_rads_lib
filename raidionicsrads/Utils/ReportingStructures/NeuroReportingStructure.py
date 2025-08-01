@@ -233,11 +233,18 @@ class NeuroLocationStatistics:
     _left_laterality_percentage = -1.
     _right_laterality_percentage = -1.
     _laterality_midline_crossing = None
+    _depth_minimum = -1.
+    _depth_maximum = -1.
+    _depth_mean = -1.
 
-    def __init__(self, left: float = -1., right: float = -1., crossing: bool = None):
+    def __init__(self, left: float = -1., right: float = -1., crossing: bool = None,
+                 depth_min: float = -1., depth_max: float = -1., depth_mean: float = -1.):
         self._left_laterality_percentage = left
         self._right_laterality_percentage = right
         self._laterality_midline_crossing = crossing
+        self._depth_minimum = depth_min
+        self._depth_maximum = depth_max
+        self._depth_mean = depth_mean
 
     @property
     def left_laterality_percentage(self) -> float:
@@ -262,6 +269,30 @@ class NeuroLocationStatistics:
     @laterality_midline_crossing.setter
     def laterality_midline_crossing(self, value: bool) -> None:
         self._laterality_midline_crossing = value
+
+    @property
+    def depth_minimum(self) -> float:
+        return self._depth_minimum
+
+    @depth_minimum.setter
+    def depth_minimum(self, value: float) -> None:
+        self._depth_minimum = value
+
+    @property
+    def depth_maximum(self) -> float:
+        return self._depth_maximum
+
+    @depth_maximum.setter
+    def depth_maximum(self, value: float) -> None:
+        self._depth_maximum = value
+
+    @property
+    def depth_mean(self) -> float:
+        return self._depth_mean
+
+    @depth_mean.setter
+    def depth_mean(self, value: float) -> None:
+        self._depth_mean = value
 
 
 class NeuroResectabilityStatistics:
@@ -568,7 +599,7 @@ class NeuroReportingStructure:
                 pfile.write(f'\n Features for {s} category.\n')
                 pfile.write(' Volumes: \n')
                 pfile.write(f'  * Volume: {round(self.statistics[s]["MNI"].volume.volume, 2)} (ml)\n')
-                pfile.write(f'  * Brain percentage: {round(self.statistics[s]["MNI"].volume.brain_percentage * 100., 2)} (%)\n')
+                pfile.write(f'  * Brain percentage: {round(self.statistics[s]["MNI"].volume.brain_percentage, 2)} (%)\n')
 
                 pfile.write(' Diameters: \n')
                 pfile.write(f'  * Long-axis diameter: {round(self.statistics[s]["MNI"].diameters.long_axis_diameter, 2)} (mm)\n')
@@ -584,7 +615,10 @@ class NeuroReportingStructure:
                 pfile.write(' Location: \n')
                 pfile.write(f'  * Left hemisphere: {self.statistics[s]["MNI"].location.left_laterality_percentage}\n')
                 pfile.write(f'  * Right hemisphere: {self.statistics[s]["MNI"].location.right_laterality_percentage}\n')
-                pfile.write(f'  * Midline crossing: {self.statistics[s]["MNI"].location.laterality_midline_crossing}\n\n')
+                pfile.write(f'  * Midline crossing: {self.statistics[s]["MNI"].location.laterality_midline_crossing}\n')
+                pfile.write(f'  * Depth minimum: {round(self.statistics[s]["MNI"].location.depth_minimum, 2)} (mm)\n')
+                pfile.write(f'  * Depth mean: {round(self.statistics[s]["MNI"].location.depth_mean, 2)} (mm)\n')
+                pfile.write(f'  * Depth maximum: {round(self.statistics[s]["MNI"].location.depth_maximum, 2)} (mm)\n\n')
 
                 # @TODO. Should have an if tumor type is GBM
                 if "Tumor" in s:
@@ -604,6 +638,14 @@ class NeuroReportingStructure:
                             if structures_ordered[r] != 0:
                                 struct_name = ' '.join(r.lower().replace('main', '').split('_')[:])
                                 pfile.write('    - {}: {}%\n'.format(struct_name, structures_ordered[r]))
+                        pfile.write('\n')
+                        structures_ordered = collections.OrderedDict(
+                            sorted(self.statistics[s]["MNI"].cortical[t].cortical_structures_distance.items(),
+                                   key=operator.itemgetter(1), reverse=False))
+                        for r in structures_ordered.keys():
+                            if structures_ordered[r] != -1.:
+                                struct_name = ' '.join(r.lower().replace('main', '').split('_')[:])
+                                pfile.write('    - {}: {}mm away\n'.format(struct_name, np.round(structures_ordered[r], 2)))
 
                 if len(ResourcesConfiguration.getInstance().neuro_features_subcortical_structures) != 0:
                     pfile.write('\n Subcortical structures profile\n')
@@ -678,6 +720,9 @@ class NeuroReportingStructure:
                 param_json[s]["MNI"]["Location"]["Left laterality (%)"] = float(self.statistics[s]["MNI"].location.left_laterality_percentage)
                 param_json[s]["MNI"]["Location"]["Right laterality (%)"] = float(self.statistics[s]["MNI"].location.right_laterality_percentage)
                 param_json[s]["MNI"]["Location"]["Midline crossing"] = self.statistics[s]["MNI"].location.laterality_midline_crossing
+                param_json[s]["MNI"]["Location"]["Depth minimum (mm)"] = float(self.statistics[s]["MNI"].location.depth_minimum)
+                param_json[s]["MNI"]["Location"]["Depth mean (mm)"] = float(self.statistics[s]["MNI"].location.depth_mean)
+                param_json[s]["MNI"]["Location"]["Depth maximum (mm)"] = float(self.statistics[s]["MNI"].location.depth_maximum)
 
 
                 # @TODO. Should be only for glioblastoma, but no tumor type classification yet
@@ -693,6 +738,9 @@ class NeuroReportingStructure:
                     param_json[s]["MNI"]["Cortical Profile"][t]["Overlap"] = {}
                     for r in self.statistics[s]["MNI"].cortical[t].cortical_structures_overlap.keys():
                         param_json[s]["MNI"]["Cortical Profile"][t]["Overlap"][r] = float(self.statistics[s]["MNI"].cortical[t].cortical_structures_overlap[r])
+                    param_json[s]["MNI"]["Cortical Profile"][t]["Distance"] = {}
+                    for r in self.statistics[s]["MNI"].cortical[t].cortical_structures_distance.keys():
+                        param_json[s]["MNI"]["Cortical Profile"][t]["Distance"][r] = float(self.statistics[s]["MNI"].cortical[t].cortical_structures_distance[r])
 
                 param_json[s]["MNI"]["Subcortical Profile"] = {}
                 for t in self.statistics[s]["MNI"].subcortical.keys():
@@ -759,10 +807,14 @@ class NeuroReportingStructure:
                                          self.statistics[s]["MNI"].multifocality.max_distance])
 
                 if i == 0:
-                    column_names.extend(['Left laterality (%)', 'Right laterality (%)', 'Midline crossing'])
+                    column_names.extend(['Left laterality (%)', 'Right laterality (%)', 'Midline crossing',
+                                         'Depth minimum (mm)', 'Depth mean (mm)', 'Depth maximum (mm)'])
                 structure_values.extend([self.statistics[s]["MNI"].location.left_laterality_percentage,
                                          self.statistics[s]["MNI"].location.right_laterality_percentage,
-                                         self.statistics[s]["MNI"].location.laterality_midline_crossing])
+                                         self.statistics[s]["MNI"].location.laterality_midline_crossing,
+                                         self.statistics[s]["MNI"].location.depth_minimum,
+                                         self.statistics[s]["MNI"].location.depth_mean,
+                                         self.statistics[s]["MNI"].location.depth_maximum])
 
                 # @TODO. Should be only for glioblastoma, but no tumor type classification yet
                 if "Tumor" in s:

@@ -17,6 +17,7 @@ from ..Utils.ReportingStructures.NeuroSurgicalReportingStructure import *
 
 def compute_neuro_report(input_filename: str, report: NeuroReportingStructure) -> NeuroReportingStructure:
     """
+    DEPRECATED => compute_structure_statistics
     Main method computing all elements of the clinical report for a brain use-case.
 
     Parameters
@@ -96,7 +97,7 @@ def compute_neuro_report(input_filename: str, report: NeuroReportingStructure) -
             report._statistics['Main']['Overall'].mni_space_resectability_index = average
 
         for s in ResourcesConfiguration.getInstance().neuro_features_cortical_structures:
-            overlap = compute_cortical_structures_location(volume=refined_image, reference=s)
+            overlap, distance = compute_cortical_structures_location(volume=refined_image, reference=s)
             report._statistics['Main']['Overall'].mni_space_cortical_structures_overlap[s] = overlap
             # if self.from_slicer:
             #     ordered_l = collections.OrderedDict(sorted(report._statistics['Main']['Overall'].mni_space_cortical_structures_overlap[s].items(), key=operator.itemgetter(1), reverse=True))
@@ -165,7 +166,9 @@ def compute_structure_statistics(input_mask: nib.Nifti1Image,
             ResourcesConfiguration.getInstance().mni_atlas_lateralisation_mask_filepath)
         brain_lateralisation_mask = brain_lateralisation_mask_ni.get_fdata()[:]
         left, right, crossing = compute_lateralisation(volume=refined_image, brain_mask=brain_lateralisation_mask)
-        result.location = NeuroLocationStatistics(left=left, right=right, crossing=crossing)
+        d_min, d_max, d_mean = compute_depth(structure_mask=refined_image, target_mask=brain_array)
+        result.location = NeuroLocationStatistics(left=left, right=right, crossing=crossing, depth_min=d_min,
+                                                  depth_max=d_max, depth_mean=d_mean)
 
         # Compute resectability parameters -- @TODO. Should add a check on tumor type (should be only available for GBM)
         if left >= 50.0:
@@ -181,8 +184,8 @@ def compute_structure_statistics(input_mask: nib.Nifti1Image,
         
         # Computing cortical, subcortical, and infiltration profiles
         for s in ResourcesConfiguration.getInstance().neuro_features_cortical_structures:
-            overlaps = compute_cortical_structures_location(volume=refined_image, reference=s)
-            result.cortical[s] = NeuroCorticalStatistics(overlap=overlaps, distance=None)
+            overlaps, distances = compute_cortical_structures_location(volume=refined_image, reference=s)
+            result.cortical[s] = NeuroCorticalStatistics(overlap=overlaps, distance=distances)
         for s in ResourcesConfiguration.getInstance().neuro_features_subcortical_structures:
             overlaps, distances = compute_subcortical_structures_location(volume=refined_image,
                                                                           category='Main', reference=s)
@@ -198,7 +201,10 @@ def compute_structure_statistics(input_mask: nib.Nifti1Image,
         raise ValueError(f"Structure features computation failed with: {e}")
 
 
-def compute_cortical_structures_location(volume, reference='MNI'):
+def compute_cortical_structures_location(volume: np.ndarray, reference: str = 'MNI') -> Tuple[dict, dict]:
+    """
+    @TODO. Should we also compute the distance between the tumor and each cortical structure?
+    """
     logging.debug("Computing cortical structures location with {}.".format(reference))
     regions_data = ResourcesConfiguration.getInstance().cortical_structures['MNI'][reference]
     region_mask_ni = nib.load(regions_data['Mask'])
@@ -222,10 +228,14 @@ def compute_cortical_structures_location(volume, reference='MNI'):
 
     total_lobes_labels = np.unique(region_mask)[1:]  # Removing the background label with value 0.
     overlap_per_lobe = {}
+    distance_from_lobe = {}
     for li in total_lobes_labels:
         overlap = volume[region_mask == li]
         ratio_in_lobe = np.count_nonzero(overlap) / np.count_nonzero(volume)
         overlap = float(round(ratio_in_lobe * 100., 2))
+        structure_mask = np.zeros(region_mask.shape)
+        structure_mask[region_mask == li] = 1
+        min_d, _, _ = compute_depth(structure_mask=volume, target_mask=structure_mask)
         region_name = ''
         if reference == 'MNI':
             region_name = '-'.join(str(lobes_description.loc[lobes_description['Label'] == li]['Region'].values[0]).strip().split(' ')) + '_' + (str(lobes_description.loc[lobes_description['Label'] == li]['Laterality'].values[0]).strip() if str(lobes_description.loc[lobes_description['Label'] == li]['Laterality'].values[0]).strip() != 'None' else '')
@@ -234,8 +244,9 @@ def compute_cortical_structures_location(volume, reference='MNI'):
         else:
             region_name = '_'.join(lobes_description.loc[lobes_description['Label'] == li]['Region'].values[0].strip().split(' '))
         overlap_per_lobe[region_name] = overlap
+        distance_from_lobe[region_name] = min_d
 
-    return overlap_per_lobe
+    return overlap_per_lobe, distance_from_lobe
 
 
 def compute_subcortical_structures_location(volume, category=None, reference='BCB'):
@@ -248,33 +259,51 @@ def compute_subcortical_structures_location(volume, category=None, reference='BC
     if reference == 'BrainLab':
         tract_cutoff = 0.25
 
-    tracts_dict = ResourcesConfiguration.getInstance().subcortical_structures['MNI'][reference]['Singular']
-    for i, tfn in enumerate(tracts_dict.keys()):
-        dist = -1.
-        try:
-            reg_tract_ni = nib.load(tracts_dict[tfn])
-            reg_tract = reg_tract_ni.get_fdata()[:]
-            reg_tract[reg_tract < tract_cutoff] = 0
-            reg_tract[reg_tract >= tract_cutoff] = 1
-            overlap_volume = np.logical_and(reg_tract, volume).astype('uint8')
-            if reference == "BCB":
-                distances_columns.append('distance_' + tfn.split('.')[0][:-4] + '_' + category)
-                overlaps_columns.append('overlap_' + tfn.split('.')[0][:-4] + '_' + category)
-            else:
-                distances_columns.append('distance_' + tfn.split('.')[0] + '_' + category)
-                overlaps_columns.append('overlap_' + tfn.split('.')[0] + '_' + category)
-            if np.count_nonzero(overlap_volume) != 0:
+    # If the atlas does not possess a single label mask, but probability maps for each tract
+    if 'Singular' in ResourcesConfiguration.getInstance().subcortical_structures['MNI'][reference].keys():
+        tracts_dict = ResourcesConfiguration.getInstance().subcortical_structures['MNI'][reference]['Singular']
+        for i, tfn in enumerate(tracts_dict.keys()):
+            dist = -1.
+            try:
+                reg_tract_ni = nib.load(tracts_dict[tfn])
+                reg_tract = reg_tract_ni.get_fdata()[:]
+                reg_tract[reg_tract < tract_cutoff] = 0
+                reg_tract[reg_tract >= tract_cutoff] = 1
+                overlap_volume = np.logical_and(reg_tract, volume).astype('uint8')
+                if reference == "BCB":
+                    distances_columns.append('distance_' + tfn.split('.')[0][:-4] + '_' + category)
+                    overlaps_columns.append('overlap_' + tfn.split('.')[0][:-4] + '_' + category)
+                else:
+                    distances_columns.append('distance_' + tfn.split('.')[0] + '_' + category)
+                    overlaps_columns.append('overlap_' + tfn.split('.')[0] + '_' + category)
+                if np.count_nonzero(overlap_volume) != 0:
+                    distances[tfn] = dist
+                    overlaps[tfn] = float((np.count_nonzero(overlap_volume) / np.count_nonzero(volume)) * 100.)
+                else:
+                    if np.count_nonzero(reg_tract) > 0:
+                        dist = compute_hd95(volume, reg_tract, voxelspacing=reg_tract_ni.header.get_zooms(), connectivity=1)
+                    distances[tfn] = dist
+                    overlaps[tfn] = 0.
+            except Exception:
+                print("Tumor distance to subcortical structure could not be computed.")
+                print(traceback.format_exc())
                 distances[tfn] = dist
-                overlaps[tfn] = float((np.count_nonzero(overlap_volume) / np.count_nonzero(volume)) * 100.)
-            else:
-                if np.count_nonzero(reg_tract) > 0:
-                    dist = compute_hd95(volume, reg_tract, voxelspacing=reg_tract_ni.header.get_zooms(), connectivity=1)
-                distances[tfn] = dist
-                overlaps[tfn] = 0.
-        except Exception:
-            print("Tumor distance to subcortical structure could not be computed.")
-            print(traceback.format_exc())
-            distances[tfn] = dist
+    else:
+        tracts_label_mask_fn = ResourcesConfiguration.getInstance().subcortical_structures['MNI'][reference]['Mask']
+        tracts_label_desc_fn = ResourcesConfiguration.getInstance().subcortical_structures['MNI'][reference]['Description']
+        tracts_label_mask = nib.load(tracts_label_mask_fn).get_fdata()[:]
+        tracts_label_desc = pd.read_csv(tracts_label_desc_fn)
+        total_tracts_labels = np.unique(tracts_label_mask)[1:]  # Removing the background label with value 0.
+        for li in total_tracts_labels:
+            overlap = volume[tracts_label_mask == li]
+            ratio_in_lobe = np.count_nonzero(overlap) / np.count_nonzero(volume)
+            overlap = float(round(ratio_in_lobe * 100., 2))
+            structure_mask = np.zeros(tracts_label_mask.shape)
+            structure_mask[tracts_label_mask == li] = 1
+            min_d, _, _ = compute_depth(structure_mask=volume, target_mask=structure_mask)
+            region_name = '_'.join(tracts_label_desc.loc[tracts_label_desc['Label'] == li]['Region'].values[0].strip().split(' '))
+            overlaps[region_name] = overlap
+            distances[region_name] = min_d
     return overlaps, distances
 
 

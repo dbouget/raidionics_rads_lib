@@ -211,6 +211,33 @@ class ReportingSelectionStep(AbstractPipelineStep):
                     pip_num_int = pip_num_int + 1
                     pip_num = str(pip_num_int)
                     pip[pip_num] = {}
+                    pip[pip_num]["task"] = 'Registration'
+                    pip[pip_num]["moving"] = {}
+                    pip[pip_num]["moving"]["timestamp"] = self.timestamps[0]
+                    pip[pip_num]["moving"]["sequence"] = "T1-CE"
+                    pip[pip_num]["fixed"] = {}
+                    pip[pip_num]["fixed"]["timestamp"] = self.timestamps[0]
+                    pip[pip_num]["fixed"]["sequence"] = "FLAIR"
+                    pip[pip_num]["inclusion"] = "optional"
+                    pip[pip_num]["description"] = f"Registration from T1CE (T{self.timestamps[0]}) to FLAIR (T{self.timestamps[0]})"
+
+                    pip_num_int = pip_num_int + 1
+                    pip_num = str(pip_num_int)
+                    pip[pip_num] = {}
+                    pip[pip_num]["task"] = 'Apply registration'
+                    pip[pip_num]["moving"] = {}
+                    pip[pip_num]["moving"]["timestamp"] = self.timestamps[0]
+                    pip[pip_num]["moving"]["sequence"] = "T1-CE"
+                    pip[pip_num]["fixed"] = {}
+                    pip[pip_num]["fixed"]["timestamp"] = self.timestamps[0]
+                    pip[pip_num]["fixed"]["sequence"] = "FLAIR"
+                    pip[pip_num]["direction"] = "forward"
+                    pip[pip_num]["inclusion"] = "optional"
+                    pip[pip_num]["description"] = f"Apply registration from T1CE (T{self.timestamps[0]}) to FLAIR (T{self.timestamps[0]})"
+
+                    pip_num_int = pip_num_int + 1
+                    pip_num = str(pip_num_int)
+                    pip[pip_num] = {}
                     pip[pip_num]["task"] = 'Segmentation refinement'
                     pip[pip_num]["inputs"] = {}
                     pip[pip_num]["inputs"]["0"] = {}
@@ -222,7 +249,7 @@ class ReportingSelectionStep(AbstractPipelineStep):
                     pip[pip_num]["inputs"]["0"]["space"]["sequence"] = "FLAIR"
                     pip[pip_num]["operation"] = "global_context"
                     pip[pip_num]["args"] = {}
-                    pip[pip_num]["description"] = "Global segmented structures context refinement in FLAIR (T0)"
+                    pip[pip_num]["description"] = f"Global segmented structures context refinement in FLAIR (T{self.timestamps[0]})"
 
                     pip_num_int = pip_num_int + 1
                     pip_num = str(pip_num_int)
@@ -234,7 +261,7 @@ class ReportingSelectionStep(AbstractPipelineStep):
                     pip[pip_num]["fixed"] = {}
                     pip[pip_num]["fixed"]["timestamp"] = -1
                     pip[pip_num]["fixed"]["sequence"] = "MNI"
-                    pip[pip_num]["description"] = "Registration from FLAIR (T0) to MNI"
+                    pip[pip_num]["description"] = f"Registration from FLAIR (T{self.timestamps[0]}) to MNI"
 
                     pip_num_int = pip_num_int + 1
                     pip_num = str(pip_num_int)
@@ -247,7 +274,7 @@ class ReportingSelectionStep(AbstractPipelineStep):
                     pip[pip_num]["fixed"]["timestamp"] = -1
                     pip[pip_num]["fixed"]["sequence"] = "MNI"
                     pip[pip_num]["direction"] = "forward"
-                    pip[pip_num]["description"] = "Apply registration from FLAIR (T0) to MNI"
+                    pip[pip_num]["description"] = f"Apply registration from FLAIR (T{self.timestamps[0]}) to MNI"
 
                     pip_num_int = pip_num_int + 1
                     pip_num = str(pip_num_int)
@@ -260,7 +287,7 @@ class ReportingSelectionStep(AbstractPipelineStep):
                     pip[pip_num]["fixed"]["timestamp"] = -1
                     pip[pip_num]["fixed"]["sequence"] = "MNI"
                     pip[pip_num]["direction"] = "inverse"
-                    pip[pip_num]["description"] = "Apply inverse registration from FLAIR to T1CE (T0)"
+                    pip[pip_num]["description"] = f"Apply inverse registration from FLAIR (T{self.timestamps[0]}) to MNI"
 
                     pip_num_int = pip_num_int + 1
                     pip_num = str(pip_num_int)
@@ -270,7 +297,7 @@ class ReportingSelectionStep(AbstractPipelineStep):
                     pip[pip_num]["target"] = ["FLAIRChanges"]
                     pip[pip_num]["space"] = "MNI"
                     pip[pip_num]["tumor_type"] = self.tumor_type
-                    pip[pip_num]["description"] = "Standardized features computation for timestamp 0"
+                    pip[pip_num]["description"] = f"Standardized features computation for timestamp {self.timestamps[0]}"
             elif self.scope_reporting == "surgical":
                 # for ts in self.timestamps:
                 #     if self.tumor_type == "contrast-enhancing":

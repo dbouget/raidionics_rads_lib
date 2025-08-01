@@ -266,24 +266,25 @@ class RegistrationDeployerStep(AbstractPipelineStep):
 
             try:
                 for s in ResourcesConfiguration.getInstance().neuro_features_subcortical_structures:
-                    for i, elem in enumerate(tqdm(ResourcesConfiguration.getInstance().subcortical_structures['MNI'][s]['Singular'].keys())):
-                        raw_filename = ResourcesConfiguration.getInstance().subcortical_structures['MNI'][s]['Singular'][elem]
-                        raw_tract_ni = nib.load(raw_filename)
-                        raw_tract = raw_tract_ni.get_fdata()[:]
-                        raw_tract[raw_tract < bcb_tracts_cutoff] = 0
-                        raw_tract[raw_tract >= bcb_tracts_cutoff] = 1
-                        raw_tract = raw_tract.astype('uint8')
-                        dump_filename = os.path.join(self._registration_runner.registration_folder, os.path.basename(raw_filename))
-                        os.makedirs(os.path.dirname(dump_filename), exist_ok=True)
-                        nib.save(nib.Nifti1Image(raw_tract, affine=raw_tract_ni.affine), dump_filename)
+                    if 'Singular' in ResourcesConfiguration.getInstance().subcortical_structures['MNI'][s].keys():
+                        for i, elem in enumerate(tqdm(ResourcesConfiguration.getInstance().subcortical_structures['MNI'][s]['Singular'].keys())):
+                            raw_filename = ResourcesConfiguration.getInstance().subcortical_structures['MNI'][s]['Singular'][elem]
+                            raw_tract_ni = nib.load(raw_filename)
+                            raw_tract = raw_tract_ni.get_fdata()[:]
+                            raw_tract[raw_tract < bcb_tracts_cutoff] = 0
+                            raw_tract[raw_tract >= bcb_tracts_cutoff] = 1
+                            raw_tract = raw_tract.astype('uint8')
+                            dump_filename = os.path.join(self._registration_runner.registration_folder, os.path.basename(raw_filename))
+                            os.makedirs(os.path.dirname(dump_filename), exist_ok=True)
+                            nib.save(nib.Nifti1Image(raw_tract, affine=raw_tract_ni.affine), dump_filename)
 
-                        fp = self._registration_runner.apply_registration_inverse_transform(
-                            moving=dump_filename,
-                            fixed=fixed_filepath,
-                            interpolation='nearestNeighbor',
-                            label='Subcortical-structures/' + os.path.basename(raw_filename).split('.')[0].replace('_mni', ''))
-                        new_fp = os.path.join(dump_folder, self.fixed_volume_uid + '_' + s + '_atlas_' + elem + '.nii.gz')
-                        shutil.copyfile(fp, new_fp)
+                            fp = self._registration_runner.apply_registration_inverse_transform(
+                                moving=dump_filename,
+                                fixed=fixed_filepath,
+                                interpolation='nearestNeighbor',
+                                label='Subcortical-structures/' + os.path.basename(raw_filename).split('.')[0].replace('_mni', ''))
+                            new_fp = os.path.join(dump_folder, self.fixed_volume_uid + '_' + s + '_atlas_' + elem + '.nii.gz')
+                            shutil.copyfile(fp, new_fp)
 
                     overall_mask_filename = ResourcesConfiguration.getInstance().subcortical_structures['MNI'][s]['Mask']
                     fp = self._registration_runner.apply_registration_inverse_transform(

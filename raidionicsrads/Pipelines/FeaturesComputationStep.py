@@ -86,7 +86,7 @@ class FeaturesComputationStep(AbstractPipelineStep):
         """
         # @TODO. What to do to ensure the first radiological volume is correct if multiple.
         # The FLAIR image might not be the base image for non-ce either... need to find a smarter way to handle this...
-
+        # @TODO2. Should we compute some of the non-atlas-based parameters also in patient space?
         """
         non_available_uid = True
         report_uid = None

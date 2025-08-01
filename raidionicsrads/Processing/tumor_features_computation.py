@@ -35,7 +35,7 @@ def compute_volume(volume: np.ndarray, spacing: Tuple, brain_mask: np.ndarray = 
         if brain_mask is not None:
             brain_volume = np.count_nonzero(brain_mask) * voxel_size * 1e-3
             brain_perc = volume_ml / brain_volume
-            brain_perc = round(brain_perc, 4)
+            brain_perc = round(brain_perc * 100., 4)
     except Exception as e:
         raise ValueError('Volume computation failed with: {}'.format(e))
 
@@ -50,18 +50,21 @@ def compute_diameters(volume: np.ndarray, spacing: Tuple) -> Tuple[float, float,
     short_axis = -1.
     feret = -1.
     equivalent = -1.
-    logging.debug("Computing diameter characteristics.")
-    clusters = measurements.label(volume)[0]
-    clusters_labels = regionprops(clusters)
+    try:
+        logging.debug("Computing diameter characteristics.")
+        clusters = measurements.label(volume)[0]
+        clusters_labels = regionprops(clusters)
 
-    max_area = 0.
-    for c in clusters_labels:
-        if c.area > max_area:
-            max_area = c.area
-            long_axis = c.axis_major_length * np.prod(spacing[0:3])
-            short_axis = c.axis_minor_length * np.prod(spacing[0:3])
-            feret = c.feret_diameter_max * np.prod(spacing[0:3])
-            equivalent = c.equivalent_diameter_area * np.prod(spacing[0:3])
+        max_area = 0.
+        for c in clusters_labels:
+            if c.area > max_area:
+                max_area = c.area
+                long_axis = c.axis_major_length * np.prod(spacing[0:3])
+                short_axis = c.axis_minor_length * np.prod(spacing[0:3])
+                feret = c.feret_diameter_max * np.prod(spacing[0:3])
+                equivalent = c.equivalent_diameter_area * np.prod(spacing[0:3])
+    except Exception as e:
+        raise ValueError(f'Diameter computation failed with: {e}')
 
     return float(long_axis), float(short_axis), float(feret), float(equivalent)
 
@@ -70,7 +73,7 @@ def compute_multifocality(volume: np.ndarray, spacing: Tuple,
                           volume_threshold: float = 0.,
                           distance_threshold: float = 0.) -> Tuple[bool, int, float]:
     """
-
+    @TODO. Should we use the HD95 distance here or as for the depth?
     Parameters
     ----------
     volume : np.ndarray
@@ -130,7 +133,7 @@ def compute_multifocality(volume: np.ndarray, spacing: Tuple,
             if multifocal_largest_minimum_distance >= distance_threshold:
                 multifocal_status = True
     except Exception as e:
-        raise ValueError('Multifocality computation failed with: {}'.format(e))
+        raise ValueError(f'Multifocality computation failed with: {e}')
 
     return multifocal_status, multifocal_elements, float(multifocal_largest_minimum_distance)
 
@@ -194,9 +197,45 @@ def compute_lateralisation(volume: np.ndarray, brain_mask: np.ndarray,
         else:
             pass
     except Exception as e:
-        raise ValueError('Lateralisation computation failed with {}'.format(e))
+        raise ValueError(f'Lateralisation computation failed with {e}')
 
     return float(left_hemisphere_percentage), float(right_hemisphere_percentage), midline_crossing
+
+
+def compute_depth(structure_mask: np.ndarray, target_mask: np.ndarray) -> Tuple[float, float, float]:
+    """
+
+    Parameters
+    ----------
+    structure_mask : np.ndarray
+        Annotation mask for the structure of interest.
+    target_mask: np.ndarray
+        Annotation mask for the structure of reference.
+    Returns
+    -------
+    float
+
+    float
+
+    float
+
+    """
+    min_depth = -1.
+    max_depth = -1.
+    mean_depth = -1.
+
+    try:
+        target_inner = binary_erosion(target_mask)
+        target_surface = target_mask.astype('bool') ^ target_inner
+        distance_to_surface = distance_transform_edt(~target_surface)
+        structure_depths = distance_to_surface[structure_mask == 1]
+        max_depth = structure_depths.max()
+        mean_depth = structure_depths.mean()
+        min_depth = structure_depths.min()
+    except Exception as e:
+        raise ValueError(f'Depth computation failed with {e}.')
+
+    return min_depth, max_depth, mean_depth
 
 
 def compute_resectability_index(volume: np.ndarray, resectability_map: np.ndarray) -> Tuple[float, float, float]:

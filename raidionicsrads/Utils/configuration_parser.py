@@ -375,6 +375,26 @@ class ResourcesConfiguration:
                 readable_name = n.split('.')[0]
                 self.subcortical_structures['MNI']['BrainGrid']['Singular'][readable_name] = str(substruc_fn)
 
+        self.subcortical_structures['MNI']['JHU-ICBM'] = {}
+        self.subcortical_structures['MNI']['JHU-ICBM']['Mask'] = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
+                                                                         'Atlases/JHU-ICBM/JHU-ICBM-labels-1mm.nii.gz')
+        self.subcortical_structures['MNI']['JHU-ICBM']['Description'] = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
+                                                                                'Atlases/JHU-ICBM/JHU-ICBM_description.csv')
+        if os.name == 'nt':
+            path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'JHU-ICBM',
+                                                                                        'JHU-ICBM-labels-1mm.nii.gz'))
+            filepath = PurePath()
+            for x in path_parts:
+                filepath = filepath.joinpath(x)
+            self.subcortical_structures['MNI']['JHU-ICBM']['Mask'] = str(filepath)
+
+            path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'JHU-ICBM',
+                                                                                        'JHU-ICBM_description.csv'))
+            filepath = PurePath()
+            for x in path_parts:
+                filepath = filepath.joinpath(x)
+            self.subcortical_structures['MNI']['JHU-ICBM']['Description'] = str(filepath)
+
     def __set_neuro_braingrid_parameters(self):
         self.braingrid_structures = {}
         self.braingrid_structures['MNI'] = {}

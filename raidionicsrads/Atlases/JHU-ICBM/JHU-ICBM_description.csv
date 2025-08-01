@@ -1,0 +1,51 @@
+,Label,Region
+0,1,Middle cerebellar peduncle
+1,2,Pontine crossing tract (a part of MCP)
+2,3,Genu of corpus callosum
+3,4,Body of corpus callosum
+4,5,Splenium of corpus callosum
+5,6,Fornix (column and body of fornix)
+6,7,Corticospinal tract R
+7,8,Corticospinal tract L
+8,9,Medial lemniscus R
+9,10,Medial lemniscus L
+10,11,Inferior cerebellar peduncle R
+11,12,Inferior cerebellar peduncle L
+12,13,Superior cerebellar peduncle R
+13,14,Superior cerebellar peduncle L
+14,15,Cerebral peduncle R
+15,16,Cerebral peduncle L
+16,17,Anterior limb of internal capsule R
+17,18,Anterior limb of internal capsule L
+18,19,Posterior limb of internal capsule R
+19,20,Posterior limb of internal capsule L
+20,21,Retrolenticular part of internal capsule R
+21,22,Retrolenticular part of internal capsule L
+22,23,Anterior corona radiata R
+23,24,Anterior corona radiata L
+24,25,Superior corona radiata R
+25,26,Superior corona radiata L
+26,27,Posterior corona radiata R
+27,28,Posterior corona radiata L
+28,29,Posterior thalamic radiation (include optic radiation) R
+29,30,Posterior thalamic radiation (include optic radiation) L
+30,31,Sagittal stratum (include inferior longitidinal fasciculus and inferior fronto-occipital fasciculus) R
+31,32,Sagittal stratum (include inferior longitidinal fasciculus and inferior fronto-occipital fasciculus) L
+32,33,External capsule R
+33,34,External capsule L
+34,35,Cingulum (cingulate gyrus) R
+35,36,Cingulum (cingulate gyrus) L
+36,37,Cingulum (hippocampus) R
+37,38,Cingulum (hippocampus) L
+38,39,Fornix (cres) - Stria terminalis (can not be resolved with current resolution) R
+39,40,Fornix (cres) - Stria terminalis (can not be resolved with current resolution) L
+40,41,Superior longitudinal fasciculus R
+41,42,Superior longitudinal fasciculus L
+42,43,Superior fronto-occipital fasciculus (could be a part of anterior internal capsule) R
+43,44,Superior fronto-occipital fasciculus (could be a part of anterior internal capsule) L
+44,45,Inferior fronto-occipital fasciculus R
+45,46,Inferior fronto-occipital fasciculus L
+46,47,Uncinate fasciculus R
+47,48,Uncinate fasciculus L
+48,49,Tapetum R
+49,50,Tapetum L
