@@ -110,6 +110,7 @@ class ClassificationStep(AbstractPipelineStep):
             classification_config = configparser.ConfigParser()
             classification_config.add_section('System')
             classification_config.set('System', 'gpu_id', ResourcesConfiguration.getInstance().gpu_id)
+            classification_config.set('System', 'acceleration', ResourcesConfiguration.getInstance().system_acceleration)
             classification_config.set('System', 'inputs_folder', os.path.join(self.working_folder, 'inputs'))
             classification_config.set('System', 'output_folder', os.path.join(self.working_folder, 'outputs'))
             classification_config.set('System', 'model_folder',
