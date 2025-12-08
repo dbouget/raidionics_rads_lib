@@ -1,0 +1,26 @@
+# Has to match the cuda version from your machine
+FROM pytorch/pytorch:2.4.0-cuda12.4-cudnn9-runtime
+
+MAINTAINER David Bouget <david.bouget@sintef.no>
+
+ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
+
+RUN apt-get update -y
+RUN apt-get upgrade -y
+RUN apt-get -y install sudo
+RUN apt-get update && apt-get install -y git
+
+WORKDIR /workspace
+
+# downloading source code (not necessary, mostly to run the test scripts)
+RUN git clone https://github.com/dbouget/raidionics_rads_lib.git
+
+# Python packages
+RUN pip3 install --upgrade pip
+RUN pip3 install -e raidionics_rads_lib
+RUN pip3 install onnxruntime-gpu
+
+RUN mkdir /workspace/resources
+
+# CMD ["/bin/bash"]
+ENTRYPOINT ["python3","/workspace/raidionics_rads_lib/main.py"]

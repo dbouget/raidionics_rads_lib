@@ -13,7 +13,7 @@ import numpy as np
 def test_segmentation_pipeline_docker(test_dir):
     """
     Testing the CLI within a Docker container for the segmentation pipeline unit test, running on CPU.
-    The latest Docker image is being hosted at: dbouget/raidionics-rads:v1.3-py39-cpu
+    The latest Docker image is being hosted at: dbouget/raidionics-rads:v1.3.1-py39-cpu
 
     Returns
     -------
@@ -24,6 +24,9 @@ def test_segmentation_pipeline_docker(test_dir):
 
     logging.info("Preparing configuration file.\n")
     try:
+        image_name = "dbouget/raidionics-rads:v1.3.1-py39-cpu"
+        if os.environ.get("GITHUB_ACTIONS"):
+            image_name = "dbouget/raidionics-rads:" + os.environ["IMAGE_TAG"]
         rads_config = configparser.ConfigParser()
         rads_config.add_section('Default')
         rads_config.set('Default', 'task', 'neuro_diagnosis')
@@ -75,14 +78,17 @@ def test_segmentation_pipeline_docker(test_dir):
         try:
             import platform
             cmd_docker = ['docker', 'run', '-v', '{}:/workspace/resources'.format(test_dir),
-                          '--network=host', '--ipc=host', '--user', str(os.geteuid()),
-                          'dbouget/raidionics-rads:v1.3-py39-cpu', '-c',
-                          '/workspace/resources/results/rads_config.ini', '-v', 'debug']
+                          '--network=host', '--ipc=host']
+            if not os.environ.get("GITHUB_ACTIONS") and sys.platform != "win32":
+                cmd_docker.extend(['--user', str(os.geteuid())])
+            elif os.environ.get("GITHUB_ACTIONS"):
+                cmd_docker.extend(['-u',f"{os.getuid()}:{os.getgid()}"])
+            cmd_docker.extend([image_name, '-c', '/workspace/resources/results/rads_config.ini', '-v', 'debug'])
             logging.info("Executing the following Docker call: {}".format(cmd_docker))
             if platform.system() == 'Windows':
                 subprocess.check_call(cmd_docker, shell=True)
             else:
-                subprocess.check_call(cmd_docker)
+                subprocess.check_call(cmd_docker, stdout=sys.stdout, stderr=sys.stderr)
         except Exception as e:
             raise ValueError(f"{e}")
 
