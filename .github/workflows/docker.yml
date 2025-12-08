@@ -37,7 +37,7 @@ jobs:
       - name: Install Python + toml parser
         run: |
           python -m pip install --upgrade pip
-          pip install toml
+          pip install toml nibabel numpy
 
       - name: Extract package version
         id: vars
