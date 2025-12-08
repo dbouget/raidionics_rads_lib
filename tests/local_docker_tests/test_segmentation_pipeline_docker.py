@@ -57,19 +57,11 @@ def test_segmentation_pipeline_docker(test_dir):
         step_index = step_index + 1
         step_str = str(step_index)
         pipeline_json[step_str] = {}
-        pipeline_json[step_str]["task"] = "Segmentation"
-        pipeline_json[step_str]["inputs"] = {}
-        pipeline_json[step_str]["inputs"]["0"] = {}
-        pipeline_json[step_str]["inputs"]["0"]["timestamp"] = 0
-        pipeline_json[step_str]["inputs"]["0"]["sequence"] = "T1-CE"
-        pipeline_json[step_str]["inputs"]["0"]["labels"] = None
-        pipeline_json[step_str]["inputs"]["0"]["space"] = {}
-        pipeline_json[step_str]["inputs"]["0"]["space"]["timestamp"] = 0
-        pipeline_json[step_str]["inputs"]["0"]["space"]["sequence"] = "T1-CE"
-        pipeline_json[step_str]["target"] = "Brain"
-        pipeline_json[step_str]["model"] = "MRI_Brain"
+        pipeline_json[step_str]["task"] = 'Model selection'
+        pipeline_json[step_str]["model"] = 'MRI_Brain'
+        pipeline_json[step_str]["timestamp"] = 0
         pipeline_json[step_str]["format"] = "thresholding"
-        pipeline_json[step_str]["description"] = "Brain segmentation in T1-CE (T0)."
+        pipeline_json[step_str]["description"] = "Identifying the best brain segmentation model for existing inputs"
 
         with open(os.path.join(test_dir, "results", 'test_pipeline.json'), 'w', newline='\n') as outfile:
             json.dump(pipeline_json, outfile, indent=4, sort_keys=True)
