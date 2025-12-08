@@ -42,7 +42,7 @@ jobs:
       - name: Extract package version
         id: vars
         run: |
-          PACKAGE_VERSION=$(python -c "from setuptools.config import read_configuration; print(read_configuration('setup.py')['metadata']['version'])")
+          PACKAGE_VERSION=$(python setup.py --version)
           PYTHON_VERSION=$(grep FROM Dockerfile | grep -oP 'python:\K[0-9]+\.[0-9]+' | tr -d '.')
           FLAVOR=cpu
           CUDA_VERSION=$(grep FROM Dockerfile_gpu | grep -oP 'cuda\K[0-9]+\.[0-9]+')
