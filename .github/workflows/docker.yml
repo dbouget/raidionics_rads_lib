@@ -41,7 +41,8 @@ jobs:
           sudo rm -rf /opt/ghc
           docker system prune -af || true
           docker builder prune -af || true
-          sudo rm -rf /home/runner/actions-runner/cached/_diag/* || true
+          docker volume prune -f || true
+          sudo apt clean || true
 
       - name: Install Python + toml parser
         run: |
