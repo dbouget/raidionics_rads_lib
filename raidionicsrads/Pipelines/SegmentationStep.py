@@ -74,6 +74,14 @@ class SegmentationStep(AbstractPipelineStep):
                     # for specifying the volume the annotation is linked to, if multiple inputs.
                     if not self._input_volume_uid:
                         self._input_volume_uid = volume_uid
+                        existing_anno_uid = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
+                            volume_uid=self._input_volume_uid,
+                            annotation_class=get_type_from_enum_name(AnnotationClassType,
+                                                                     self._segmentation_targets[0]))
+                        if len(existing_anno_uid) != 0:
+                            self.skip = True
+                            return
+
                     # Use-case where the input is actually an annotation and not a raw radiological volume
                     if input_json["labels"]:
                         annotation_type = get_type_from_enum_name(AnnotationClassType, input_json["labels"])
@@ -154,11 +162,20 @@ class SegmentationStep(AbstractPipelineStep):
         PatientParameters
             Updated placeholder with the results of the current step.
         """
-        if self._input_volume_uid:
-            if ResourcesConfiguration.getInstance().diagnosis_task == 'neuro_diagnosis':
-                self.__perform_neuro_segmentation()
-            else:
-                self.__perform_mediastinum_segmentation()
+        if self.skip:
+            # An annotation object matching the request already exists, hence skipping the step.
+            logging.info("[SegmentationStep] Automatic segmentation skipped, results already existing.")
+            self.cleanup()
+            return self._patient_parameters
+
+        try:
+            if self._input_volume_uid:
+                if ResourcesConfiguration.getInstance().diagnosis_task == 'neuro_diagnosis':
+                    self.__perform_neuro_segmentation()
+                else:
+                    self.__perform_mediastinum_segmentation()
+        except Exception as e:
+            raise ValueError(f"[SegmentationStep] Process failed to run with: {e}.")
         return self._patient_parameters
 
     def cleanup(self):
@@ -182,11 +199,16 @@ class SegmentationStep(AbstractPipelineStep):
             seg_config = configparser.ConfigParser()
             seg_config.add_section('System')
             seg_config.set('System', 'gpu_id', ResourcesConfiguration.getInstance().gpu_id)
+            seg_config.set('System', 'acceleration', ResourcesConfiguration.getInstance().system_acceleration)
             seg_config.set('System', 'inputs_folder', os.path.join(self._working_folder, 'inputs'))
             seg_config.set('System', 'output_folder', os.path.join(self._working_folder, 'outputs'))
             seg_config.set('System', 'model_folder',
                            os.path.join(ResourcesConfiguration.getInstance().model_folder, self._model_name))
             seg_config.add_section('Runtime')
+            seg_config.set('Runtime', 'batch_size',
+                           str(ResourcesConfiguration.getInstance().predictions_batch_size))
+            seg_config.set('Runtime', 'overlapping_ratio',
+                           str(ResourcesConfiguration.getInstance().predictions_overlapping_ratio))
             seg_config.set('Runtime', 'reconstruction_method',
                            ResourcesConfiguration.getInstance().predictions_reconstruction_method)
             if self._segmentation_output_type:
@@ -297,18 +319,30 @@ class SegmentationStep(AbstractPipelineStep):
             seg_config = configparser.ConfigParser()
             seg_config.add_section('System')
             seg_config.set('System', 'gpu_id', ResourcesConfiguration.getInstance().gpu_id)
-            # seg_config.set('System', 'input_filename', self._input_volume_filepath)
+            seg_config.set('System', 'acceleration', ResourcesConfiguration.getInstance().system_acceleration)
             seg_config.set('System', 'inputs_folder', os.path.join(self._working_folder, 'inputs'))
             seg_config.set('System', 'output_folder', os.path.join(self._working_folder, 'outputs'))
             seg_config.set('System', 'model_folder',
                            os.path.join(ResourcesConfiguration.getInstance().model_folder, self._model_name))
             seg_config.add_section('Runtime')
+            seg_config.set('Runtime', 'batch_size',
+                           str(ResourcesConfiguration.getInstance().predictions_batch_size))
+            seg_config.set('Runtime', 'overlapping_ratio',
+                           str(ResourcesConfiguration.getInstance().predictions_overlapping_ratio))
             seg_config.set('Runtime', 'reconstruction_method',
                            ResourcesConfiguration.getInstance().predictions_reconstruction_method)
             if self._segmentation_output_type:
                 seg_config.set('Runtime', 'reconstruction_method', self._segmentation_output_type)
             seg_config.set('Runtime', 'reconstruction_order', ResourcesConfiguration.getInstance().predictions_reconstruction_order)
             seg_config.set('Runtime', 'use_preprocessed_data', "True" if ResourcesConfiguration.getInstance().predictions_use_stripped_data else "False")
+            seg_config.set('Runtime', 'folds_ensembling',
+                           str(ResourcesConfiguration.getInstance().predictions_folds_ensembling))
+            seg_config.set('Runtime', 'ensembling_strategy',
+                           ResourcesConfiguration.getInstance().predictions_ensembling_strategy)
+            seg_config.set('Runtime', 'test_time_augmentation_iteration',
+                           str(ResourcesConfiguration.getInstance().predictions_test_time_augmentation_iterations))
+            seg_config.set('Runtime', 'test_time_augmentation_fusion_mode',
+                           ResourcesConfiguration.getInstance().predictions_test_time_augmentation_fusion_mode)
 
             # @TODO. Have to be slightly improved, but should be working for our use-cases for now.
             existing_lungs_annotations = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(

@@ -8,9 +8,9 @@ import zipfile
 
 def download_resources(test_dir: str):
     try:
-        test1_image_url = 'https://github.com/raidionics/Raidionics-models/releases/download/v1.3.0-rc/Samples-RaidionicsRADSLib-UnitTest1.zip'
-        test2_image_url = 'https://github.com/raidionics/Raidionics-models/releases/download/v1.3.0-rc/Samples-RaidionicsRADSLib-UnitTest2.zip'
-        test3_image_url = 'https://github.com/raidionics/Raidionics-models/releases/download/v1.3.0-rc/Samples-RaidionicsRADSLib-UnitTest3-Mediastinum.zip'
+        test1_image_url = 'https://github.com/raidionics/Raidionics-models/releases/download/v1.3.0-rc/Samples-RaidionicsRADSLib-UnitTest1-v1.3.1.zip'
+        test2_image_url = 'https://github.com/raidionics/Raidionics-models/releases/download/v1.3.0-rc/Samples-RaidionicsRADSLib-UnitTest2-v1.3.1.zip'
+        test3_image_url = 'https://github.com/raidionics/Raidionics-models/releases/download/v1.3.0-rc/Samples-RaidionicsRADSLib-UnitTest3-Mediastinum-v1.3.1.zip'
         dest_dir = os.path.join(test_dir, "patients")
         if os.path.exists(dest_dir):
             shutil.rmtree(dest_dir)

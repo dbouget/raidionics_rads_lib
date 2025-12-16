@@ -56,6 +56,7 @@ class ResourcesConfiguration:
         self.caller = None
 
         self.gpu_id = "-1"
+        self.system_acceleration = "cpu"
         self.input_folder = None
         self.output_folder = None
         self.model_folder = None
@@ -63,6 +64,7 @@ class ResourcesConfiguration:
 
         # Parameters matching the main_config parameters from the raidionics_seg backend
         self.predictions_overlapping_ratio = 0.
+        self.predictions_batch_size = 1
         self.predictions_reconstruction_method = None
         self.predictions_reconstruction_order = None
         self.predictions_use_stripped_data = False
@@ -462,6 +464,16 @@ class ResourcesConfiguration:
         logging.debug(f"ANTs scripts directory: {self.ants_reg_dir}")
         logging.debug(f"ANTs binary directory: {self.ants_apply_dir}")
 
+        if self.config.has_option("System", "gpu_id"):
+            if self.config["System"]["gpu_id"].split("#")[0].strip() != "":
+                self.gpu_id = self.config["System"]["gpu_id"].split("#")[0].strip()
+
+        if self.config.has_option("System", "acceleration"):
+            if self.config["System"]["acceleration"].split("#")[0].strip() != "":
+                self.system_acceleration = self.config["System"]["acceleration"].split("#")[0].strip()
+        if self.system_acceleration not in ["cpu", "torch"]:
+            self.system_acceleration = "cpu"
+
         if self.config.has_option('System', 'output_folder'):
             if self.config['System']['output_folder'].split('#')[0].strip() != '':
                 self.output_folder = self.config['System']['output_folder'].split('#')[0].strip()
@@ -482,6 +494,14 @@ class ResourcesConfiguration:
         if self.config.has_option('Runtime', 'overlapping_ratio'):
             if self.config['Runtime']['overlapping_ratio'].split('#')[0].strip() != '':
                 self.predictions_overlapping_ratio = float(self.config['Runtime']['overlapping_ratio'].split('#')[0].strip())
+        if self.predictions_overlapping_ratio < 0.:
+            self.predictions_overlapping_ratio = 0.
+
+        if self.config.has_option('Runtime', 'batch_size'):
+            if self.config['Runtime']['batch_size'].split('#')[0].strip() != '':
+                self.predictions_batch_size = int(self.config['Runtime']['batch_size'].split('#')[0].strip())
+        if self.predictions_batch_size != 1 and self.predictions_batch_size % 2 != 0:
+            self.predictions_batch_size = self.predictions_batch_size + 1
 
         if self.config.has_option('Runtime', 'reconstruction_method'):
             if self.config['Runtime']['reconstruction_method'].split('#')[0].strip() != '':
