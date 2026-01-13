@@ -42,7 +42,7 @@ setup(
         ],
     },
     python_requires=">=3.9",
-    version='1.3.1',
+    version='1.3.2',
     author='David Bouget (david.bouget@sintef.no)',
     license='BSD 2-Clause',
     description='Raidionics reporting and data system backend (RADS)',
