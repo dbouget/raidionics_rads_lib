@@ -78,6 +78,8 @@ class Annotation:
         self._output_folder = output_folder
         self._radiological_volume_uid = radiological_volume_uid
         self._annotation_type = get_type_from_enum_name(AnnotationClassType, annotation_class)
+        if self._annotation_type == -1:
+            raise ValueError(f"Annotation type {annotation_class} not recognized.")
         self.__init_from_scratch()
 
     def __reset(self):

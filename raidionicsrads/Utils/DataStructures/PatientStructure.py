@@ -185,25 +185,28 @@ class PatientParameters:
             if ResourcesConfiguration.getInstance().predictions_use_stripped_data:
                 target_type = AnnotationClassType.Brain if ResourcesConfiguration.getInstance().diagnosis_task == 'neuro_diagnosis' else AnnotationClassType.Lungs
                 for uid in self.get_all_radiological_volume_uids():
-                    volume = self.get_radiological_volume(uid)
-                    volume_nib = nib.load(volume.raw_input_filepath)
-                    img_data = volume_nib.get_fdata()[:]
-                    mask = np.zeros(img_data.shape)
-                    mask[img_data != 0] = 1
-                    mask_fn = os.path.join(volume.output_folder,
-                                           os.path.basename(volume.raw_input_filepath).split('.')[0] + '_label_' + str(target_type) + '.nii.gz')
+                    # If a brain/lungs annotation has been provided anyway (by running a segmentation process beforehand),
+                    # an additional brain/lungs annotation should then not be included!
+                    if len(self.get_all_annotations_uids_class_radiological_volume(volume_uid=uid, annotation_class=target_type)) == 0:
+                        volume = self.get_radiological_volume(uid)
+                        volume_nib = nib.load(volume.raw_input_filepath)
+                        img_data = volume_nib.get_fdata()[:]
+                        mask = np.zeros(img_data.shape)
+                        mask[img_data != 0] = 1
+                        mask_fn = os.path.join(volume.output_folder,
+                                               os.path.basename(volume.raw_input_filepath).split('.')[0] + '_label_' + str(target_type) + '.nii.gz')
 
-                    nib.save(nib.Nifti1Image(mask, affine=volume_nib.affine), mask_fn)
-                    non_available_uid = True
-                    anno_uid = None
-                    while non_available_uid:
-                        anno_uid = 'A' + str(np.random.randint(0, 10000))
-                        if anno_uid not in self.get_all_annotations_uids():
-                            non_available_uid = False
-                    self.annotation_volumes[anno_uid] = Annotation(uid=data_uid, input_filename=mask_fn,
-                                                                    output_folder=volume.output_folder,
-                                                                    radiological_volume_uid=uid,
-                                                                    annotation_class=target_type)
+                        nib.save(nib.Nifti1Image(mask, affine=volume_nib.affine), mask_fn)
+                        non_available_uid = True
+                        anno_uid = None
+                        while non_available_uid:
+                            anno_uid = 'A' + str(np.random.randint(0, 10000))
+                            if anno_uid not in self.get_all_annotations_uids():
+                                non_available_uid = False
+                        self.annotation_volumes[anno_uid] = Annotation(uid=data_uid, input_filename=mask_fn,
+                                                                        output_folder=volume.output_folder,
+                                                                        radiological_volume_uid=uid,
+                                                                        annotation_class=target_type)
         except Exception as e:
             raise ValueError("Patient structure setup from disk folder failed with: {}".format(e))
 
