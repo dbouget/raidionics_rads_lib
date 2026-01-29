@@ -177,14 +177,16 @@ class RegistrationStep(AbstractPipelineStep):
                                                               output_folder=self._registration_runner.registration_folder)
 
                 if ResourcesConfiguration.getInstance().ants_use_registration_moving_mask:
+                    # Should improve the process to identify the best mask to use for the given inputs
                     struct_anno = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
                         self.moving_volume_uid, AnnotationClassType.Tumor)
-                    if self._step_json["fixed"]["timestamp"] == 1:
+                    if len(struct_anno) != 0:
                         struct_anno = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
                             self.moving_volume_uid, AnnotationClassType.TumorCE)
                     if len(struct_anno) != 0:
                         struct_anno = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
                             self.moving_volume_uid, AnnotationClassType.FLAIRChanges)
+
                     if len(struct_anno) != 0:
                         moving_struct_mask_filepath = self._patient_parameters.get_annotation(
                             annotation_uid=struct_anno[0]).usable_input_filepath
