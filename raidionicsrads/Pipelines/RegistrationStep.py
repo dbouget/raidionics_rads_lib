@@ -135,8 +135,8 @@ class RegistrationStep(AbstractPipelineStep):
                 return self._patient_parameters
 
         try:
-            fmf, mmf = self.__registration_preprocessing()
-            self.__registration(fmf, mmf)
+            fmf, mmf, msmf = self.__registration_preprocessing()
+            self.__registration(fixed_filepath=fmf, moving_filepath=mmf, moving_struct_mask_filepath=msmf)
         except Exception as e:
             raise ValueError(f"[RegistrationStep] Process failed to run with: {e}.")
 
@@ -152,6 +152,7 @@ class RegistrationStep(AbstractPipelineStep):
         """
         fixed_masked_filepath = None
         moving_masked_filepath = None
+        moving_struct_mask_filepath = None
         try:
             if ResourcesConfiguration.getInstance().diagnosis_task == 'neuro_diagnosis':
                 if self.fixed_volume_uid:
@@ -174,11 +175,24 @@ class RegistrationStep(AbstractPipelineStep):
                 fixed_masked_filepath = perform_brain_masking(image_filepath=self._fixed_volume_filepath,
                                                               mask_filepath=self._fixed_mask_filepath,
                                                               output_folder=self._registration_runner.registration_folder)
-                return fixed_masked_filepath, moving_masked_filepath
+
+                if ResourcesConfiguration.getInstance().ants_use_registration_moving_mask:
+                    struct_anno = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
+                        self.moving_volume_uid, AnnotationClassType.Tumor)
+                    if self._step_json["fixed"]["timestamp"] == 1:
+                        struct_anno = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
+                            self.moving_volume_uid, AnnotationClassType.TumorCE)
+                    if len(struct_anno) != 0:
+                        struct_anno = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
+                            self.moving_volume_uid, AnnotationClassType.FLAIRChanges)
+                    if len(struct_anno) != 0:
+                        moving_struct_mask_filepath = self._patient_parameters.get_annotation(
+                            annotation_uid=struct_anno[0]).usable_input_filepath
+                return fixed_masked_filepath, moving_masked_filepath, moving_struct_mask_filepath
         except Exception as e:
             raise ValueError(f"Preprocessing step failed to proceed with: {e}.")
 
-    def __registration(self, fixed_filepath, moving_filepath):
+    def __registration(self, fixed_filepath, moving_filepath, moving_struct_mask_filepath: str):
         try:
             registration_method = 'SyN'
             logging.info("[RegistrationStep] Using {} ANTs backend.".format(ResourcesConfiguration.getInstance().system_ants_backend))
@@ -186,7 +200,8 @@ class RegistrationStep(AbstractPipelineStep):
                 logging.info("[RegistrationStep] ANTs root located in {}.".format(ResourcesConfiguration.getInstance().ants_root))
             try:
                 self._registration_runner.compute_registration(fixed=fixed_filepath, moving=moving_filepath,
-                                                               registration_method=registration_method)
+                                                               registration_method=registration_method,
+                                                               moving_struct_mask_filepath=moving_struct_mask_filepath)
             except Exception as e:
                 raise RuntimeError(f"ANTs execution code failed with: {e}")
 

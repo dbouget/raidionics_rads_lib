@@ -12,7 +12,7 @@ from ..Utils.io import load_nifti_volume
 from .AbstractPipelineStep import AbstractPipelineStep
 from ..Utils.DataStructures.PatientStructure import PatientParameters
 from ..Utils.DataStructures.AnnotationStructure import Annotation, AnnotationClassType, BrainTumorType
-from ..Processing.brain_processing import perform_brain_overlap_refinement, perform_segmentation_global_consistency_refinement
+from ..Processing.brain_processing import perform_brain_overlap_refinement, perform_segmentation_global_consistency_refinement, perform_noise_removal_refinement
 from ..Processing.mediastinum_processing import perform_lungs_overlap_refinement
 
 
@@ -158,15 +158,9 @@ class SegmentationRefinementStep(AbstractPipelineStep):
                 brain_mask_filepath = self._patient_parameters.get_annotation(
                     annotation_uid=brain_annotation_uid).usable_input_filepath
                 perform_brain_overlap_refinement(predictions_filepath=predictions_filepath, brain_mask_filepath=brain_mask_filepath)
-            elif self.refinement_operation == "brain_overlap":
+            elif self.refinement_operation == "noise_removal":
                 predictions_filepath = self._patient_parameters.get_annotation(annotation_uid=self._input_annotation_uid).usable_input_filepath
-                brain_annotation_uids = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(volume_uid=self._input_volume_uid, annotation_class=AnnotationClassType.Brain)
-                if len(brain_annotation_uids) == 0 or len(brain_annotation_uids) > 1:
-                    raise ValueError(f"The brain annotation could not be retrieved for performing segmentation refinement.")
-                brain_annotation_uid = brain_annotation_uids[0]
-                brain_mask_filepath = self._patient_parameters.get_annotation(
-                    annotation_uid=brain_annotation_uid).usable_input_filepath
-                perform_brain_overlap_refinement(predictions_filepath=predictions_filepath, brain_mask_filepath=brain_mask_filepath)
+                perform_noise_removal_refinement(predictions_filepath=predictions_filepath)
             elif self.refinement_operation == "global_context":
                 annotation_files = {}
                 for a in self._patient_parameters.get_all_annotations_radiological_volume(volume_uid=self._input_volume_uid):

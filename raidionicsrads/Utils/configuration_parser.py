@@ -48,6 +48,7 @@ class ResourcesConfiguration:
         self.ants_root = '' #os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'ANTs')
         self.ants_reg_dir = ''
         self.ants_apply_dir = ''
+        self.ants_use_registration_moving_mask = False
 
         self.config_filename = None
         self.config = None
@@ -543,6 +544,10 @@ class ResourcesConfiguration:
             self.predictions_test_time_augmentation_fusion_mode = "average"
             logging.warning("""Value provided in [Runtime][test_time_augmentation_fusion_mode] is not recognized.
              setting to default parameter with value: {}""".format(self.predictions_test_time_augmentation_fusion_mode))
+
+        if self.config.has_option('Runtime', 'ants_use_registration_moving_mask'):
+            if self.config['Runtime']['ants_use_registration_moving_mask'].split('#')[0].strip() != '':
+                self.ants_use_registration_moving_mask = True if self.config['Runtime']['ants_use_registration_moving_mask'].split('#')[0].strip().lower() == "true" else False
 
         if self.diagnosis_task == 'neuro_diagnosis':
             self.__parse_runtime_neuro_parameters()

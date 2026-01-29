@@ -212,6 +212,44 @@ def perform_brain_overlap_refinement(predictions_filepath: str, brain_mask_filep
     except Exception as e:
         raise ValueError("Brain overlap refinement failed with: {}.".format(e))
 
+
+def perform_noise_removal_refinement(predictions_filepath: str, size_threshold: float = 0.05) -> None:
+    """
+    The clean predictions are updated in-place inside predictions_filepath.
+
+    Parameters
+    ------------
+    predictions_filepath: str
+        Location on disk of the raw predictions from the model.
+    size_threshold: float
+        Minimum size, in milliliter, for each structure component to have in order to not be removed.
+    """
+    try:
+        pred_nib = nib.load(predictions_filepath)
+        pred = pred_nib.get_fdata()[:]
+        pred_binary = np.zeros(pred.shape, dtype='uint8')
+        pred_binary[pred > 5e-2] = 1
+        cc_pred_bin = measure.label(pred_binary)
+        cc_regionprops = measure.regionprops(cc_pred_bin)
+        obj_labels = np.unique(cc_pred_bin)[1:]
+        final_pred = np.zeros(pred.shape, dtype=pred_nib.header.get_data_dtype())
+        for l in range(0, len(obj_labels)):
+            obj_pred = np.zeros(pred_binary.shape, dtype='uint8')
+            obj_pred[cc_pred_bin == (l + 1)] = 1
+            roi_regionprops = cc_regionprops[l]
+            volume = np.count_nonzero(obj_pred) * np.prod(pred_nib.header.get_zooms()) * 1e-3
+            regionspan = [roi_regionprops.bbox[3] - roi_regionprops.bbox[0],
+                          roi_regionprops.bbox[4] - roi_regionprops.bbox[1],
+                          roi_regionprops.bbox[5] - roi_regionprops.bbox[2]]
+            correct_span = True if False not in [x > 2 for x in regionspan] else False
+            if volume >= size_threshold and correct_span:
+                label_pred = np.where(cc_pred_bin == (l + 1), pred, 0).astype(pred_nib.header.get_data_dtype())
+                final_pred = final_pred + label_pred
+        final_pred_nib = nib.Nifti1Image(final_pred, affine=pred_nib.affine, header=pred_nib.header)
+        nib.save(final_pred_nib, predictions_filepath)
+    except Exception as e:
+        raise ValueError("Noise removal refinement failed with: {}.".format(e))
+
 def perform_segmentation_global_consistency_refinement(annotation_files: dict, timestamp: str,
                                                        tumor_general_type: str = "contrast-enhancing")  -> dict:
     """

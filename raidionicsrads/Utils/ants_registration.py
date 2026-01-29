@@ -93,7 +93,8 @@ class ANTsRegistration:
         except Exception as e:
             raise NameError("Impossible to perform cleaning and dumping in the ANTs registration instance with: {}".format(e))
 
-    def compute_registration(self, moving: str, fixed: str, registration_method: str) -> None:
+    def compute_registration(self, moving: str, fixed: str, registration_method: str,
+                             moving_struct_mask_filepath: str = None) -> None:
         """
 
         Compute the registration between the moving and fixed images according to the specified registration method.
@@ -108,6 +109,9 @@ class ANTsRegistration:
             Filepath of the fixed image (to register to).
         registration_method : str
             ANTs tag to specify which registration method to use (e.g., SyN).
+        moving_struct_mask_filepath: str
+            Filepath of a structure mask, in moving image space, to exclude during the registration computation
+
         Returns
         -------
         None
@@ -117,15 +121,15 @@ class ANTsRegistration:
         os.makedirs(self.registration_folder, exist_ok=True)
         try:
             if self.backend == 'python':
-                self.compute_registration_python(moving, fixed, registration_method)
+                self.compute_registration_python(moving, fixed, registration_method, moving_struct_mask_filepath)
             elif self.backend == 'cpp':
-                self.compute_registration_cpp(moving, fixed, registration_method)
+                self.compute_registration_cpp(moving, fixed, registration_method, moving_struct_mask_filepath)
         except Exception as e:
             raise RuntimeError(e)
         self.registration_computed = True
         return
 
-    def compute_registration_cpp(self, moving, fixed, registration_method):
+    def compute_registration_cpp(self, moving, fixed, registration_method, moving_struct_mask_filepath=None):
         logging.debug("Starting registration for patient.")
 
         if registration_method == 'SyN':
@@ -136,6 +140,9 @@ class ANTsRegistration:
             registration_method = 's'
         else:
             script_path = os.path.join(self.ants_reg_dir, 'antsRegistrationSyN.sh')
+
+        if moving_struct_mask_filepath and os.path.exists(moving_struct_mask_filepath):
+            logging.warning("Moving structure mask discarded from use with the ANTs c++ backend.")
 
         try:
             if platform.system() == 'Windows':
@@ -177,7 +184,7 @@ class ANTsRegistration:
         except Exception as e:
             raise RuntimeError('Cpp-based ANTs registration failed with: {}'.format(e))
 
-    def compute_registration_python(self, moving, fixed, registration_method) -> None:
+    def compute_registration_python(self, moving, fixed, registration_method, moving_struct_mask_filepath = None) -> None:
         """
         @FIXME: "antsRegistrationSyNQuick[s]" does not work across all platforms, so swapped with "SyN".
         Read docs for supported transforms: https://antspy.readthedocs.io/en/latest/_modules/ants/registration/interface.html
@@ -187,10 +194,19 @@ class ANTsRegistration:
             logging.info("starting python-based ANTs registration with method: {}.".format(registration_method))
             moving_ants = ants.image_read(moving, dimension=3)
             fixed_ants = ants.image_read(fixed, dimension=3)
+            moving_mask = None
+            if (ResourcesConfiguration.getInstance().ants_use_registration_moving_mask and
+                    moving_struct_mask_filepath and os.path.exists(moving_struct_mask_filepath)):
+                moving_mask = ants.image_read(moving_struct_mask_filepath, dimension=3)
             if registration_method == 'antsRegistrationSyNQuick[s]' or registration_method == 'antsRegistrationSyN[s]':
                 registration_method = 'SyN'
 
-            self.reg_transform = ants.registration(fixed_ants, moving_ants, registration_method)
+            if ResourcesConfiguration.getInstance().ants_use_registration_moving_mask and moving_mask:
+                self.reg_transform = ants.registration(fixed=fixed_ants, moving=moving_ants,
+                                                       type_of_transform=registration_method, moving_mask=moving_mask)
+            else:
+                self.reg_transform = ants.registration(fixed=fixed_ants, moving=moving_ants,
+                                                       type_of_transform=registration_method)
             warped_input = ants.apply_transforms(fixed=fixed_ants,
                                                   moving=moving_ants,
                                                   transformlist=self.reg_transform['fwdtransforms'],
