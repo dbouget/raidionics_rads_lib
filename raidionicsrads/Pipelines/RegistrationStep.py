@@ -176,14 +176,15 @@ class RegistrationStep(AbstractPipelineStep):
                                                               mask_filepath=self._fixed_mask_filepath,
                                                               output_folder=self._registration_runner.registration_folder)
 
-                if ResourcesConfiguration.getInstance().ants_use_registration_moving_mask:
-                    # Should improve the process to identify the best mask to use for the given inputs
+                if ResourcesConfiguration.getInstance().ants_use_registration_moving_mask and self.fixed_volume_uid is None:
+                    # Should improve the process to identify the best mask to use for the given inputs, only
+                    # performed when registering to the MNI atlas
                     struct_anno = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
                         self.moving_volume_uid, AnnotationClassType.Tumor)
-                    if len(struct_anno) != 0:
+                    if len(struct_anno) == 0:
                         struct_anno = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
                             self.moving_volume_uid, AnnotationClassType.TumorCE)
-                    if len(struct_anno) != 0:
+                    if len(struct_anno) == 0:
                         struct_anno = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(
                             self.moving_volume_uid, AnnotationClassType.FLAIRChanges)
 
