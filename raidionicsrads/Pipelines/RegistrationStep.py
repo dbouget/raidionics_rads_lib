@@ -191,6 +191,8 @@ class RegistrationStep(AbstractPipelineStep):
                     if len(struct_anno) != 0:
                         moving_struct_mask_filepath = self._patient_parameters.get_annotation(
                             annotation_uid=struct_anno[0]).usable_input_filepath
+                    else:
+                        logging.warning(f"Unable to perform masked registration, no eligible structure mask for {self.moving_volume_uid}.")
                 return fixed_masked_filepath, moving_masked_filepath, moving_struct_mask_filepath
         except Exception as e:
             raise ValueError(f"Preprocessing step failed to proceed with: {e}.")

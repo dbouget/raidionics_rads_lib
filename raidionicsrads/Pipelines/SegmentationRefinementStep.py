@@ -92,7 +92,11 @@ class SegmentationRefinementStep(AbstractPipelineStep):
                             anno_uids = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(volume_uid=volume_uid,
                                                                                                                     annotation_class=annotation_type)
                             if len(anno_uids) == 0:
-                                raise ValueError("No annotation for {}.".format(input_json))
+                                if self.inclusion == "required":
+                                    raise ValueError("No annotation for {}.".format(input_json))
+                                else:
+                                    self.skip = True
+                                    continue
                             elif len(anno_uids) > 1:
                                 #@TODO. Assuming the last one is to refine? In case a structure is segmented multiple times
                                 # before some kind of refinement?
