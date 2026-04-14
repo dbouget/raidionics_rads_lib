@@ -18,11 +18,11 @@ jobs:
             CMD_BUILD: python -m build --wheel
 
     steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v6
         with:
-          python-version: "3.10"
+          python-version: "3.11"
 
       - name: Install dependencies
         run: |
@@ -33,7 +33,7 @@ jobs:
         run: ${{matrix.CMD_BUILD}}
 
       - name: Upload Python wheel
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Python wheel
           path: ${{github.workspace}}/dist/raidionicsrads-*.whl
@@ -42,12 +42,12 @@ jobs:
   setup-test-data:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
-          python-version: "3.10"
+          python-version: "3.11"
 
       - name: Download test resources
         working-directory: tests
@@ -56,7 +56,7 @@ jobs:
             python -c "from download_resources import download_resources; download_resources('../test_data')"
 
       - name: Upload test resources
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-resources
           path: ./test_data
@@ -125,12 +125,12 @@ jobs:
 
     steps:
         - name: Set up Python ${{ matrix.python-version }}
-          uses: actions/setup-python@v5
+          uses: actions/setup-python@v6
           with:
             python-version: ${{ matrix.python-version }}
 
         - name: Download artifact
-          uses: actions/download-artifact@v4
+          uses: actions/download-artifact@v8
           with:
             name: "Python wheel"
 
@@ -146,7 +146,7 @@ jobs:
             raidionicsrads --help
 
         - name: Clone repo
-          uses: actions/checkout@v4
+          uses: actions/checkout@v5
 
         - name: Cleanup test environment on Linux/macOS
           if: runner.os != 'Windows'
@@ -166,7 +166,7 @@ jobs:
             cp -r tests test_env/
 
         - name: Download test resources
-          uses: actions/download-artifact@v4
+          uses: actions/download-artifact@v8
           with:
             name: test-resources
             path: ./test-env/unit_tests_results_dir
@@ -178,8 +178,8 @@ jobs:
               pytest -vvv --cov=raidionicsrads tests/generic_tests --cov-report=xml --timeout=1500 --log-cli-level=DEBUG
 
         - name: Upload coverage to Codecov
-          if: ${{ matrix.os == 'ubuntu-22.04' && matrix.python-version == '3.10' }}
-          uses: codecov/codecov-action@v4
+          if: ${{ matrix.os == 'ubuntu-22.04' && matrix.python-version == '3.11' }}
+          uses: codecov/codecov-action@v6
           with:
             token: ${{ secrets.CODECOV_TOKEN  }}
             slug: dbouget/raidionics_rads_lib
