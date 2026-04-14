@@ -44,7 +44,14 @@ def compute_volume(volume: np.ndarray, spacing: Tuple, brain_mask: np.ndarray = 
 
 def compute_diameters(volume: np.ndarray, spacing: Tuple) -> Tuple[float, float, float, float]:
     """
+    The diameter is only computed on the largest structure component is case of a multi-components structure.
 
+    Parameters
+    ----------
+    volume: np.ndarray
+        Binary structure mask.
+    spacing: Tuple
+        Size of a voxel along each axis, in millimeter.
     """
     long_axis = -1.
     short_axis = -1.
