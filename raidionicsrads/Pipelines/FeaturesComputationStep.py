@@ -34,7 +34,7 @@ class FeaturesComputationStep(AbstractPipelineStep):
 
     @report_space.setter
     def report_space(self, text: str) -> None:
-        self.report_space = text
+        self._report_space = text
 
     @property
     def targets(self) -> str:
@@ -59,8 +59,8 @@ class FeaturesComputationStep(AbstractPipelineStep):
         """
         Verify that the requirements are met for executing the step
         """
-        if self.report_space != "MNI":
-            raise ValueError(f"Features computation only implemented for MNI space, "
+        if self.report_space not in ["Patient", "MNI"]:
+            raise ValueError(f"Features computation only implemented for Patient and MNI space, "
                              f"unknown key \"{self.report_space}\" provided.")
         self._patient_parameters = patient_parameters
 
@@ -146,7 +146,9 @@ class FeaturesComputationStep(AbstractPipelineStep):
                 logging.error(f"No segmentation file found nor assembled for structure: {t}")
                 continue
             else:
-                res = compute_structure_statistics(input_mask=structure_nib, brain_mask=brain_nib)
+                res_folder = os.path.join(ResourcesConfiguration.getInstance().output_folder, f"T{self.step_json["timestamp"]}")
+                res = compute_structure_statistics(input_mask=structure_nib, brain_mask=brain_nib,
+                                                   space=self.report_space, resources_folder=res_folder)
                 report.include_statistics(structure=t, statistics=res, space=self.report_space)
                 if self.report_space != 'Patient':
                     # Including the tumor volume in original patient space, quick fix for now as the only

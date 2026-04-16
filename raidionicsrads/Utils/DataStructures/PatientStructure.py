@@ -1,4 +1,5 @@
 import os
+import threading
 import numpy as np
 import re
 import glob
@@ -7,7 +8,7 @@ import logging
 import nibabel as nib
 from typing import List
 from ..configuration_parser import ResourcesConfiguration
-from ..utilities import input_file_category_disambiguation, get_type_from_enum_name
+from ..utilities import input_file_category_disambiguation, get_type_from_enum_name, generate_uid
 from .RadiologicalVolumeStructure import RadiologicalVolume
 from .AnnotationStructure import Annotation, AnnotationClassType
 from .RegistrationStructure import Registration
@@ -23,18 +24,19 @@ class PatientParameters:
     _registrations = {}  # All registration transforms.
     _reportings = {}  # All clinical reports (if applicable).
 
-    def __init__(self, id: str, patient_filepath: str):
+    def __init__(self, unique_id: str, patient_filepath: os.PathLike | str):
         """
         """
         self.__reset()
-        self._unique_id = id
+        self._lock = threading.Lock()  # Protects concurrent mutations
+        self._unique_id = unique_id
         self._input_filepath = patient_filepath
 
         if not patient_filepath or not os.path.exists(patient_filepath):
             # Error case
             return
 
-        self.__init_from_scratch()
+        # self.__init_from_scratch()
 
     def __reset(self):
         """
@@ -55,7 +57,7 @@ class PatientParameters:
         return self._unique_id
 
     @property
-    def input_filepath(self) -> str:
+    def input_filepath(self) -> os.PathLike | str:
         return self._input_filepath
 
     @property
@@ -73,6 +75,17 @@ class PatientParameters:
     @property
     def reportings(self) -> dict:
         return self._reportings
+
+    @classmethod
+    def from_folder(cls, unique_id: str, patient_filepath: str) -> "PatientParameters":
+      """
+      Create and populate a PatientParameters by scanning a folder on disk.
+      """
+      patient = cls(unique_id=unique_id, patient_filepath=patient_filepath)
+      if patient_filepath and os.path.exists(patient_filepath):
+          PatientDataLoader(patient).load()
+      return patient
+
 
     def __init_from_scratch(self):
         """
@@ -211,13 +224,16 @@ class PatientParameters:
             raise ValueError("Patient structure setup from disk folder failed with: {}".format(e))
 
     def include_annotation(self, anno_uid, annotation):
-        self.annotation_volumes[anno_uid] = annotation
+        with self._lock:
+            self.annotation_volumes[anno_uid] = annotation
 
     def include_registration(self, reg_uid, registration):
-        self.registrations[reg_uid] = registration
+        with self._lock:
+            self.registrations[reg_uid] = registration
 
     def include_reporting(self, report_uid, report):
-        self.reportings[report_uid] = report
+        with self._lock:
+            self.reportings[report_uid] = report
 
     def get_input_from_json(self, input_json: dict):
         """
@@ -307,8 +323,13 @@ class PatientParameters:
                 return v
         return "-1"
 
+    def exists_radiological_volume(self, volume_uid: str) -> bool:
+        return volume_uid in self.radiological_volumes.keys()
+
     def get_radiological_volume(self, volume_uid: str) -> RadiologicalVolume:
-        return self.radiological_volumes[volume_uid] if volume_uid in self.radiological_volumes.keys() else None
+        if volume_uid not in self.radiological_volumes.keys():
+            raise KeyError(f"Radiological volume {volume_uid} not found in patient data.")
+        return self.radiological_volumes[volume_uid]
 
     def get_radiological_volume_by_base_filename(self, base_fn: str):
         result = None
@@ -330,6 +351,8 @@ class PatientParameters:
         return list(self.annotation_volumes.keys())
 
     def get_annotation(self, annotation_uid: str) -> Annotation:
+        if annotation_uid not in self.annotation_volumes.keys():
+            raise KeyError(f"Annotation volume {annotation_uid} not found in patient data.")
         return self.annotation_volumes[annotation_uid]
 
     def get_all_annotations_radiological_volume(self, volume_uid: str) -> List[Annotation]:
@@ -468,3 +491,166 @@ class TimestampParameters:
 
     def __init_from_scratch(self):
         pass
+
+
+class PatientDataLoader:
+    """
+    Responsible for populating a PatientParameters from a disk folder.
+    """
+
+    def __init__(self, patient: PatientParameters) -> None:
+        self._patient = patient
+        self._config = ResourcesConfiguration.getInstance()
+
+    def load(self) -> None:
+        try:
+            self._load_timestamps()
+            self._load_sequence_metadata()
+            self._create_stripped_masks()
+        except Exception as e:
+            raise ValueError("Patient structure setup from disk folder failed with: {}".format(e))
+
+    def _load_timestamps(self) -> None:
+        ts_folders = self._discover_timestamp_folders()
+        for i, ts_folder in enumerate(ts_folders):
+            ts_uid = f"T{i}"
+            self._patient._timestamps[ts_uid] = TimestampParameters(id=ts_uid, timestamp_filepath=ts_folder)
+            self._load_volumes_for_timestamp(ts_uid, ts_folder)
+            self._load_registered_volumes_for_timestamp(ts_folder)
+
+    def _discover_timestamp_folders(self) -> list[str]:
+        """
+
+        """
+        # timestamp_folders = []
+        # for _, dirs, _ in os.walk(self._patient.input_filepath):
+        #     for d in dirs:
+        #         timestamp_folders.append(d)
+        #     break
+        #
+        # ts_folders_dict = {}
+        # for i in timestamp_folders:
+        #     if re.search(r'\d+',
+        #                  i):  # Skipping folders without an integer inside, otherwise assuming timestamps from 0 onwards
+        #         ts_folders_dict[int(re.search(r'\d+', i).group())] = i
+        #
+        # ordered_ts_folders = dict(sorted(ts_folders_dict.items(), key=lambda item: item[0], reverse=False))
+        # return ordered_ts_folders
+        root = self._patient.input_filepath
+        dirs = next(os.walk(root), (None, [], None))[1]
+        numbered = {int(m.group()): d for d in dirs if (m := re.search(r'\d+', d))}
+        caller_suffix = "raw" if self._config.caller == "raidionics" else ""
+        return [
+            os.path.join(root, numbered[k], caller_suffix) if caller_suffix
+            else os.path.join(root, numbered[k])
+            for k in sorted(numbered)
+        ]
+
+    def _load_volumes_for_timestamp(self, ts_uid: str, ts_folder: str) -> None:
+        files = [
+            f for f in next(os.walk(ts_folder), (None, None, []))[2]
+            if '.'.join(f.split('.')[1:]) in self._config.get_accepted_image_formats()
+        ]
+        annotation_files = []
+        for f in files:
+            category = input_file_category_disambiguation(os.path.join(ts_folder, f))
+            if category == "Volume":
+                uid = generate_uid("V", self._patient.radiological_volumes, suffix=f.split('.')[0])
+                self._patient._radiological_volumes[uid] = RadiologicalVolume(
+                    uid=uid, input_filename=os.path.join(ts_folder, f), timestamp_uid=ts_uid
+                )
+            elif category == "Annotation":
+                annotation_files.append(f)
+        self._load_annotations(ts_folder, annotation_files)
+
+    def _load_annotations(self, ts_folder: str, annotation_files: list[str]) -> None:
+        for f in annotation_files:
+            # Collecting the base name of the radiological volume, often before a label or annotation tag
+            base_name = os.path.basename(f).strip().split('.')[0].split('label')[0][:-1]
+            if ResourcesConfiguration.getInstance().caller == 'raidionics':
+                base_name = os.path.basename(f).strip().split('.')[0].split('annotation')[0][:-1]
+            parent_link = [base_name in x for x in list(self._patient.radiological_volumes.keys())]
+            if True in parent_link:
+                parent_uid = list(self._patient.radiological_volumes.keys())[parent_link.index(True)]
+                data_uid = generate_uid("A", self._patient.annotation_volumes, suffix=f.split('.')[0])
+                # non_available_uid = True
+                # while non_available_uid:
+                #     data_uid = 'A' + str(np.random.randint(0, 10000)) + '_' + base_name
+                #     if data_uid not in list(self._patient.annotation_volumes.keys()):
+                #         non_available_uid = False
+                if self._config.caller == 'raidionics':
+                    class_name = os.path.basename(f).strip().split('.')[0].split('annotation')[1][1:]
+                else:
+                    class_name = os.path.basename(f).strip().split('.')[0].split('label')[1][1:]
+                self._patient.annotation_volumes[data_uid] = Annotation(uid=data_uid,
+                                                               input_filename=os.path.join(ts_folder, f),
+                                                               output_folder=self._patient.radiological_volumes[
+                                                                   parent_uid].output_folder,
+                                                               radiological_volume_uid=parent_uid,
+                                                               annotation_class=class_name)
+            else:
+                # Case where the annotation does not match any radiological volume, has to be left aside
+                logging.info(f"Discarded the input annotation file {f}. "
+                             f"Could not be matched to any radiological volume.")
+                pass
+
+    def _load_registered_volumes_for_timestamp(self, ts_folder: str) -> None:
+        registration_folders = [os.path.join(ts_folder, d) for d in os.listdir(ts_folder) if
+                                os.path.isdir(os.path.join(ts_folder, d))]
+        for rf in registration_folders:
+            registered_radiological_volumes = []
+            registered_labels = []
+            for _, _, files in os.walk(rf):
+                for f in files:
+                    if "label" in f or "annotation" in f:
+                        registered_labels.append(f)
+                    else:
+                        registered_radiological_volumes.append(f)
+            for rr in registered_radiological_volumes:
+                fixed_volume = self._patient.get_radiological_volume_by_base_filename(
+                    base_fn=os.path.basename(rf[:-1]).replace("_space", ""))
+                reg_volume = self._patient.get_radiological_volume_by_base_filename(base_fn=rr.split('_reg')[0])
+                reg_volume.include_registered_volume(filepath=os.path.join(rf, rr), registration_uid=None,
+                                                     destination_space_uid=fixed_volume.unique_id)
+
+    def _load_sequence_metadata(self) -> None:
+        seq_csv = os.path.join(self._patient.input_filepath, "mri_sequences.csv")
+        if not os.path.exists(seq_csv):
+            return
+        df = pd.read_csv(seq_csv)
+        for _, row in df.iterrows():
+            vol = self._patient.get_radiological_volume_by_base_filename(row["File"])
+            if vol:
+                vol.set_sequence_type(row["MRI sequence"])
+            else:
+                logging.warning("[PatientDataLoader] Filename %s not matching any volume.", row["File"])
+
+    def _create_stripped_masks(self):
+        # Setting up masks (i.e., brain or lungs) if stripped inputs are used.
+        if ResourcesConfiguration.getInstance().predictions_use_stripped_data:
+            target_type = AnnotationClassType.Brain if ResourcesConfiguration.getInstance().diagnosis_task == 'neuro_diagnosis' else AnnotationClassType.Lungs
+            for uid in self._patient.get_all_radiological_volume_uids():
+                # If a brain/lungs annotation has been provided anyway (by running a segmentation process beforehand),
+                # an additional brain/lungs annotation should then not be included!
+                if len(self._patient.get_all_annotations_uids_class_radiological_volume(volume_uid=uid,
+                                                                               annotation_class=target_type)) == 0:
+                    volume = self._patient.get_radiological_volume(uid)
+                    volume_nib = nib.load(volume.raw_input_filepath)
+                    img_data = volume_nib.get_fdata()[:]
+                    mask = np.zeros(img_data.shape)
+                    mask[img_data != 0] = 1
+                    mask_fn = os.path.join(volume.output_folder,
+                                           os.path.basename(volume.raw_input_filepath).split('.')[0] + '_label_' + str(
+                                               target_type) + '.nii.gz')
+
+                    nib.save(nib.Nifti1Image(mask, affine=volume_nib.affine), mask_fn)
+                    non_available_uid = True
+                    anno_uid = None
+                    while non_available_uid:
+                        anno_uid = 'A' + str(np.random.randint(0, 10000))
+                        if anno_uid not in self._patient.get_all_annotations_uids():
+                            non_available_uid = False
+                    self._patient.annotation_volumes[anno_uid] = Annotation(uid=anno_uid, input_filename=mask_fn,
+                                                                   output_folder=volume.output_folder,
+                                                                   radiological_volume_uid=uid,
+                                                                   annotation_class=target_type)

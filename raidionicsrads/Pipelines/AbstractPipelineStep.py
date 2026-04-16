@@ -68,3 +68,13 @@ class AbstractPipelineStep(ABC):
         return self._step_json["task"] if "task" in self._step_json.keys() else None
     # @TODO. Should there be a step assess method, before executing the pipeline, ensuring all inputs are available
     # for all steps.
+
+    def step_key(self) -> str:
+        """
+        Returns a hashable identity representing this step's semantic content.
+        Two steps with the same key are considered identical and only one will
+        be executed within a parallel batch. Override in subclasses if a more
+        precise key is needed.
+        """
+        key_dict = {k: v for k, v in self._step_json.items() if k not in ["description", "inclusion"]}
+        return json.dumps(key_dict, sort_keys=True)

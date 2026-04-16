@@ -154,6 +154,10 @@ def perform_brain_masking(image_filepath, mask_filepath, output_folder):
     :return: masked_image_filepath
     """
     os.makedirs(output_folder, exist_ok=True)
+    if not image_filepath or not os.path.exists(image_filepath):
+        raise FileNotFoundError(f"No file existing at {image_filepath}")
+    if not mask_filepath or not os.path.exists(mask_filepath):
+        raise FileNotFoundError(f"No file existing at {mask_filepath}")
     image_ni = load_nifti_volume(image_filepath)
     brain_mask_ni = load_nifti_volume(mask_filepath)
 

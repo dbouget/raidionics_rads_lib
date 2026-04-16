@@ -27,8 +27,8 @@ def run_rads(config_filename: str, logging_filename: str = None) -> None:
     start = time.time()
     pip = Pipeline(ResourcesConfiguration.getInstance().pipeline_filename)
     try:
-        patient_parameters = PatientParameters(id="Patient",
-                                               patient_filepath=ResourcesConfiguration.getInstance().input_folder)
+        # patient_parameters = PatientParameters(id="Patient")
+        patient_parameters = PatientParameters.from_folder(unique_id="Patient", patient_filepath=ResourcesConfiguration.getInstance().input_folder)
     except Exception as e:
         logging.error("""[Backend error] Patient data setup phase of failed with:\n{}""".format(e))
         logging.debug("Traceback: {}.".format(traceback.format_exc()))
@@ -40,7 +40,7 @@ def run_rads(config_filename: str, logging_filename: str = None) -> None:
         logging.debug("Traceback: {}.".format(traceback.format_exc()))
         return
     try:
-        patient_parameters = pip.execute(patient_parameters=patient_parameters)
+        patient_parameters = pip.execute(patient_parameters=patient_parameters) if ResourcesConfiguration.getInstance().num_workers == 1 else pip.execute_parallel(patient_parameters=patient_parameters)
         pip.cleanup()
     except Exception as e:
         logging.error("""[Backend error] Patient data execution phase of failed with:\n{}""".format(e))

@@ -111,7 +111,7 @@ class RegistrationStep(AbstractPipelineStep):
             self.skip = False
         except Exception as e:
             self.skip = True
-            raise ValueError(f"[RegistrationStep] Setting up process failed with: {e}.")
+            raise ValueError(f"[RegistrationStep] Setting up process {self.step_json} failed with: {e}.") from e
 
     def execute(self):
         """
@@ -138,7 +138,7 @@ class RegistrationStep(AbstractPipelineStep):
             fmf, mmf, msmf = self.__registration_preprocessing()
             self.__registration(fixed_filepath=fmf, moving_filepath=mmf, moving_struct_mask_filepath=msmf)
         except Exception as e:
-            raise ValueError(f"[RegistrationStep] Process failed to run with: {e}.")
+            raise ValueError(f"[RegistrationStep] Process {self.step_json} failed to run with: {e}.") from e
 
         return self._patient_parameters
 
@@ -196,7 +196,7 @@ class RegistrationStep(AbstractPipelineStep):
                         logging.warning(f"Unable to perform masked registration, no eligible structure mask for {self.moving_volume_uid}.")
                 return fixed_masked_filepath, moving_masked_filepath, moving_struct_mask_filepath
         except Exception as e:
-            raise ValueError(f"Preprocessing step failed to proceed with: {e}.")
+            raise ValueError(f"Preprocessing step failed to proceed with: {e}.") from e
 
     def __registration(self, fixed_filepath, moving_filepath, moving_struct_mask_filepath: str):
         try:
@@ -209,7 +209,7 @@ class RegistrationStep(AbstractPipelineStep):
                                                                registration_method=registration_method,
                                                                moving_struct_mask_filepath=moving_struct_mask_filepath)
             except Exception as e:
-                raise RuntimeError(f"ANTs execution code failed with: {e}")
+                raise RuntimeError(f"ANTs execution code failed with: {e}") from e
 
             non_available_uid = True
             reg_uid = None
@@ -231,4 +231,4 @@ class RegistrationStep(AbstractPipelineStep):
             self._registration_runner.clear_cache()
         except Exception as e:
             self._registration_runner.clear_cache()
-            raise ValueError(f"[RegistrationStep] Registration failed with: {e}.")
+            raise ValueError(f"[RegistrationStep] Registration failed with: {e}.") from e

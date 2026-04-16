@@ -1,5 +1,5 @@
 import logging
-
+import uuid
 from aenum import Enum, unique
 from typing import Union
 import os
@@ -7,14 +7,23 @@ import SimpleITK as sitk
 import numpy as np
 
 
+def generate_uid(prefix: str, existing: dict, suffix: str = "") -> str:
+    """
+    Generate a unique ID not present in `existing`.
+    """
+    while True:
+        uid = f"{prefix}{uuid.uuid4().hex[:6]}{'_' + suffix if suffix else ''}"
+        if uid not in existing:
+            return uid
+
 def get_type_from_string(enum_type: Enum, string: str) -> Union[str, int]:
-    if type(string) == str:
+    if isinstance(string, str):
         for i in range(len(list(enum_type))):
             #if string == list(EnumType)[i].name:
             if string == str(list(enum_type)[i]):
                 return list(enum_type)[i]
         return -1
-    elif type(string) == enum_type:
+    elif isinstance(string, enum_type):
         return string
     else: #Unmanaged input type
         logging.warning("Unable to find a match for type {} and value {}.".format(enum_type, string))
@@ -22,12 +31,12 @@ def get_type_from_string(enum_type: Enum, string: str) -> Union[str, int]:
 
 
 def get_type_from_enum_name(enum_type: Enum, string: str) -> Union[str, int]:
-    if type(string) == str:
+    if isinstance(string, str):
         for i in range(len(list(enum_type))):
             if string.lower() == list(enum_type)[i].name.lower():
                 return list(enum_type)[i]
         return -1
-    elif type(string) == enum_type:
+    elif isinstance(string, enum_type):
         return string
     else: #Unmanaged input type
         logging.warning("Unable to find a match for type {} and value {}.".format(enum_type, string))

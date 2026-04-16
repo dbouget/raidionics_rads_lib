@@ -4,6 +4,7 @@ import numpy as np
 import nibabel as nib
 import logging
 import configparser
+import tempfile
 import traceback
 from ..Utils.utilities import get_type_from_string, get_type_from_enum_name
 from ..Utils.configuration_parser import ResourcesConfiguration
@@ -53,7 +54,7 @@ class SegmentationStep(AbstractPipelineStep):
         """
         self._patient_parameters = patient_parameters
 
-        self._working_folder = os.path.join(ResourcesConfiguration.getInstance().output_folder, "segmentation_tmp")
+        self._working_folder = tempfile.mkdtemp() #os.path.join(ResourcesConfiguration.getInstance().output_folder, "segmentation_tmp")
         os.makedirs(self._working_folder, exist_ok=True)
         os.makedirs(os.path.join(self._working_folder, 'inputs'), exist_ok=True)
         os.makedirs(os.path.join(self._working_folder, 'outputs'), exist_ok=True)

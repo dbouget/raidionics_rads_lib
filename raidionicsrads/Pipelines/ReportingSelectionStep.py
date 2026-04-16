@@ -40,7 +40,7 @@ class ReportingSelectionStep(AbstractPipelineStep):
         self._patient_parameters = None
         self._scope_reporting = None
         self._timestamps = None
-        self.tumor_type = None
+        self._tumor_type = None
 
     @property
     def scope_reporting(self) -> str:
@@ -201,12 +201,49 @@ class ReportingSelectionStep(AbstractPipelineStep):
                     pip_num_int = pip_num_int + 1
                     pip_num = str(pip_num_int)
                     pip[pip_num] = {}
+                    pip[pip_num]["task"] = 'Registration'
+                    pip[pip_num]["moving"] = {}
+                    pip[pip_num]["moving"]["timestamp"] = self.timestamps[0]
+                    pip[pip_num]["moving"]["sequence"] = "FLAIR"
+                    pip[pip_num]["fixed"] = {}
+                    pip[pip_num]["fixed"]["timestamp"] = -1
+                    pip[pip_num]["fixed"]["sequence"] = "MNI"
+                    pip[pip_num]["inclusion"] = "optional"
+                    pip[pip_num]["description"] = f"Registration from FLAIR (T{self.timestamps[0]}) to MNI"
+
+                    pip_num_int = pip_num_int + 1
+                    pip_num = str(pip_num_int)
+                    pip[pip_num] = {}
+                    pip[pip_num]["task"] = 'Apply registration'
+                    pip[pip_num]["moving"] = {}
+                    pip[pip_num]["moving"]["timestamp"] = self.timestamps[0]
+                    pip[pip_num]["moving"]["sequence"] = "FLAIR"
+                    pip[pip_num]["fixed"] = {}
+                    pip[pip_num]["fixed"]["timestamp"] = -1
+                    pip[pip_num]["fixed"]["sequence"] = "MNI"
+                    pip[pip_num]["direction"] = "forward"
+                    pip[pip_num]["inclusion"] = "optional"
+                    pip[pip_num]["description"] = f"Apply registration from FLAIR (T{self.timestamps[0]}) to MNI"
+
+                    pip_num_int = pip_num_int + 1
+                    pip_num = str(pip_num_int)
+                    pip[pip_num] = {}
                     pip[pip_num]["task"] = "Features computation"
                     pip[pip_num]["timestamp"] = self.timestamps[0]
-                    pip[pip_num]["target"] = ["Tumor", "TumorCE"] # @TODO. Should we open for both if not knowing if preop or postop?
+                    pip[pip_num]["target"] = ["Tumor", "TumorCE", "FLAIRChanges"] # @TODO. Should we open for both if not knowing if preop or postop?
                     pip[pip_num]["space"] = "MNI"
                     pip[pip_num]["tumor_type"] = self.tumor_type
                     pip[pip_num]["description"] = f"Standardized features computation for timestamp {self.timestamps[0]}"
+
+                    # pip_num_int = pip_num_int + 1
+                    # pip_num = str(pip_num_int)
+                    # pip[pip_num] = {}
+                    # pip[pip_num]["task"] = "Features computation"
+                    # pip[pip_num]["timestamp"] = self.timestamps[0]
+                    # pip[pip_num]["target"] = ["Tumor", "TumorCE", "FLAIRChanges"] # @TODO. Should we open for both if not knowing if preop or postop?
+                    # pip[pip_num]["space"] = "Patient"
+                    # pip[pip_num]["tumor_type"] = self.tumor_type
+                    # pip[pip_num]["description"] = f"Standardized features computation for timestamp {self.timestamps[0]}"
                 else:
                     pip_num_int = pip_num_int + 1
                     pip_num = str(pip_num_int)

@@ -6,6 +6,7 @@ import time
 import datetime
 import calendar
 import traceback
+import tempfile
 
 import numpy as np
 import subprocess
@@ -25,8 +26,8 @@ class ANTsRegistration:
     def __init__(self):
         self.ants_reg_dir = ResourcesConfiguration.getInstance().ants_reg_dir
         self.ants_apply_dir = ResourcesConfiguration.getInstance().ants_apply_dir
-        self.registration_folder = os.path.join(ResourcesConfiguration.getInstance().output_folder, 'registration/')
-        os.makedirs(self.registration_folder, exist_ok=True)
+        self.registration_folder = tempfile.mkdtemp() #os.path.join(ResourcesConfiguration.getInstance().output_folder, 'registration/')
+        # os.makedirs(self.registration_folder, exist_ok=True)
         self.reg_transform = {}
         self.transform_names = []
         self.inverse_transform_names = []

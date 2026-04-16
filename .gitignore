@@ -35,6 +35,7 @@ quickpkg/
 *.nii
 *.csv
 *.zip
+*.md
 ANTsX/
 notebooks/
 .ipynb_checkpoints/

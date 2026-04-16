@@ -23,8 +23,7 @@ class ModelSelectionStep(AbstractPipelineStep):
     The identification of the best fitting model for the current patient is performed here and the corresponding
     pipeline json file is generated matching the required inputs.
 
-    @TODO. Should this step be generalized in case the targeted input or timestamp has to be adjusted on-the-fly
-    from the default pipeline.json found on disk?
+    @TODO. Should add an option to propagate model-specific postprocessing!
     """
     _base_model_name = None  # Basename of the folder containing all the sub-models to choose from.
     _patient_parameters = None  # Overall patient parameters, updated on-the-fly

@@ -123,7 +123,8 @@ def compute_neuro_report(input_filename: str, report: NeuroReportingStructure) -
 
 
 def compute_structure_statistics(input_mask: nib.Nifti1Image,
-                                 brain_mask: nib.Nifti1Image = None) -> NeuroStructureStatistics:
+                                 brain_mask: nib.Nifti1Image = None, space: str = "MNI",
+                                 resources_folder: str = None) -> NeuroStructureStatistics:
     """
 
     Return
@@ -161,22 +162,28 @@ def compute_structure_statistics(input_mask: nib.Nifti1Image,
         result.multifocality = NeuroMultifocalityStatistics(status=status, parts=nb, distance=dist)
 
         # Computing localisation features
-        brain_lateralisation_mask_ni = load_nifti_volume(
-            ResourcesConfiguration.getInstance().mni_atlas_lateralisation_mask_filepath)
-        brain_lateralisation_mask = brain_lateralisation_mask_ni.get_fdata()[:]
-        left, right, crossing = compute_lateralisation(volume=refined_image, brain_mask=brain_lateralisation_mask)
+        if space == "MNI":
+            brain_lateralisation_mask_ni = load_nifti_volume(
+                ResourcesConfiguration.getInstance().mni_atlas_lateralisation_mask_filepath)
+            brain_lateralisation_mask = brain_lateralisation_mask_ni.get_fdata()[:]
+            left, right, crossing = compute_lateralisation(volume=refined_image, brain_mask=brain_lateralisation_mask)
+        else:
+            left, right, crossing = None, None, None
         result.location = NeuroLocationStatistics(left=left, right=right, crossing=crossing)
 
         # Compute resectability parameters -- @TODO. Should add a check on tumor type (should be only available for GBM)
-        if left >= 50.0:
-                map_filepath = ResourcesConfiguration.getInstance().mni_resection_maps['Probability']['Left']
-        else:
-            map_filepath = ResourcesConfiguration.getInstance().mni_resection_maps['Probability']['Right']
-        resection_probability_map_ni = nib.load(map_filepath)
-        resection_probability_map = resection_probability_map_ni.get_fdata()[:]
+        if space == "MNI":
+            if left >= 50.0:
+                    map_filepath = ResourcesConfiguration.getInstance().mni_resection_maps['Probability']['Left']
+            else:
+                map_filepath = ResourcesConfiguration.getInstance().mni_resection_maps['Probability']['Right']
+            resection_probability_map_ni = nib.load(map_filepath)
+            resection_probability_map = resection_probability_map_ni.get_fdata()[:]
 
-        residual, resectable, average = compute_resectability_index(volume=refined_image,
-                                                                    resectability_map=resection_probability_map)
+            residual, resectable, average = compute_resectability_index(volume=refined_image,
+                                                                        resectability_map=resection_probability_map)
+        else:
+            residual, resectable, average = None, None, None
         result.resectability = NeuroResectabilityStatistics(resectable=resectable, residual=residual, index=average)
         
         # Computing cortical, subcortical, and infiltration profiles
@@ -198,8 +205,8 @@ def compute_structure_statistics(input_mask: nib.Nifti1Image,
         raise ValueError(f"Structure features computation failed with: {e}")
 
 
-def compute_cortical_structures_location(volume, reference='MNI'):
-    logging.debug("Computing cortical structures location with {}.".format(reference))
+def compute_cortical_structures_location(volume, reference='MNI', resources_folder:str=None):
+    logging.debug(f"Computing cortical structures location with {reference}.")
     regions_data = ResourcesConfiguration.getInstance().cortical_structures['MNI'][reference]
     region_mask_ni = nib.load(regions_data['Mask'])
     region_mask = region_mask_ni.get_fdata()

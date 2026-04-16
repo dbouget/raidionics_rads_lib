@@ -5,7 +5,15 @@ import sys
 import platform
 import datetime
 import time
-from pathlib import PurePath
+from pathlib import PurePath, Path
+
+_PACKAGE_ROOT: Path = Path(__file__).parent.parent  # → raidionicsrads/
+
+def _atlas(*parts: str) -> str:
+    """
+    Return an OS-native absolute path under raidionicsrads/Atlases/.
+    """
+    return str(_PACKAGE_ROOT / "Atlases" / Path(*parts))
 
 
 class ResourcesConfiguration:
@@ -57,6 +65,7 @@ class ResourcesConfiguration:
         self.caller = None
 
         self.gpu_id = "-1"
+        self.num_workers = 1
         self.system_acceleration = "cpu"
         self.input_folder = None
         self.output_folder = None
@@ -83,6 +92,32 @@ class ResourcesConfiguration:
         self.neuro_features_subcortical_structures = []
         self.neuro_features_braingrid = []
 
+    def _cfg(self, section: str, key: str) -> str | None:
+        """
+        Return stripped config value (ignoring inline comments), or None if absent/empty.
+        """
+        if self.config.has_option(section, key):
+            val = self.config[section][key].split('#')[0].strip()
+            if val:
+                return val
+        return None
+
+    def _cfg_dir(self, section: str, key: str) -> bool | None:
+        val = self._cfg(section, key)
+        return val if os.path.isdir(val) else None
+
+    def _cfg_bool(self, section: str, key: str, default: bool = False) -> bool:
+        val = self._cfg(section, key)
+        return val.lower() == 'true' if val is not None else default
+
+    def _cfg_int(self, section: str, key: str, default: int = 0) -> int:
+        val = self._cfg(section, key)
+        return int(val) if val is not None else default
+
+    def _cfg_float(self, section: str, key: str, default: float = 0.0) -> float:
+        val = self._cfg(section, key)
+        return float(val) if val is not None else default
+
     def set_environment(self, config_path=None):
         self.__reset()
         self.config = configparser.ConfigParser()
@@ -103,62 +138,70 @@ class ResourcesConfiguration:
         self.__set_neuro_braingrid_parameters()
 
     def __set_neuro_atlases_parameters(self):
-        self.mni_atlas_filepath_T1 = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
-                                                  'Atlases/mni_icbm152_nlin_sym_09a/mni_icbm152_t1_tal_nlin_sym_09a.nii')
-        self.mni_atlas_filepath_T2 = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
-                                                  'Atlases/mni_icbm152_nlin_sym_09a/mni_icbm152_t2_tal_nlin_sym_09a.nii')
-        self.mni_atlas_mask_filepath = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
-                                                    'Atlases/mni_icbm152_nlin_sym_09a/mni_icbm152_t1_tal_nlin_sym_09a_mask.nii')
-        self.mni_atlas_brain_mask_filepath = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
-                                                          'Atlases/mni_icbm152_nlin_sym_09a/mni_icbm152_t1_tal_nlin_sym_09a_mask.nii')
-        self.mni_atlas_lobes_mask_filepath = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
-                                                          'Atlases/mni_icbm152_nlin_sym_09a/reduced_lobes_brain.nii.gz')
-        self.mni_atlas_lobes_description_filepath = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
-                                                                 'Atlases/mni_icbm152_nlin_sym_09a/lobe_labels_description.csv')
-        self.mni_atlas_lateralisation_mask_filepath = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
-                                                                   'Atlases/mni_icbm152_nlin_sym_09a/extended_lateralisation_mask.nii.gz')
-        if os.name == 'nt':
-            script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'mni_icbm152_nlin_sym_09a', 'mni_icbm152_t1_tal_nlin_sym_09a.nii'))
-            script_path = PurePath()
-            for x in script_path_parts:
-                script_path = script_path.joinpath(x)
-            self.mni_atlas_filepath_T1 = str(script_path)
-
-            script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'mni_icbm152_nlin_sym_09a', 'mni_icbm152_t2_relx_tal_nlin_sym_09a.nii'))
-            script_path = PurePath()
-            for x in script_path_parts:
-                script_path = script_path.joinpath(x)
-            self.mni_atlas_filepath_T2 = str(script_path)
-
-            script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'mni_icbm152_nlin_sym_09a', 'mni_icbm152_t1_tal_nlin_sym_09a_mask.nii'))
-            script_path = PurePath()
-            for x in script_path_parts:
-                script_path = script_path.joinpath(x)
-            self.mni_atlas_mask_filepath = str(script_path)
-
-            script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'mni_icbm152_nlin_sym_09a', 'mni_icbm152_t1_tal_nlin_sym_09a_mask.nii'))
-            script_path = PurePath()
-            for x in script_path_parts:
-                script_path = script_path.joinpath(x)
-            self.mni_atlas_brain_mask_filepath = str(script_path)
-
-            script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'mni_icbm152_nlin_sym_09a', 'reduced_lobes_brain.nii.gz'))
-            script_path = PurePath()
-            for x in script_path_parts:
-                script_path = script_path.joinpath(x)
-            self.mni_atlas_lobes_mask_filepath = str(script_path)
-
-            script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'mni_icbm152_nlin_sym_09a', 'lobe_labels_description.csv'))
-            script_path = PurePath()
-            for x in script_path_parts:
-                script_path = script_path.joinpath(x)
-            self.mni_atlas_lobes_description_filepath = str(script_path)
-
-            script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'mni_icbm152_nlin_sym_09a', 'extended_lateralisation_mask.nii.gz'))
-            script_path = PurePath()
-            for x in script_path_parts:
-                script_path = script_path.joinpath(x)
-            self.mni_atlas_lateralisation_mask_filepath = str(script_path)
+        mni = "mni_icbm152_nlin_sym_09a"
+        # self.mni_atlas_filepath_T1 = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
+        #                                           'Atlases/mni_icbm152_nlin_sym_09a/mni_icbm152_t1_tal_nlin_sym_09a.nii')
+        self.mni_atlas_filepath_T1 = _atlas(mni, "mni_icbm152_t1_tal_nlin_sym_09a.nii")
+        # self.mni_atlas_filepath_T2 = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
+        #                                           'Atlases/mni_icbm152_nlin_sym_09a/mni_icbm152_t2_tal_nlin_sym_09a.nii')
+        self.mni_atlas_filepath_T1 = _atlas(mni, "mni_icbm152_t2_tal_nlin_sym_09a.nii")
+        # self.mni_atlas_mask_filepath = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
+        #                                             'Atlases/mni_icbm152_nlin_sym_09a/mni_icbm152_t1_tal_nlin_sym_09a_mask.nii')
+        self.mni_atlas_filepath_T1 = _atlas(mni, "mni_icbm152_t1_tal_nlin_sym_09a_mask.nii")
+        # self.mni_atlas_brain_mask_filepath = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
+        #                                                   'Atlases/mni_icbm152_nlin_sym_09a/mni_icbm152_t1_tal_nlin_sym_09a_mask.nii')
+        self.mni_atlas_brain_mask_filepath = _atlas(mni, "mni_icbm152_t1_tal_nlin_sym_09a_mask.nii")
+        # self.mni_atlas_lobes_mask_filepath = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
+        #                                                   'Atlases/mni_icbm152_nlin_sym_09a/reduced_lobes_brain.nii.gz')
+        self.mni_atlas_lobes_mask_filepath = _atlas(mni, "reduced_lobes_brain.nii.gz")
+        # self.mni_atlas_lobes_description_filepath = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
+        #                                                          'Atlases/mni_icbm152_nlin_sym_09a/lobe_labels_description.csv')
+        self.mni_atlas_lobes_description_filepath = _atlas(mni, "lobe_labels_description.csv")
+        # self.mni_atlas_lateralisation_mask_filepath = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
+        #                                                            'Atlases/mni_icbm152_nlin_sym_09a/extended_lateralisation_mask.nii.gz')
+        self.mni_atlas_lateralisation_mask_filepath = _atlas(mni, "extended_lateralisation_mask.nii.gz")
+        # if os.name == 'nt':
+        #     script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'mni_icbm152_nlin_sym_09a', 'mni_icbm152_t1_tal_nlin_sym_09a.nii'))
+        #     script_path = PurePath()
+        #     for x in script_path_parts:
+        #         script_path = script_path.joinpath(x)
+        #     self.mni_atlas_filepath_T1 = str(script_path)
+        #
+        #     script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'mni_icbm152_nlin_sym_09a', 'mni_icbm152_t2_relx_tal_nlin_sym_09a.nii'))
+        #     script_path = PurePath()
+        #     for x in script_path_parts:
+        #         script_path = script_path.joinpath(x)
+        #     self.mni_atlas_filepath_T2 = str(script_path)
+        #
+        #     script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'mni_icbm152_nlin_sym_09a', 'mni_icbm152_t1_tal_nlin_sym_09a_mask.nii'))
+        #     script_path = PurePath()
+        #     for x in script_path_parts:
+        #         script_path = script_path.joinpath(x)
+        #     self.mni_atlas_mask_filepath = str(script_path)
+        #
+        #     script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'mni_icbm152_nlin_sym_09a', 'mni_icbm152_t1_tal_nlin_sym_09a_mask.nii'))
+        #     script_path = PurePath()
+        #     for x in script_path_parts:
+        #         script_path = script_path.joinpath(x)
+        #     self.mni_atlas_brain_mask_filepath = str(script_path)
+        #
+        #     script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'mni_icbm152_nlin_sym_09a', 'reduced_lobes_brain.nii.gz'))
+        #     script_path = PurePath()
+        #     for x in script_path_parts:
+        #         script_path = script_path.joinpath(x)
+        #     self.mni_atlas_lobes_mask_filepath = str(script_path)
+        #
+        #     script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'mni_icbm152_nlin_sym_09a', 'lobe_labels_description.csv'))
+        #     script_path = PurePath()
+        #     for x in script_path_parts:
+        #         script_path = script_path.joinpath(x)
+        #     self.mni_atlas_lobes_description_filepath = str(script_path)
+        #
+        #     script_path_parts = list(PurePath(os.path.realpath(__file__)).parts[:-2] + ('Atlases', 'mni_icbm152_nlin_sym_09a', 'extended_lateralisation_mask.nii.gz'))
+        #     script_path = PurePath()
+        #     for x in script_path_parts:
+        #         script_path = script_path.joinpath(x)
+        #     self.mni_atlas_lateralisation_mask_filepath = str(script_path)
 
     def __set_neuro_cortical_structures_parameters(self):
         self.cortical_structures = {}
@@ -406,20 +449,23 @@ class ResourcesConfiguration:
     def __parse_default_parameters(self):
         eligible_tasks = ['neuro_diagnosis', 'mediastinum_diagnosis']
 
-        if self.config.has_option('Default', 'task'):
-            if self.config['Default']['task'].split('#')[0].strip() != '':
-                self.diagnosis_task = self.config['Default']['task'].split('#')[0].strip()
-
+        # if self.config.has_option('Default', 'task'):
+        #     if self.config['Default']['task'].split('#')[0].strip() != '':
+        #         self.diagnosis_task = self.config['Default']['task'].split('#')[0].strip()
+        self.diagnosis_task = self._cfg(section='Default', key='task')
         if self.diagnosis_task not in eligible_tasks:
-            raise AttributeError("Requested task {} not eligible. Please choose within: {}".format(self.diagnosis_task,
-                                                                                                   eligible_tasks))
-        if self.config.has_option('Default', 'trace'):
-            if self.config['Default']['trace'].split('#')[0].strip() != '':
-                self.diagnosis_full_trace = True if self.config['Default']['trace'].split('#')[0].strip().lower() == 'true' else False
+            raise AttributeError(f"Requested task {self.diagnosis_task} not eligible. "
+                                 f"Please choose within: {eligible_tasks}")
 
-        if self.config.has_option('Default', 'caller'):
-            if self.config['Default']['caller'].split('#')[0].strip() != '':
-                self.caller = self.config['Default']['caller'].split('#')[0].strip()
+        # if self.config.has_option('Default', 'trace'):
+        #     if self.config['Default']['trace'].split('#')[0].strip() != '':
+        #         self.diagnosis_full_trace = True if self.config['Default']['trace'].split('#')[0].strip().lower() == 'true' else False
+        self.diagnosis_full_trace = self._cfg_bool(section='Default', key='trace')
+
+        # if self.config.has_option('Default', 'caller'):
+        #     if self.config['Default']['caller'].split('#')[0].strip() != '':
+        #         self.caller = self.config['Default']['caller'].split('#')[0].strip()
+        self.caller = self._cfg(section='Default', key='caller')
 
     def __parse_system_parameters(self):
         """
@@ -465,23 +511,29 @@ class ResourcesConfiguration:
         logging.debug(f"ANTs scripts directory: {self.ants_reg_dir}")
         logging.debug(f"ANTs binary directory: {self.ants_apply_dir}")
 
-        if self.config.has_option("System", "gpu_id"):
-            if self.config["System"]["gpu_id"].split("#")[0].strip() != "":
-                self.gpu_id = self.config["System"]["gpu_id"].split("#")[0].strip()
+        # if self.config.has_option("System", "gpu_id"):
+        #     if self.config["System"]["gpu_id"].split("#")[0].strip() != "":
+        #         self.gpu_id = self.config["System"]["gpu_id"].split("#")[0].strip()
+        self.gpu_id = self._cfg(section='System', key='gpu_id')
 
-        if self.config.has_option("System", "acceleration"):
-            if self.config["System"]["acceleration"].split("#")[0].strip() != "":
-                self.system_acceleration = self.config["System"]["acceleration"].split("#")[0].strip()
+        self.num_workers = self._cfg_int(section='System', key='num_workers')
+
+        # if self.config.has_option("System", "acceleration"):
+        #     if self.config["System"]["acceleration"].split("#")[0].strip() != "":
+        #         self.system_acceleration = self.config["System"]["acceleration"].split("#")[0].strip()
+        self.system_acceleration = self._cfg(section='System', key='acceleration')
         if self.system_acceleration not in ["cpu", "torch"]:
             self.system_acceleration = "cpu"
 
-        if self.config.has_option('System', 'output_folder'):
-            if self.config['System']['output_folder'].split('#')[0].strip() != '':
-                self.output_folder = self.config['System']['output_folder'].split('#')[0].strip()
+        # if self.config.has_option('System', 'output_folder'):
+        #     if self.config['System']['output_folder'].split('#')[0].strip() != '':
+        #         self.output_folder = self.config['System']['output_folder'].split('#')[0].strip()
+        self.output_folder = self._cfg(section='System', key='output_folder')
 
-        if self.config.has_option('System', 'input_folder'):
-            if self.config['System']['input_folder'].split('#')[0].strip() != '':
-                self.input_folder = self.config['System']['input_folder'].split('#')[0].strip()
+        # if self.config.has_option('System', 'input_folder'):
+        #     if self.config['System']['input_folder'].split('#')[0].strip() != '':
+        #         self.input_folder = self.config['System']['input_folder'].split('#')[0].strip()
+        self.input_folder = self._cfg(section='System', key='input_folder')
 
         if self.config.has_option('System', 'model_folder'):
             if self.config['System']['model_folder'].split('#')[0].strip() != '':

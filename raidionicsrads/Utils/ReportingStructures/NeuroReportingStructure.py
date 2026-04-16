@@ -765,13 +765,15 @@ class NeuroReportingStructure:
                                          self.statistics[s]["MNI"].location.laterality_midline_crossing])
 
                 # @TODO. Should be only for glioblastoma, but no tumor type classification yet
+                if i == 0:
+                    column_names.extend(['ResectionIndex', 'ExpectedResectableVolume (ml)',
+                                         'ExpectedResidualVolume (ml)'])
                 if "Tumor" in s:
-                    if i == 0:
-                        column_names.extend(['ResectionIndex', 'ExpectedResectableVolume (ml)',
-                                             'ExpectedResidualVolume (ml)'])
                     structure_values.extend([self.statistics[s]["MNI"].resectability.resectability_index,
                                              self.statistics[s]["MNI"].resectability.expected_resectable_tumor_volume,
                                              self.statistics[s]["MNI"].resectability.expected_residual_tumor_volume])
+                else: # Need to have the same values shape for all structures
+                    structure_values.extend([None, None, None])
 
                 for t in self.statistics[s]["MNI"].cortical.keys():
                     for r in self.statistics[s]["MNI"].cortical[t].cortical_structures_overlap.keys():
