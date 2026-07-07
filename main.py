@@ -3,7 +3,9 @@ import os
 import sys
 import logging
 import traceback
-from raidionicsrads.compute import run_rads
+import json
+from raidionicsrads.Utils.configuration_parser import ResourcesConfiguration
+from raidionicsrads.compute import run_rads, preview_pipeline
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
@@ -36,8 +38,16 @@ def main(argv):
         print('usage: main.py -c <config_filepath> (--Verbose <mode>)')
         sys.exit()
 
+    ResourcesConfiguration.getInstance().set_environment(config_path=config_filename)
+
     try:
-        run_rads(config_filename=config_filename)
+        if ResourcesConfiguration.getInstance().sequences_declaration_filename:
+            with open(ResourcesConfiguration.getInstance().sequences_declaration_filename, 'r') as infile:
+                sequences_declaration = json.load(infile)
+            preview_pipeline(config_filename=config_filename, sequences_declaration=sequences_declaration)
+
+        else:
+            run_rads(config_filename=config_filename)
     except Exception as e:
         logging.error('{}'.format(traceback.format_exc()))
 

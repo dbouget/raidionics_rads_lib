@@ -90,3 +90,33 @@ def run_folder_inspection(config_filename: str, logging_filename: str = None) ->
     # @TODO. Should dump it differently, or arrange filenames for re-use in Raidionics, or return the updated
     # patient_parameters if running another real pipeline straight after.
     logging.info('Total elapsed time for executing the pipeline: {} seconds.'.format(time.time() - start))
+
+def preview_pipeline(config_filename: str, sequences_declaration: dict, logging_filename: str = None) -> None:
+    """
+    Builds executed_pipeline.json for a given pipeline.json and a declared set of MR
+    sequences, without running classification or any actual inference.
+    """
+    ResourcesConfiguration.getInstance().set_environment(config_path=config_filename)
+    if logging_filename:
+        logging.basicConfig(filename=logging_filename, filemode='a', format="%(asctime)s ; %(name)s ; %(levelname)s ; %(message)s", datefmt='%d/%m/%Y %H.%M')
+        logging.getLogger().setLevel(logging.DEBUG)
+
+    try:
+        patient_parameters = PatientParameters(id="Patient", declared_sequences=sequences_declaration)
+    except Exception as e:
+        logging.error("""[Backend error] Patient data setup phase of failed with:\n{}""".format(e))
+        logging.debug("Traceback: {}.".format(traceback.format_exc()))
+        return
+
+    logging.info("Starting pipeline preview for file: {}.".format(ResourcesConfiguration.getInstance().pipeline_filename))
+    start = time.time()
+    try:
+        pip = Pipeline(ResourcesConfiguration.getInstance().pipeline_filename)
+        pip.mark_sequence_as_known()
+        pip.setup(patient_parameters=patient_parameters)
+    except Exception as e:
+        logging.error("""[Backend error] Pipeline preview setup phase failed with:\n{}""".format(e))
+        logging.debug("Traceback: {}.".format(traceback.format_exc()))
+        return
+    logging.info('Total elapsed time for building the pipeline preview: {} seconds.'.format(time.time() - start))
+

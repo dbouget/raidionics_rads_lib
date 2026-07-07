@@ -61,6 +61,7 @@ class ResourcesConfiguration:
         self.output_folder = None
         self.model_folder = None
         self.pipeline_filename = None
+        self.sequences_declaration_filename = None
 
         # Parameters matching the main_config parameters from the raidionics_seg backend
         self.predictions_overlapping_ratio = 0.
@@ -489,6 +490,10 @@ class ResourcesConfiguration:
         if self.config.has_option('System', 'pipeline_filename'):
             if self.config['System']['pipeline_filename'].split('#')[0].strip() != '':
                 self.pipeline_filename = self.config['System']['pipeline_filename'].split('#')[0].strip()
+
+        if self.config.has_option('System', 'sequences_declaration_filename'):
+            if self.config['System']['sequences_declaration_filename'].split('#')[0].strip() != '':
+                self.sequences_declaration_filename = self.config['System']['sequences_declaration_filename'].split('#')[0].strip()
 
     def __parse_runtime_parameters(self):
         if self.config.has_option('Runtime', 'overlapping_ratio'):
