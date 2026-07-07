@@ -2,6 +2,8 @@ from .Utils.configuration_parser import ResourcesConfiguration
 import time
 import traceback
 import logging
+import os
+import json
 from .Utils.DataStructures.PatientStructure import PatientParameters
 from .Pipelines.PipelineStructure import Pipeline
 from .Pipelines.ClassificationStep import ClassificationStep
@@ -91,7 +93,7 @@ def run_folder_inspection(config_filename: str, logging_filename: str = None) ->
     # patient_parameters if running another real pipeline straight after.
     logging.info('Total elapsed time for executing the pipeline: {} seconds.'.format(time.time() - start))
 
-def preview_pipeline(config_filename: str, sequences_declaration: dict, logging_filename: str = None) -> None:
+def preview_pipeline(config_filename: str, sequences_declaration: dict, logging_filename: str = None) -> bool:
     """
     Builds executed_pipeline.json for a given pipeline.json and a declared set of MR
     sequences, without running classification or any actual inference.
@@ -101,12 +103,18 @@ def preview_pipeline(config_filename: str, sequences_declaration: dict, logging_
         logging.basicConfig(filename=logging_filename, filemode='a', format="%(asctime)s ; %(name)s ; %(levelname)s ; %(message)s", datefmt='%d/%m/%Y %H.%M')
         logging.getLogger().setLevel(logging.DEBUG)
 
+    executed_pipeline_fn = os.path.join(ResourcesConfiguration.getInstance().output_folder, "executed_pipeline.json")
+    existing_pipeline = None
+    if os.path.exists(executed_pipeline_fn):
+        with open(executed_pipeline_fn, 'r') as infile:
+            existing_pipeline = json.load(infile)
+
     try:
         patient_parameters = PatientParameters(id="Patient", declared_sequences=sequences_declaration)
     except Exception as e:
         logging.error("""[Backend error] Patient data setup phase of failed with:\n{}""".format(e))
         logging.debug("Traceback: {}.".format(traceback.format_exc()))
-        return
+        return False
 
     logging.info("Starting pipeline preview for file: {}.".format(ResourcesConfiguration.getInstance().pipeline_filename))
     start = time.time()
@@ -117,6 +125,12 @@ def preview_pipeline(config_filename: str, sequences_declaration: dict, logging_
     except Exception as e:
         logging.error("""[Backend error] Pipeline preview setup phase failed with:\n{}""".format(e))
         logging.debug("Traceback: {}.".format(traceback.format_exc()))
-        return
+        return False
     logging.info('Total elapsed time for building the pipeline preview: {} seconds.'.format(time.time() - start))
 
+    with open(executed_pipeline_fn, 'r') as infile:
+        new_pipeline = json.load(infile)
+
+    already_computed = existing_pipeline is not None and new_pipeline == existing_pipeline
+    logging.info("Pipeline already fully computed: {}.".format(already_computed))
+    return already_computed
