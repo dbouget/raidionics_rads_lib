@@ -45,6 +45,10 @@ class SurgicalReportingStep(AbstractPipelineStep):
 
     def execute(self):
         try:
+            if self.skip:
+                logging.info(f"Surgical reporting step not executed since marked as skippable.")
+                return self._patient_parameters
+
             if ResourcesConfiguration.getInstance().diagnosis_task == 'neuro_diagnosis':
                 self.__run_neuro_surgical_reporting()
             else:

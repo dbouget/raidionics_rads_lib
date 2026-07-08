@@ -69,6 +69,10 @@ class FeaturesComputationStep(AbstractPipelineStep):
 
         """
         try:
+            if self.skip:
+                logging.info(f"Features computation step not executed since marked as skippable.")
+                return self._patient_parameters
+
             if ResourcesConfiguration.getInstance().diagnosis_task == 'neuro_diagnosis':
                 self.__run_neuro_reporting()
             else:
