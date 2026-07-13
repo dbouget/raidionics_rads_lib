@@ -165,7 +165,7 @@ class PatientParameters:
                             else:
                                 registered_radiological_volumes.append(f)
                     for rr in registered_radiological_volumes:
-                        fixed_volume = self.get_radiological_volume_by_base_filename(base_fn=os.path.basename(rf[:-1]).replace("_space", ""))
+                        fixed_volume = self.get_radiological_volume_by_base_filename(base_fn=os.path.basename(rf).replace("_space", ""))
                         reg_volume = self.get_radiological_volume_by_base_filename(base_fn=rr.split('_reg')[0])
                         reg_volume.include_registered_volume(filepath=os.path.join(rf, rr), registration_uid=None,
                                                              destination_space_uid=fixed_volume.unique_id)
