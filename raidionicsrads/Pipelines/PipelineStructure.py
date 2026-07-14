@@ -106,6 +106,20 @@ class Pipeline:
             else:
                 logging.warning(f"Step dismissed because task could not be matched.")
 
+    @property
+    def pipeline_json(self) -> dict:
+        return self._pipeline_json
+
+    def mark_sequence_as_known(self) -> None:
+        """
+        Marks the Classification step(s) as skippable, to be used when the patient's MR
+        sequences are already known ahead of time (e.g., declared rather than detected),
+        so that setup() does not attempt to run the actual sequence classification model.
+        """
+        for s in list(self._steps.keys()):
+            if self._steps[s].get_task() == str(TaskType.Class):
+                self._steps[s].skip = True
+
     def setup(self, patient_parameters) -> None:
         """
         @TODO. Should not consider all classification tasks the same, the initial exception is only for the sequence
@@ -183,6 +197,7 @@ class Pipeline:
                         self._steps[s].step_json, e))
                     logging.debug("Traceback: {}.".format(traceback.format_exc()))
         self.__parse_pipeline_steps(pipeline=final_pipeline, initial=False)
+        self._pipeline_json = final_pipeline
 
         # Writing on disk the actual/final pipeline (for info and reuse in Raidionics)
         executed_pipeline_fn = os.path.join(ResourcesConfiguration.getInstance().output_folder, "executed_pipeline.json")
