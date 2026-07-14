@@ -23,12 +23,16 @@ class PatientParameters:
     _registrations = {}  # All registration transforms.
     _reportings = {}  # All clinical reports (if applicable).
 
-    def __init__(self, id: str, patient_filepath: str):
+    def __init__(self, id: str, patient_filepath: str = None, declared_sequences: dict = None):
         """
         """
         self.__reset()
         self._unique_id = id
         self._input_filepath = patient_filepath
+
+        if declared_sequences:
+            self.__init_from_declared_sequences(declared_sequences)
+            return
 
         if not patient_filepath or not os.path.exists(patient_filepath):
             # Error case
@@ -73,6 +77,25 @@ class PatientParameters:
     @property
     def reportings(self) -> dict:
         return self._reportings
+
+    def __init_from_declared_sequences(self, sequences_per_timestamp: dict):
+        """
+        Populates the patient from a declared set of MR sequences, without reading or
+        requiring any real image file on disk. Used for pipeline structure preview.
+
+        Parameters
+        ----------
+        sequences_per_timestamp: dict
+            e.g. {"T0": ["T1-CE"], "T1": ["T1-CE", "T1-w", "FLAIR"]}
+        """
+        for timestamp_uid, sequences in sequences_per_timestamp.items():
+            self._timestamps[timestamp_uid] = TimestampParameters(id=timestamp_uid, timestamp_filepath="")
+
+            for sequence in sequences:
+                data_uid = f"{timestamp_uid}_{sequence}"
+                volume = RadiologicalVolume(uid=data_uid, input_filename=f"{sequence}.nii.gz", timestamp_uid=timestamp_uid)
+                volume.set_sequence_type(sequence)
+                self.radiological_volumes[data_uid] = volume
 
     def __init_from_scratch(self):
         """
