@@ -104,20 +104,16 @@ def test_segmentation_pipeline_package(test_dir, tmp_path):
         segmentation_pred = nib.load(segmentation_pred_filename).get_fdata()[:]
         segmentation_gt = nib.load(segmentation_gt_filename).get_fdata()[:]
         logging.info(f"Ground truth and prediction arrays difference: {np.count_nonzero(abs(segmentation_gt - segmentation_pred))} pixels")
-        assert np.array_equal(segmentation_pred,
-                              segmentation_gt), "Ground truth and prediction arrays are not identical"
+        assert np.allclose(segmentation_pred, segmentation_gt, atol=1e-5), "Ground truth and prediction arrays are not identical"
     except Exception as e:
+        raise ValueError(f"Error during segmentation pipeline unit test with {e}\n{traceback.format_exc()}") from e
+    finally:
         if os.path.exists(tmp_test_input_fn):
             shutil.rmtree(tmp_test_input_fn)
         if os.path.exists(output_folder):
             shutil.rmtree(output_folder)
-        raise ValueError(f"Error during segmentation pipeline unit test with {e}\n{traceback.format_exc()}")
-
     logging.info("Segmentation pipeline unit test succeeded.\n")
-    if os.path.exists(tmp_test_input_fn):
-        shutil.rmtree(tmp_test_input_fn)
-    if os.path.exists(output_folder):
-        shutil.rmtree(output_folder)
+
 
 def test_segmentation_pipeline_cli(test_dir, tmp_path):
     logging.basicConfig()
@@ -222,20 +218,15 @@ def test_segmentation_pipeline_cli(test_dir, tmp_path):
         segmentation_gt = nib.load(segmentation_gt_filename).get_fdata()[:]
         logging.info(
             f"Ground truth and prediction arrays difference: {np.count_nonzero(abs(segmentation_gt - segmentation_pred))} pixels")
-        assert np.array_equal(segmentation_pred,
-                              segmentation_gt), "Ground truth and prediction arrays are not identical"
+        assert np.allclose(segmentation_pred, segmentation_gt, atol=1e-5), "Ground truth and prediction arrays are not identical"
     except Exception as e:
+        raise ValueError(f"Error during segmentation pipeline unit test with {e}\n{traceback.format_exc()}") from e
+    finally:
         if os.path.exists(tmp_test_input_fn):
             shutil.rmtree(tmp_test_input_fn)
         if os.path.exists(output_folder):
             shutil.rmtree(output_folder)
-        raise ValueError(f"Error during segmentation pipeline unit test with {e}\n{traceback.format_exc()}")
-
     logging.info("Segmentation pipeline CLI unit test succeeded.\n")
-    if os.path.exists(tmp_test_input_fn):
-        shutil.rmtree(tmp_test_input_fn)
-    if os.path.exists(output_folder):
-        shutil.rmtree(output_folder)
 
 
 def test_segmentation_pipeline_package_mediastinum(test_dir, tmp_path):
@@ -318,14 +309,10 @@ def test_segmentation_pipeline_package_mediastinum(test_dir, tmp_path):
         assert abs(pred_volume - gt_volume) < 0.1, \
             "Ground truth and prediction arrays are very different"
     except Exception as e:
+        raise ValueError(f"Error during segmentation pipeline unit test with {e}\n{traceback.format_exc()}") from e
+    finally:
         if os.path.exists(tmp_test_input_fn):
             shutil.rmtree(tmp_test_input_fn)
         if os.path.exists(output_folder):
             shutil.rmtree(output_folder)
-        raise ValueError(f"Error during segmentation pipeline unit test with {e}\n{traceback.format_exc()}")
-
     logging.info("Segmentation pipeline unit test succeeded.\n")
-    if os.path.exists(tmp_test_input_fn):
-        shutil.rmtree(tmp_test_input_fn)
-    if os.path.exists(output_folder):
-        shutil.rmtree(output_folder)

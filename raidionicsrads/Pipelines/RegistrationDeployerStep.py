@@ -5,6 +5,7 @@ import nibabel as nib
 import logging
 import configparser
 import traceback
+import concurrent.futures
 from tqdm import tqdm
 from ..Utils.configuration_parser import ResourcesConfiguration
 from ..Utils.io import load_nifti_volume
@@ -129,7 +130,7 @@ class RegistrationDeployerStep(AbstractPipelineStep):
                 self.__apply_registration()
                 self.__apply_registration_annotations()
             elif self._moving_volume_uid != 'MNI' and self._direction == 'inverse':
-                self.__apply_registration_atlas_space()
+                self.__apply_registration_atlas_space() if ResourcesConfiguration.getInstance().num_workers == 1 else self.__apply_registration_atlas_space_parallel()
 
             self._registration_runner.clear_output_folder()
             return self._patient_parameters
@@ -250,14 +251,16 @@ class RegistrationDeployerStep(AbstractPipelineStep):
 
             try:
                 for s in ResourcesConfiguration.getInstance().neuro_features_cortical_structures:
-                    fp = self._registration_runner.apply_registration_inverse_transform(
-                        moving=ResourcesConfiguration.getInstance().cortical_structures['MNI'][s]['Mask'],
-                        fixed=fixed_filepath, interpolation='nearestNeighbor', label='Cortical-structures/' + s)
-
-                    new_fp = os.path.join(dump_folder, self.fixed_volume_uid + '_' + s + '_atlas.nii.gz')
-                    shutil.copyfile(fp, new_fp)
-            except:
-                raise ValueError("Applying the registration on the a cortical structures atlas failed.")
+                    self.__warp_cortical_structure(structure_name=s, fixed_filepath=fixed_filepath,
+                                                   dump_folder=dump_folder)
+                    # fp = self._registration_runner.apply_registration_inverse_transform(
+                    #     moving=ResourcesConfiguration.getInstance().cortical_structures['MNI'][s]['Mask'],
+                    #     fixed=fixed_filepath, interpolation='nearestNeighbor', label='Cortical-structures/' + s)
+                    #
+                    # new_fp = os.path.join(dump_folder, self.fixed_volume_uid + '_' + s + '_atlas.nii.gz')
+                    # shutil.copyfile(fp, new_fp)
+            except Exception as e:
+                raise ValueError("Applying the registration on the a cortical structures atlas failed.") from e
 
             bcb_tracts_cutoff = 0.5
             dump_folder = os.path.join(self._patient_parameters.get_radiological_volume(volume_uid=self.moving_volume_uid).output_folder,
@@ -294,8 +297,8 @@ class RegistrationDeployerStep(AbstractPipelineStep):
 
                     new_fp = os.path.join(dump_folder, self.fixed_volume_uid + '_' + s + '_atlas_overall_mask.nii.gz')
                     shutil.copyfile(fp, new_fp)
-            except:
-                raise ValueError("Applying the registration on the a subcortical structures atlas failed.")
+            except Exception as e:
+                raise ValueError("Applying the registration on the a subcortical structures atlas failed.") from e
 
             dump_folder = os.path.join(self._patient_parameters.get_radiological_volume(volume_uid=self.moving_volume_uid).output_folder,
                                        'Braingrid-structures')
@@ -303,16 +306,123 @@ class RegistrationDeployerStep(AbstractPipelineStep):
 
             try:
                 for s in ResourcesConfiguration.getInstance().neuro_features_braingrid:
-                    overall_mask_filename = ResourcesConfiguration.getInstance().braingrid_structures['MNI'][s]['Mask']
-                    fp = self._registration_runner.apply_registration_inverse_transform(
-                        moving=overall_mask_filename,
-                        fixed=fixed_filepath,
-                        interpolation='nearestNeighbor',
-                        label='Braingrid-structures/' + s)
-
-                    new_fp = os.path.join(dump_folder, self.fixed_volume_uid + '_' + s + '_atlas.nii.gz')
-                    shutil.copyfile(fp, new_fp)
-            except:
-                raise ValueError("Applying the registration on the a BrainGrid structures atlas failed.")
+                    self.__warp_braingrid_element(structure_name=s, fixed_filepath=fixed_filepath, dump_folder=dump_folder)
+                    # overall_mask_filename = ResourcesConfiguration.getInstance().braingrid_structures['MNI'][s]['Mask']
+                    # fp = self._registration_runner.apply_registration_inverse_transform(
+                    #     moving=overall_mask_filename,
+                    #     fixed=fixed_filepath,
+                    #     interpolation='nearestNeighbor',
+                    #     label='Braingrid-structures/' + s)
+                    #
+                    # new_fp = os.path.join(dump_folder, self.fixed_volume_uid + '_' + s + '_atlas.nii.gz')
+                    # shutil.copyfile(fp, new_fp)
+            except Exception as e:
+                raise ValueError("Applying the registration on the a BrainGrid structures atlas failed.") from e
         except Exception as e:
-            raise ValueError(f"Applying the registration on the atlas volume failed with: {e}.")
+            raise ValueError(f"Applying the registration on the atlas volume failed with: {e}.") from e
+
+    def __apply_registration_atlas_space_parallel(self):
+        try:
+            fixed_filepath = self._patient_parameters.get_radiological_volume(
+                volume_uid=self.moving_volume_uid).usable_input_filepath
+            inner_workers = max(1, os.cpu_count() // max(1, ResourcesConfiguration.getInstance().num_workers))
+
+            # --- Cortical structures ---
+            dump_folder = os.path.join(
+                self._patient_parameters.get_radiological_volume(volume_uid=self.moving_volume_uid).output_folder,
+                'Cortical-structures')
+            os.makedirs(dump_folder, exist_ok=True)
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=inner_workers) as pool:
+                cortical_futures = {
+                    pool.submit(self.__warp_cortical_structure, s, fixed_filepath, dump_folder): s
+                    for s in ResourcesConfiguration.getInstance().neuro_features_cortical_structures
+                }
+                for future in concurrent.futures.as_completed(cortical_futures):
+                    future.result()  # re-raises with structure name available via cortical_futures[future]
+
+            # --- Subcortical structures ---
+            bcb_tracts_cutoff = 0.5
+            dump_folder = os.path.join(
+                self._patient_parameters.get_radiological_volume(volume_uid=self.moving_volume_uid).output_folder,
+                'Subcortical-structures')
+            os.makedirs(dump_folder, exist_ok=True)
+            cfg = ResourcesConfiguration.getInstance()
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=inner_workers) as pool:
+                subcortical_futures = {}
+                for s in cfg.neuro_features_subcortical_structures:
+                    for elem, raw_fn in cfg.subcortical_structures['MNI'][s]['Singular'].items():
+                        f = pool.submit(self.__warp_subcortical_element, s, elem, raw_fn,
+                                        fixed_filepath, dump_folder, bcb_tracts_cutoff)
+                        subcortical_futures[f] = (s, elem)
+                    # overall mask is independent of the per-element loop
+                    f = pool.submit(self._registration_runner.apply_registration_inverse_transform,
+                                    cfg.subcortical_structures['MNI'][s]['Mask'],
+                                    fixed_filepath, 'nearestNeighbor', 'Subcortical-structures/' + s)
+                    subcortical_futures[f] = (s, 'overall_mask')
+
+                for future in concurrent.futures.as_completed(subcortical_futures):
+                    s, elem = subcortical_futures[future]
+                    try:
+                        future.result()
+                    except Exception as e:
+                        raise ValueError(
+                            f"Warping subcortical structure {s}/{elem} failed: {e}") from e
+
+            # --- BrainGrid structures ---
+            dump_folder = os.path.join(
+                self._patient_parameters.get_radiological_volume(volume_uid=self.moving_volume_uid).output_folder,
+                'Braingrid-structures')
+            os.makedirs(dump_folder, exist_ok=True)
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=inner_workers) as pool:
+                braingrid_futures = {
+                    pool.submit(self.__warp_braingrid_element, s, fixed_filepath, dump_folder): s
+                    for s in ResourcesConfiguration.getInstance().neuro_features_braingrid
+                }
+                for future in concurrent.futures.as_completed(braingrid_futures):
+                    future.result()  # re-raises with structure name available via braingrid_futures[future]
+        except Exception as e:
+            raise ValueError(f"Applying the registration on the atlas volume failed with: {e}.") from e
+
+    def __warp_cortical_structure(self, structure_name: str, fixed_filepath: str,
+                                  dump_folder: str) -> None:
+        fp = self._registration_runner.apply_registration_inverse_transform(
+            moving=ResourcesConfiguration.getInstance().cortical_structures['MNI'][structure_name]['Mask'],
+            fixed=fixed_filepath,
+            interpolation='nearestNeighbor',
+            label='Cortical-structures/' + structure_name)
+        shutil.copyfile(fp,
+                        os.path.join(dump_folder, self.fixed_volume_uid + '_' + structure_name + '_atlas.nii.gz'))
+
+    def __warp_subcortical_element(self, structure_name: str, elem: str, raw_filename: str,
+                                   fixed_filepath: str, dump_folder: str,
+                                   bcb_tracts_cutoff: float) -> None:
+        raw_tract_ni = nib.load(raw_filename)
+        raw_tract = raw_tract_ni.get_fdata()[:]
+        raw_tract = np.where(raw_tract >= bcb_tracts_cutoff, 1, 0).astype('uint8')
+        dump_filename = os.path.join(self._registration_runner.registration_folder,
+                                     os.path.basename(raw_filename))
+        os.makedirs(os.path.dirname(dump_filename), exist_ok=True)
+        nib.save(nib.Nifti1Image(raw_tract, affine=raw_tract_ni.affine), dump_filename)
+
+        fp = self._registration_runner.apply_registration_inverse_transform(
+            moving=dump_filename,
+            fixed=fixed_filepath,
+            interpolation='nearestNeighbor',
+            label='Subcortical-structures/' + os.path.basename(raw_filename).split('.')[0].replace('_mni', ''))
+        shutil.copyfile(fp, os.path.join(dump_folder,
+                                         self.fixed_volume_uid + '_' + structure_name + '_atlas_' + elem + '.nii.gz'))
+
+    def __warp_braingrid_element(self, structure_name: str, fixed_filepath: str,
+                                  dump_folder: str) -> None:
+        overall_mask_filename = ResourcesConfiguration.getInstance().braingrid_structures['MNI'][structure_name]['Mask']
+        fp = self._registration_runner.apply_registration_inverse_transform(
+            moving=overall_mask_filename,
+            fixed=fixed_filepath,
+            interpolation='nearestNeighbor',
+            label='Braingrid-structures/' + structure_name)
+
+        new_fp = os.path.join(dump_folder, self.fixed_volume_uid + '_' + structure_name + '_atlas.nii.gz')
+        shutil.copyfile(fp, new_fp)

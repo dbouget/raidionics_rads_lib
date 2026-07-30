@@ -113,6 +113,7 @@ class ModelSelectionStep(AbstractPipelineStep):
             model_pipeline = json.load(infile)
         # @TODO. Same issue for the brain model that can segment over any MR sequence, have to find a way to adjust the
         # value on-the-fly here (most likely only use-case when coming from Raidionics). Or should Raidionics deal with it?
+        # Should have a -1 in the sequence field, and if so, iterate over each loaded volume and compute the brain segmentation for each
 
         if self.target_timestamp is not None:
             # If the timestamp is left unspecified (i.e., for some generic models (brain, flair changes), it should be
@@ -120,6 +121,9 @@ class ModelSelectionStep(AbstractPipelineStep):
             adjusted_model_pipeline = deepcopy(model_pipeline)
             for st in list(model_pipeline.keys()):
                 if model_pipeline[st]["task"] in ["Segmentation", "Segmentation refinement"]:
+                    # Special use-case for unconditional brain segmentation
+                    if model_pipeline[st]["inputs"]["0"]["timestamp"] == -1 and model_pipeline[st]["inputs"]["0"]["sequence"] == -1:
+                        pass
                     for i in list(model_pipeline[st]["inputs"].keys()):
                         if model_pipeline[st]["inputs"][i]["timestamp"] == -1:
                             adjusted_model_pipeline[st]["inputs"][i]["timestamp"] = self.target_timestamp

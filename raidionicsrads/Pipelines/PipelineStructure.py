@@ -114,30 +114,47 @@ class Pipeline:
         Consecutive RegistrationStep instances are grouped into a single parallel batch, such as independent
         SegmentationStep.
 
-        @TODO. Should add a unique condition in groups, to avoid duplicates!
+        @TODO. Should add a global description for each group, for logging
         """
         groups: list[list[tuple[str, AbstractPipelineStep]]] = []
         reg_batch: list[tuple[str, AbstractPipelineStep]] = []
+        reg_atlas_batch: list[tuple[str, AbstractPipelineStep]] = []
         areg_batch: list[tuple[str, AbstractPipelineStep]] = []
+        areg_atlas_batch: list[tuple[str, AbstractPipelineStep]] = []
         seg_batch: list[tuple[str, AbstractPipelineStep]] = []
+        seg_mul_batch: list[tuple[str, AbstractPipelineStep]] = []
         segref_batch: list[tuple[str, AbstractPipelineStep]] = []
+        segref_mul_batch: list[tuple[str, AbstractPipelineStep]] = []
+        segref_glob_batch: list[tuple[str, AbstractPipelineStep]] = []
+        feat_comp_batch: list[tuple[str, AbstractPipelineStep]] = []
 
         for key in sorted(self._steps, key=int):
             step = self._steps[key]
             if isinstance(step, RegistrationStep):
                 reg_batch.append((key, step))
+                # if step.step_json["fixed"]["timestamp"] != -1:
+                #     reg_batch.append((key, step))
+                # else:
+                #     reg_atlas_batch.append((key, step))
             elif isinstance(step, SegmentationStep):
                 if len(step.step_json["inputs"]) == 1:
                     seg_batch.append((key, step))
                 else:
-                    groups.append((key, step))
+                    seg_mul_batch.append((key, step))
             elif isinstance(step, SegmentationRefinementStep):
                 if step.step_json["operation"] != "global_context" and len(self._steps[str(int(key)-1)].step_json["inputs"]) == 1:
                     segref_batch.append((key, step))
+                elif step.step_json["operation"] != "global_context":
+                    segref_mul_batch.append((key, step))
                 else:
-                    groups.append((key, step))
+                    segref_glob_batch.append((key, step))
             elif isinstance(step, RegistrationDeployerStep):
-                areg_batch.append((key, step))
+                if step.step_json["fixed"]["timestamp"] != -1:
+                    areg_batch.append((key, step))
+                else:
+                    areg_atlas_batch.append((key, step))
+            elif isinstance(step, FeaturesComputationStep):
+                feat_comp_batch.append((key, step))
             else:
                 groups.append((key, step))
 
@@ -147,7 +164,13 @@ class Pipeline:
         final.append(segref_batch)
         final.append(reg_batch)
         final.append(areg_batch)
-        final.append(groups[1:])
+        final.append(seg_mul_batch)
+        final.append(segref_mul_batch)
+        final.append(segref_glob_batch)
+        # final.append(reg_batch)
+        final.append(areg_atlas_batch)
+        final.append(feat_comp_batch)
+        final.extend([[x] for x in groups[1:]])
 
         return final
 
@@ -324,7 +347,12 @@ class Pipeline:
         total = len(self._steps)
         max_workers = ResourcesConfiguration.getInstance().num_workers
 
-        for group in groups:
+        logging.info('LOG: Pipeline - {} step groups.'.format(len(groups)))
+        for i, group in enumerate(groups):
+            start = time.time()
+            logging.info("LOG: Pipeline - {desc} - Begin ({curr}/{tot})".format(desc="",
+                                                                                curr=str(i + 1),
+                                                                                tot=len(groups)))
             if len(group) == 1:
                 key, step = group[0]
                 self._execute_step(key, step, patient_parameters, total)
@@ -357,7 +385,12 @@ class Pipeline:
                                 raise
                             logging.warning("[PipelineStructure] Execution %s failed: %s",
                                             step.step_json, e)
-
+                logging.info(
+                    'LOG: Pipeline - {desc} - Runtime: {time} seconds.'.format(desc="",
+                                                                               time=time.time() - start))
+                logging.info("LOG: Pipeline - {desc} - End ({curr}/{tot})".format(desc="",
+                                                                                  curr=str(i + 1),
+                                                                                  tot=len(groups)))
         return patient_parameters
 
     def cleanup(self):

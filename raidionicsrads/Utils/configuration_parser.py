@@ -7,6 +7,8 @@ import datetime
 import time
 from pathlib import PurePath, Path
 
+from pygments.styles import default
+
 _PACKAGE_ROOT: Path = Path(__file__).parent.parent  # → raidionicsrads/
 
 def _atlas(*parts: str) -> str:
@@ -75,8 +77,8 @@ class ResourcesConfiguration:
         # Parameters matching the main_config parameters from the raidionics_seg backend
         self.predictions_overlapping_ratio = 0.
         self.predictions_batch_size = 1
-        self.predictions_reconstruction_method = None
-        self.predictions_reconstruction_order = None
+        self.predictions_reconstruction_method = "thresholding"
+        self.predictions_reconstruction_order = "resample_first"
         self.predictions_use_stripped_data = False
         self.predictions_use_registered_data = False
         self.predictions_folds_ensembling = False
@@ -102,9 +104,13 @@ class ResourcesConfiguration:
                 return val
         return None
 
-    def _cfg_dir(self, section: str, key: str) -> bool | None:
+    def _cfg_dir(self, section: str, key: str) -> str | None:
         val = self._cfg(section, key)
         return val if os.path.isdir(val) else None
+
+    def _cfg_file(self, section: str, key: str) -> str | None:
+        val = self._cfg(section, key)
+        return val if os.path.exists(val) else None
 
     def _cfg_bool(self, section: str, key: str, default: bool = False) -> bool:
         val = self._cfg(section, key)
@@ -516,7 +522,11 @@ class ResourcesConfiguration:
         #         self.gpu_id = self.config["System"]["gpu_id"].split("#")[0].strip()
         self.gpu_id = self._cfg(section='System', key='gpu_id')
 
-        self.num_workers = self._cfg_int(section='System', key='num_workers')
+        self.num_workers = max(1, self._cfg_int(section='System', key='num_workers', default=1))
+        if self.num_workers > os.cpu_count():
+            logging.warning(f"Provided [System][num_workers] value of {self.num_workers} is higher than "
+                            f"the machine amount of CPU at {os.cpu_count()}.")
+            self.num_workers = min(1, os.cpu_count() - 4)
 
         # if self.config.has_option("System", "acceleration"):
         #     if self.config["System"]["acceleration"].split("#")[0].strip() != "":
@@ -535,47 +545,64 @@ class ResourcesConfiguration:
         #         self.input_folder = self.config['System']['input_folder'].split('#')[0].strip()
         self.input_folder = self._cfg(section='System', key='input_folder')
 
-        if self.config.has_option('System', 'model_folder'):
-            if self.config['System']['model_folder'].split('#')[0].strip() != '':
-                self.model_folder = self.config['System']['model_folder'].split('#')[0].strip()
+        # if self.config.has_option('System', 'model_folder'):
+        #     if self.config['System']['model_folder'].split('#')[0].strip() != '':
+        #         self.model_folder = self.config['System']['model_folder'].split('#')[0].strip()
+        self.model_folder = self._cfg_dir(section='System', key='model_folder')
 
-        if self.config.has_option('System', 'pipeline_filename'):
-            if self.config['System']['pipeline_filename'].split('#')[0].strip() != '':
-                self.pipeline_filename = self.config['System']['pipeline_filename'].split('#')[0].strip()
+        # if self.config.has_option('System', 'pipeline_filename'):
+        #     if self.config['System']['pipeline_filename'].split('#')[0].strip() != '':
+        #         self.pipeline_filename = self.config['System']['pipeline_filename'].split('#')[0].strip()
+        self.pipeline_filename = self._cfg_file(section='System', key='pipeline_filename')
 
     def __parse_runtime_parameters(self):
-        if self.config.has_option('Runtime', 'overlapping_ratio'):
-            if self.config['Runtime']['overlapping_ratio'].split('#')[0].strip() != '':
-                self.predictions_overlapping_ratio = float(self.config['Runtime']['overlapping_ratio'].split('#')[0].strip())
+        # if self.config.has_option('Runtime', 'overlapping_ratio'):
+        #     if self.config['Runtime']['overlapping_ratio'].split('#')[0].strip() != '':
+        #         self.predictions_overlapping_ratio = float(self.config['Runtime']['overlapping_ratio'].split('#')[0].strip())
+        self.predictions_overlapping_ratio = self._cfg_float(section='Runtime', key='predictions_overlapping_ratio', default=0.)
         if self.predictions_overlapping_ratio < 0.:
             self.predictions_overlapping_ratio = 0.
 
-        if self.config.has_option('Runtime', 'batch_size'):
-            if self.config['Runtime']['batch_size'].split('#')[0].strip() != '':
-                self.predictions_batch_size = int(self.config['Runtime']['batch_size'].split('#')[0].strip())
+        # if self.config.has_option('Runtime', 'batch_size'):
+        #     if self.config['Runtime']['batch_size'].split('#')[0].strip() != '':
+        #         self.predictions_batch_size = int(self.config['Runtime']['batch_size'].split('#')[0].strip())
+        self.predictions_batch_size = self._cfg_int(section='Runtime', key='batch_size', default=1)
         if self.predictions_batch_size != 1 and self.predictions_batch_size % 2 != 0:
             self.predictions_batch_size = self.predictions_batch_size + 1
 
-        if self.config.has_option('Runtime', 'reconstruction_method'):
-            if self.config['Runtime']['reconstruction_method'].split('#')[0].strip() != '':
-                self.predictions_reconstruction_method = self.config['Runtime']['reconstruction_method'].split('#')[0].strip()
+        # if self.config.has_option('Runtime', 'reconstruction_method'):
+        #     if self.config['Runtime']['reconstruction_method'].split('#')[0].strip() != '':
+        #         self.predictions_reconstruction_method = self.config['Runtime']['reconstruction_method'].split('#')[0].strip()
+        self.predictions_reconstruction_method = self._cfg(section='Runtime', key='reconstruction_method')
+        if self.predictions_reconstruction_method not in ["thresholding", "probabilities", "argmax"]:
+            logging.warning(f"Setting [Runtime][reconstruction_method] to thresholding as default, "
+                            f"{self.predictions_reconstruction_method} is not compatible")
+            self.predictions_reconstruction_method = "thresholding"
 
-        if self.config.has_option('Runtime', 'reconstruction_order'):
-            if self.config['Runtime']['reconstruction_order'].split('#')[0].strip() != '':
-                self.predictions_reconstruction_order = self.config['Runtime']['reconstruction_order'].split('#')[0].strip()
+        # if self.config.has_option('Runtime', 'reconstruction_order'):
+        #     if self.config['Runtime']['reconstruction_order'].split('#')[0].strip() != '':
+        #         self.predictions_reconstruction_order = self.config['Runtime']['reconstruction_order'].split('#')[0].strip()
+        self.predictions_reconstruction_order = self._cfg(section='Runtime', key='reconstruction_order')
+        if self.predictions_reconstruction_order not in ["resample_first", "resample_second"]:
+            logging.warning(f"Setting [Runtime][reconstruction_order] to resample_first as default, "
+                            f"{self.predictions_reconstruction_order} is not compatible")
+            self.predictions_reconstruction_order = "resample_first"
 
-        if self.config.has_option('Runtime', 'use_stripped_data'):
-            if self.config['Runtime']['use_stripped_data'].split('#')[0].strip() != '':
-                self.predictions_use_stripped_data = True if self.config['Runtime']['use_stripped_data'].split('#')[0].strip().lower() == 'true' else False
+        # if self.config.has_option('Runtime', 'use_stripped_data'):
+        #     if self.config['Runtime']['use_stripped_data'].split('#')[0].strip() != '':
+        #         self.predictions_use_stripped_data = True if self.config['Runtime']['use_stripped_data'].split('#')[0].strip().lower() == 'true' else False
+        self.predictions_use_stripped_data = self._cfg_bool(section='Runtime', key='use_stripped_data', default=False)
 
-        if self.config.has_option('Runtime', 'use_registered_data'):
-            if self.config['Runtime']['use_registered_data'].split('#')[0].strip() != '':
-                self.predictions_use_registered_data = True if self.config['Runtime']['use_registered_data'].split('#')[0].strip().lower() == 'true' else False
+        # if self.config.has_option('Runtime', 'use_registered_data'):
+        #     if self.config['Runtime']['use_registered_data'].split('#')[0].strip() != '':
+        #         self.predictions_use_registered_data = True if self.config['Runtime']['use_registered_data'].split('#')[0].strip().lower() == 'true' else False
+        self.predictions_use_registered_data = self._cfg_bool(section='Runtime', key='use_registered_data', default=False)
 
-        if self.config.has_option('Runtime', 'folds_ensembling'):
-            if self.config['Runtime']['folds_ensembling'].split('#')[0].strip() != '':
-                self.predictions_folds_ensembling = True if self.config['Runtime']['folds_ensembling'].split('#')[0].lower().strip()\
-                                                       == 'true' else False
+        # if self.config.has_option('Runtime', 'folds_ensembling'):
+        #     if self.config['Runtime']['folds_ensembling'].split('#')[0].strip() != '':
+        #         self.predictions_folds_ensembling = True if self.config['Runtime']['folds_ensembling'].split('#')[0].lower().strip()\
+        #                                                == 'true' else False
+        self.predictions_folds_ensembling = self._cfg_bool(section='Runtime', key='folds_ensembling', default=False)
 
         if self.config.has_option('Runtime', 'ensembling_strategy'):
             if self.config['Runtime']['ensembling_strategy'].split('#')[0].strip() != '':
