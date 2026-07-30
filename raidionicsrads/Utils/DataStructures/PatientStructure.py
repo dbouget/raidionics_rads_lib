@@ -91,18 +91,31 @@ class PatientParameters:
         for timestamp_uid, sequences in sequences_per_timestamp.items():
             self._timestamps[timestamp_uid] = TimestampParameters(id=timestamp_uid, timestamp_filepath="")
 
-            for sequence in sequences:
+            for sequence in sequences.keys():
                 data_uid = f"{timestamp_uid}_{sequence}"
                 volume = RadiologicalVolume(uid=data_uid, input_filename=f"{sequence}.nii.gz", timestamp_uid=timestamp_uid)
                 volume.set_sequence_type(sequence)
                 self.radiological_volumes[data_uid] = volume
+
+                labels = sequences[sequence]
+                for l in labels:
+                    anno_uid = f"{timestamp_uid}_{sequence}_annotation_{l}"
+                    anno = Annotation(uid=data_uid,
+                                                                        input_filename=f"{anno_uid}.nii.gz",
+                                                                        output_folder=self._radiological_volumes[data_uid].output_folder,
+                                                                        radiological_volume_uid=data_uid,
+                                                                        annotation_class=l)
+                    self.annotation_volumes[anno_uid] = anno
 
     def __init_from_scratch(self):
         """
         Iterating through the patient folder to identify the radiological volumes for each timestamp.
 
         In case of stripped inputs (i.e., skull-stripped or lung-stripped), the corresponding mask should be created
-        for each input
+        for each input.
+
+        @TODO. Have to make sure co-registered inputs can be cleanly provided (e.g., from another backend like the dbutils),
+        or should that be handled differently?
         """
         try:
             timestamp_folders = []

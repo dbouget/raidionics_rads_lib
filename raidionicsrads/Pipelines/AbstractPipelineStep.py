@@ -7,6 +7,7 @@ class AbstractPipelineStep(ABC):
     _step_description = None
     _skip = False
     _inclusion = "required"
+    _dry_run = False
 
     def __init__(self, step_json: dict) -> None:
         self.__reset()
@@ -22,6 +23,7 @@ class AbstractPipelineStep(ABC):
         self._step_json = {}
         self._step_description = None
         self._skip = False
+        self._dry_run = False
 
     @property
     def step_json(self) -> dict:
@@ -51,6 +53,14 @@ class AbstractPipelineStep(ABC):
     def inclusion(self, value: str) -> None:
         if value in ["required", "optional"]:
             self._inclusion = value
+
+    @property
+    def dry_run(self) -> bool:
+        return self._dry_run
+
+    @dry_run.setter
+    def dry_run(self, state: bool) -> None:
+        self._dry_run = state
 
     @abstractmethod
     def setup(self, patient_parameters):

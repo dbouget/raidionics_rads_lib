@@ -119,6 +119,8 @@ class Pipeline:
         for s in list(self._steps.keys()):
             if self._steps[s].get_task() == str(TaskType.Class):
                 self._steps[s].skip = True
+        for s in list(self._steps.keys()):
+            self._steps[s].dry_run = True
 
     def setup(self, patient_parameters) -> None:
         """
