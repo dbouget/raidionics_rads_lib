@@ -1,7 +1,7 @@
 import os
 import shutil
 from copy import deepcopy
-
+import tempfile
 import numpy as np
 import nibabel as nib
 import logging
@@ -68,7 +68,7 @@ class ModelSelectionStep(AbstractPipelineStep):
         """
         self._patient_parameters = patient_parameters
 
-        self._working_folder = os.path.join(ResourcesConfiguration.getInstance().output_folder, "modelselection_tmp")
+        self._working_folder = tempfile.mkdtemp()
         os.makedirs(self._working_folder, exist_ok=True)
         try:
             base_model_path = os.path.join(ResourcesConfiguration.getInstance().model_folder, self._base_model_name)

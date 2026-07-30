@@ -71,7 +71,7 @@ class Annotation:
     # @TODO. Should we save also if the annotation is manual or automatic?
 
     def __init__(self, uid: str, input_filename: str, output_folder: str, radiological_volume_uid: str,
-                 annotation_class: str) -> None:
+                 annotation_class: str, dry_run: bool = False) -> None:
         self.__reset()
         self._unique_id = uid
         self._raw_input_filepath = input_filename
@@ -80,7 +80,8 @@ class Annotation:
         self._annotation_type = get_type_from_enum_name(AnnotationClassType, annotation_class)
         if self._annotation_type == -1:
             raise ValueError(f"Annotation type {annotation_class} not recognized.")
-        self.__init_from_scratch()
+        if not dry_run:
+            self.__init_from_scratch()
 
     def __reset(self):
         """

@@ -49,10 +49,12 @@ class Pipeline:
     _input_filepath = ""  # Full filepath to the current pipeline, stored in a json file
     _pipeline_json = {}  # Loaded pipeline from the aforementioned json file, stored as a dictionary
     _steps = {}  # Internal pipeline steps, inherited from AbstractPipelineStep, matching the steps inside the json dict.
+    _dry_run = False
 
-    def __init__(self, input_filename: str) -> None:
+    def __init__(self, input_filename: str, dry_run: bool = False) -> None:
         self.__reset()
         self._input_filepath = input_filename
+        self._dry_run = dry_run
         self.__init_from_scratch()
 
     def __reset(self):
@@ -63,6 +65,7 @@ class Pipeline:
         self._input_filepath = ""
         self._pipeline_json = {}
         self._steps = {}
+        self._dry_run = False
 
     def __init_from_scratch(self):
         """
@@ -202,9 +205,10 @@ class Pipeline:
         self._pipeline_json = final_pipeline
 
         # Writing on disk the actual/final pipeline (for info and reuse in Raidionics)
-        executed_pipeline_fn = os.path.join(ResourcesConfiguration.getInstance().output_folder, "executed_pipeline.json")
-        with open(executed_pipeline_fn, 'w', newline='\n') as outfile:
-            json.dump(final_pipeline, outfile, indent=4)
+        if not self._dry_run:
+            executed_pipeline_fn = os.path.join(ResourcesConfiguration.getInstance().output_folder, "executed_pipeline.json")
+            with open(executed_pipeline_fn, 'w', newline='\n') as outfile:
+                json.dump(final_pipeline, outfile, indent=4)
         return patient_parameters
 
     def execute(self, patient_parameters):

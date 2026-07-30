@@ -126,7 +126,7 @@ def preview_pipeline(config_filename: str, sequences_declaration: dict, logging_
     logging.info("Starting pipeline preview for file: {}.".format(ResourcesConfiguration.getInstance().pipeline_filename))
     start = time.time()
     try:
-        pip = Pipeline(ResourcesConfiguration.getInstance().pipeline_filename)
+        pip = Pipeline(ResourcesConfiguration.getInstance().pipeline_filename, dry_run=True)
         pip.mark_sequence_as_known()
         pip.setup(patient_parameters=patient_parameters)
     except Exception as e:

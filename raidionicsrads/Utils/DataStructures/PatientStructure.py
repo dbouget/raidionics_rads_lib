@@ -93,7 +93,8 @@ class PatientParameters:
 
             for sequence in sequences.keys():
                 data_uid = f"{timestamp_uid}_{sequence}"
-                volume = RadiologicalVolume(uid=data_uid, input_filename=f"{sequence}.nii.gz", timestamp_uid=timestamp_uid)
+                volume = RadiologicalVolume(uid=data_uid, input_filename=f"{sequence}.nii.gz", timestamp_uid=timestamp_uid,
+                                            dry_run=True)
                 volume.set_sequence_type(sequence)
                 self.radiological_volumes[data_uid] = volume
 
@@ -104,7 +105,7 @@ class PatientParameters:
                                                                         input_filename=f"{anno_uid}.nii.gz",
                                                                         output_folder=self._radiological_volumes[data_uid].output_folder,
                                                                         radiological_volume_uid=data_uid,
-                                                                        annotation_class=l)
+                                                                        annotation_class=l, dry_run=True)
                     self.annotation_volumes[anno_uid] = anno
 
     def __init_from_scratch(self):
