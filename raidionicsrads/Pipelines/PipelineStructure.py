@@ -52,12 +52,12 @@ class Pipeline:
     _dry_run = False
 
     def __init__(self, input_filename: str, dry_run: bool = False) -> None:
-        self.__reset()
+        self._reset()
         self._input_filepath = input_filename
         self._dry_run = dry_run
         self.__init_from_scratch()
 
-    def __reset(self):
+    def _reset(self):
         """
         All objects share class or static variables.
         An instance or non-static variables are different for different objects (every object has a copy).

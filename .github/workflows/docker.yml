@@ -9,12 +9,12 @@ jobs:
   setup-test-data:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
-          python-version: "3.10"
+          python-version: "3.12"
 
       - name: Download test resources
         working-directory: tests
@@ -23,7 +23,7 @@ jobs:
             python -c "from download_resources import download_resources; download_resources('../test_data')"
 
       - name: Upload test resources
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-resources
           path: ./test_data
@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Free disk space
         run: |
@@ -60,13 +60,13 @@ jobs:
           echo "tag_gpu=v${PACKAGE_VERSION}-py${PYTHON_VERSION}-cuda${CUDA_VERSION}" >> $GITHUB_OUTPUT
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
 
       - name: Build Docker image cpu
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
@@ -74,7 +74,7 @@ jobs:
           tags: dbouget/raidionics-rads:${{ steps.vars.outputs.tag }}
 
       - name: Build Docker image gpu
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile_gpu
@@ -82,7 +82,7 @@ jobs:
           tags: dbouget/raidionics-rads:${{ steps.vars.outputs.tag_gpu }}
 
       - name: Download test resources
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: test-resources
           path: ./tests/unit_tests_results_dir
@@ -101,7 +101,7 @@ jobs:
           python -u -m pytest -s -vvv tests/local_docker_tests --log-cli-level=DEBUG
 
       - name: Push Docker image cpu
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
@@ -110,7 +110,7 @@ jobs:
           load: true
 
       - name: Push Docker image gpu
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile_gpu

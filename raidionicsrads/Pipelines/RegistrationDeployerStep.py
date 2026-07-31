@@ -27,12 +27,13 @@ class RegistrationDeployerStep(AbstractPipelineStep):
     _direction = None
 
     def __init__(self, step_json: dict):
+        self._reset()
         super(RegistrationDeployerStep, self).__init__(step_json=step_json)
-        self.__reset()
         self._registration_runner = ANTsRegistration()
         self._direction = self._step_json["direction"]
 
-    def __reset(self):
+    def _reset(self):
+        super()._reset()
         self._patient_parameters = None
         self._moving_volume_uid = None
         self._fixed_volume_uid = None

@@ -29,14 +29,15 @@ class ReportingSelectionStep(AbstractPipelineStep):
     _tumor_type = None  # Type of tumor generally, i.e., contrast-enhancing or non contrast-enhancing
 
     def __init__(self, step_json: dict):
+        self._reset()
         super(ReportingSelectionStep, self).__init__(step_json=step_json)
-        self.__reset()
         step_keys = list(self._step_json.keys())
         self._scope_reporting = self._step_json["scope"] if "scope" in step_keys else None
         self._timestamps = self._step_json["timestamps"] if "timestamps" in step_keys else []
         self._tumor_type = self._step_json["tumor_type"] if "tumor_type" in step_keys else None
 
-    def __reset(self):
+    def _reset(self):
+        super()._reset()
         self._patient_parameters = None
         self._scope_reporting = None
         self._timestamps = None

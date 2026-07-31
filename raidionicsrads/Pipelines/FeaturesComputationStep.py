@@ -23,8 +23,8 @@ class FeaturesComputationStep(AbstractPipelineStep):
     _targets = None
 
     def __init__(self, step_json: dict) -> None:
+        self._reset()
         super(FeaturesComputationStep, self).__init__(step_json=step_json)
-        self.__reset()
         self._report_space = self._step_json["space"]
         self._targets = self._step_json["target"]
 
@@ -44,11 +44,12 @@ class FeaturesComputationStep(AbstractPipelineStep):
     def targets(self, targets: str) -> None:
         self._targets = targets
 
-    def __reset(self):
+    def _reset(self):
         """
         All objects share class or static variables.
         An instance or non-static variables are different for different objects (every object has a copy).
         """
+        super()._reset()
         self._patient_parameters = None
         self._radiological_volume_uid = None
         self._report_space = None

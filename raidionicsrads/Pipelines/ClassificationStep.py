@@ -23,11 +23,12 @@ class ClassificationStep(AbstractPipelineStep):
     _input_volume_filepath = None
 
     def __init__(self, step_json: dict):
+        self._reset()
         super(ClassificationStep, self).__init__(step_json=step_json)
-        self.__reset()
         self._model_name = self._step_json["model"]
 
-    def __reset(self):
+    def _reset(self):
+        super()._reset()
         self._model_name = None
         self._patient_parameters = None
         self._working_folder = None

@@ -22,9 +22,6 @@ class ModelSelectionStep(AbstractPipelineStep):
     For each model, a subset of models has been trained based on the provided inputs.
     The identification of the best fitting model for the current patient is performed here and the corresponding
     pipeline json file is generated matching the required inputs.
-
-    @TODO. Should this step be generalized in case the targeted input or timestamp has to be adjusted on-the-fly
-    from the default pipeline.json found on disk?
     """
     _base_model_name = None  # Basename of the folder containing all the sub-models to choose from.
     _patient_parameters = None  # Overall patient parameters, updated on-the-fly
@@ -33,8 +30,8 @@ class ModelSelectionStep(AbstractPipelineStep):
     _predictions_format = None
 
     def __init__(self, step_json: dict):
+        self._reset()
         super(ModelSelectionStep, self).__init__(step_json=step_json)
-        self.__reset()
         step_keys = list(self._step_json.keys())
         self._base_model_name = self._step_json["model"] if "model" in step_keys else None
         self._target_timestamp = int(self._step_json["timestamp"]) if "timestamp" in step_keys else None
@@ -42,7 +39,7 @@ class ModelSelectionStep(AbstractPipelineStep):
         self.sequences_names_intern = ["T1-CE", "T1-w", "FLAIR", "T2", "High-resolution"]
         self.sequences_names_models = ["t1c", "t1w", "t2f", "t2w", "hr"]
 
-    def __reset(self):
+    def _reset(self):
         self._base_model_name = None
         self._patient_parameters = None
         self._working_folder = None
@@ -82,14 +79,13 @@ class ModelSelectionStep(AbstractPipelineStep):
 
     def execute(self) -> dict:
         return self.__execute_minimal()
-        # if self.dry_run:
-        #     return self.__execute_minimal()
-        # else:
-        #     return self.__execute()
 
     def __execute_minimal(self) -> dict:
         """
         Executes the current step.
+
+        @TODO. Same issue for the brain model that can segment over any MR sequence, have to find a way to adjust the
+        value on-the-fly (most likely only use-case when coming from Raidionics). Or should Raidionics deal with it?
 
         Returns
         -------
