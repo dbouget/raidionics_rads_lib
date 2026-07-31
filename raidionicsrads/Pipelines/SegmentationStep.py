@@ -25,8 +25,8 @@ class SegmentationStep(AbstractPipelineStep):
     _working_folder = None  # Temporary directory on disk to store inputs/outputs for the segmentation
 
     def __init__(self, step_json: dict):
+        self._reset()
         super(SegmentationStep, self).__init__(step_json=step_json)
-        self.__reset()
         # @TODO. Extend the model_name if multiple are available based on the number of inputs (postop seg) with e.g. _1c, _2c, etc...
         self._model_name = self._step_json["model"]
         self._segmentation_targets = self._step_json["target"]
@@ -34,7 +34,8 @@ class SegmentationStep(AbstractPipelineStep):
         if "format" in self._step_json:
             self._segmentation_output_type = self._step_json["format"]
 
-    def __reset(self):
+    def _reset(self):
+        super()._reset()
         self._input_volume_uid = None
         self._segmentation_targets = None
         self._segmentation_output_type = None
@@ -91,21 +92,24 @@ class SegmentationStep(AbstractPipelineStep):
                             raise ValueError("No annotation for {}.".format(input_json))
                         anno_uid = anno_uids[0]
                         input_fp = self._patient_parameters.get_annotation(annotation_uid=anno_uid).usable_input_filepath
-                        if not os.path.exists(input_fp):
-                            raise ValueError("No annotation file on disk for {}.".format(input_fp))
-                        new_fp = os.path.join(self._working_folder, 'inputs', 'input' + str(k) + '.nii.gz')
-                        shutil.copyfile(input_fp, new_fp)
+                        if not self.dry_run:
+                            if not os.path.exists(input_fp):
+                                raise ValueError("No annotation file on disk for {}.".format(input_fp))
+                            new_fp = os.path.join(self._working_folder, 'inputs', 'input' + str(k) + '.nii.gz')
+                            shutil.copyfile(input_fp, new_fp)
                     else:
                         if volume_uid != "-1":
                             input_fp = self._patient_parameters.get_radiological_volume(volume_uid=volume_uid).usable_input_filepath
-                            if not os.path.exists(input_fp):
-                                raise ValueError("No radiological volume file on disk for {}.".format(input_fp))
-                            new_fp = os.path.join(self._working_folder, 'inputs', 'input' + str(k) + '.nii.gz')
-                            shutil.copyfile(input_fp, new_fp)
+                            if not self.dry_run:
+                                if not os.path.exists(input_fp):
+                                    raise ValueError("No radiological volume file on disk for {}.".format(input_fp))
+                                new_fp = os.path.join(self._working_folder, 'inputs', 'input' + str(k) + '.nii.gz')
+                                shutil.copyfile(input_fp, new_fp)
                         else:
                             raise ValueError("No radiological volume for {}.".format(input_json))
 
                 # Use-case where the radiological volume should be used in another reference space
+                # @TODO. Should there be a check of existence here also, to set the skip flag?
                 else:
                     volume_uid = self._patient_parameters.get_radiological_volume_uid(timestamp=input_json["timestamp"],
                                                                                       sequence=input_json["sequence"])
@@ -120,34 +124,35 @@ class SegmentationStep(AbstractPipelineStep):
                         pass
 
                     # Use-case where the input is actually an annotation and not a radiological volume
-                    if input_json["labels"]:
-                        annotation_type = get_type_from_enum_name(AnnotationClassType, input_json["labels"])
-                        if annotation_type == -1:
-                            raise ValueError("No AnnotationClassType matching {}.".format(input_json["labels"]))
+                    if not self.dry_run:
+                        if input_json["labels"]:
+                            annotation_type = get_type_from_enum_name(AnnotationClassType, input_json["labels"])
+                            if annotation_type == -1:
+                                raise ValueError("No AnnotationClassType matching {}.".format(input_json["labels"]))
 
-                        anno_uids = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(volume_uid=volume_uid,
-                                                                                                                annotation_class=annotation_type)
-                        if len(anno_uids) == 0:
-                            raise ValueError("No annotation for {}.".format(input_json))
-                        anno_uid = anno_uids[0]
-                        input_fp = self._patient_parameters.get_annotation(annotation_uid=anno_uid).get_registered_volume_info(ref_space_uid)["filepath"]
-                        if not os.path.exists(input_fp):
-                            raise ValueError("No registered annotation file on disk for {}.".format(input_fp))
-                        new_fp = os.path.join(self._working_folder, 'inputs', 'input' + str(k) + '.nii.gz')
-                        shutil.copyfile(input_fp, new_fp)
-                    # Use-case where the provided inputs are already co-registered
-                    elif ResourcesConfiguration.getInstance().predictions_use_registered_data:
-                        input_fp = self._patient_parameters.get_radiological_volume(volume_uid=volume_uid).usable_input_filepath
-                        if not os.path.exists(input_fp):
-                            raise ValueError("No radiological volume file on disk for {}.".format(input_fp))
-                        new_fp = os.path.join(self._working_folder, 'inputs', 'input' + str(k) + '.nii.gz')
-                        shutil.copyfile(input_fp, new_fp)
-                    else:
-                        reg_fp = self._patient_parameters.get_radiological_volume(volume_uid=volume_uid).get_registered_volume_info(ref_space_uid)["filepath"]
-                        if not os.path.exists(reg_fp):
-                            raise ValueError("No registered radiological file on disk for {}.".format(reg_fp))
-                        new_fp = os.path.join(self._working_folder, 'inputs', 'input' + str(k) + '.nii.gz')
-                        shutil.copyfile(reg_fp, new_fp)
+                            anno_uids = self._patient_parameters.get_all_annotations_uids_class_radiological_volume(volume_uid=volume_uid,
+                                                                                                                    annotation_class=annotation_type)
+                            if len(anno_uids) == 0:
+                                raise ValueError("No annotation for {}.".format(input_json))
+                            anno_uid = anno_uids[0]
+                            input_fp = self._patient_parameters.get_annotation(annotation_uid=anno_uid).get_registered_volume_info(ref_space_uid)["filepath"]
+                            if not os.path.exists(input_fp):
+                                raise ValueError("No registered annotation file on disk for {}.".format(input_fp))
+                            new_fp = os.path.join(self._working_folder, 'inputs', 'input' + str(k) + '.nii.gz')
+                            shutil.copyfile(input_fp, new_fp)
+                        # Use-case where the provided inputs are already co-registered
+                        elif ResourcesConfiguration.getInstance().predictions_use_registered_data:
+                            input_fp = self._patient_parameters.get_radiological_volume(volume_uid=volume_uid).usable_input_filepath
+                            if not os.path.exists(input_fp):
+                                raise ValueError("No radiological volume file on disk for {}.".format(input_fp))
+                            new_fp = os.path.join(self._working_folder, 'inputs', 'input' + str(k) + '.nii.gz')
+                            shutil.copyfile(input_fp, new_fp)
+                        else:
+                            reg_fp = self._patient_parameters.get_radiological_volume(volume_uid=volume_uid).get_registered_volume_info(ref_space_uid)["filepath"]
+                            if not os.path.exists(reg_fp):
+                                raise ValueError("No registered radiological file on disk for {}.".format(reg_fp))
+                            new_fp = os.path.join(self._working_folder, 'inputs', 'input' + str(k) + '.nii.gz')
+                            shutil.copyfile(reg_fp, new_fp)
         except Exception as e:
             if os.path.exists(self._working_folder):
                 shutil.rmtree(self._working_folder)

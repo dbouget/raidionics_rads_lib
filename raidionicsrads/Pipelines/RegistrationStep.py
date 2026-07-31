@@ -30,11 +30,12 @@ class RegistrationStep(AbstractPipelineStep):
     _registration_runner = None
 
     def __init__(self, step_json: dict):
+        self._reset()
         super(RegistrationStep, self).__init__(step_json=step_json)
-        self.__reset()
         self._registration_runner = ANTsRegistration()
 
-    def __reset(self):
+    def _reset(self):
+        super()._reset()
         self._patient_parameters = None
         self._moving_volume_uid = None
         self._fixed_volume_uid = None

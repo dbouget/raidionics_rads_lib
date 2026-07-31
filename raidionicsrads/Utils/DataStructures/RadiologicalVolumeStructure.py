@@ -63,12 +63,13 @@ class RadiologicalVolume:
     # the 'registration_uid' of the registration applied. The keys are the destination space uid ('MNI' if atlas).
     # @TODO. Do we have a similar dict for the registered atlas files?
 
-    def __init__(self, uid: str, input_filename: str, timestamp_uid: str) -> None:
+    def __init__(self, uid: str, input_filename: str, timestamp_uid: str, dry_run: bool = False) -> None:
         self.__reset()
         self._unique_id = uid
         self._raw_input_filepath = input_filename
         self._timestamp_id = timestamp_uid
-        self.__init_from_scratch()
+        if not dry_run:
+            self.__init_from_scratch()
 
     def __reset(self):
         """

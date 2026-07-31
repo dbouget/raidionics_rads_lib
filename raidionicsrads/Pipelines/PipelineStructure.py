@@ -49,13 +49,15 @@ class Pipeline:
     _input_filepath = ""  # Full filepath to the current pipeline, stored in a json file
     _pipeline_json = {}  # Loaded pipeline from the aforementioned json file, stored as a dictionary
     _steps = {}  # Internal pipeline steps, inherited from AbstractPipelineStep, matching the steps inside the json dict.
+    _dry_run = False
 
-    def __init__(self, input_filename: str) -> None:
-        self.__reset()
+    def __init__(self, input_filename: str, dry_run: bool = False) -> None:
+        self._reset()
         self._input_filepath = input_filename
+        self._dry_run = dry_run
         self.__init_from_scratch()
 
-    def __reset(self):
+    def _reset(self):
         """
         All objects share class or static variables.
         An instance or non-static variables are different for different objects (every object has a copy).
@@ -63,6 +65,7 @@ class Pipeline:
         self._input_filepath = ""
         self._pipeline_json = {}
         self._steps = {}
+        self._dry_run = False
 
     def __init_from_scratch(self):
         """
@@ -105,6 +108,22 @@ class Pipeline:
                 self._steps[str(i)] = step
             else:
                 logging.warning(f"Step dismissed because task could not be matched.")
+
+    @property
+    def pipeline_json(self) -> dict:
+        return self._pipeline_json
+
+    def mark_sequence_as_known(self) -> None:
+        """
+        Marks the Classification step(s) as skippable, to be used when the patient's MR
+        sequences are already known ahead of time (e.g., declared rather than detected),
+        so that setup() does not attempt to run the actual sequence classification model.
+        """
+        for s in list(self._steps.keys()):
+            if self._steps[s].get_task() == str(TaskType.Class):
+                self._steps[s].skip = True
+        for s in list(self._steps.keys()):
+            self._steps[s].dry_run = True
 
     def setup(self, patient_parameters) -> None:
         """
@@ -183,11 +202,13 @@ class Pipeline:
                         self._steps[s].step_json, e))
                     logging.debug("Traceback: {}.".format(traceback.format_exc()))
         self.__parse_pipeline_steps(pipeline=final_pipeline, initial=False)
+        self._pipeline_json = final_pipeline
 
         # Writing on disk the actual/final pipeline (for info and reuse in Raidionics)
-        executed_pipeline_fn = os.path.join(ResourcesConfiguration.getInstance().output_folder, "executed_pipeline.json")
-        with open(executed_pipeline_fn, 'w', newline='\n') as outfile:
-            json.dump(final_pipeline, outfile, indent=4)
+        if not self._dry_run:
+            executed_pipeline_fn = os.path.join(ResourcesConfiguration.getInstance().output_folder, "executed_pipeline.json")
+            with open(executed_pipeline_fn, 'w', newline='\n') as outfile:
+                json.dump(final_pipeline, outfile, indent=4)
         return patient_parameters
 
     def execute(self, patient_parameters):

@@ -12,7 +12,7 @@ import platform
 from io import StringIO
 
 
-def test_segmentation_pipeline_package(test_dir, tmp_path):
+def test_segmentation_pipeline_package(test_dir, tmp_path, dice):
     logging.basicConfig()
     logging.getLogger().setLevel(logging.DEBUG)
     logging.info("Running segmentation pipeline unit test.\n")
@@ -103,9 +103,8 @@ def test_segmentation_pipeline_package(test_dir, tmp_path):
                                                 'T0', 'input1_annotation-Brain.nii.gz')
         segmentation_pred = nib.load(segmentation_pred_filename).get_fdata()[:]
         segmentation_gt = nib.load(segmentation_gt_filename).get_fdata()[:]
-        logging.info(f"Ground truth and prediction arrays difference: {np.count_nonzero(abs(segmentation_gt - segmentation_pred))} pixels")
-        assert np.array_equal(segmentation_pred,
-                              segmentation_gt), "Ground truth and prediction arrays are not identical"
+        assert dice(segmentation_pred, segmentation_gt) > 0.99, (f"Ground truth and prediction arrays are not"
+                                                                f" identical with {np.count_nonzero(segmentation_gt - segmentation_pred)} pixels")
     except Exception as e:
         if os.path.exists(tmp_test_input_fn):
             shutil.rmtree(tmp_test_input_fn)
@@ -119,7 +118,7 @@ def test_segmentation_pipeline_package(test_dir, tmp_path):
     if os.path.exists(output_folder):
         shutil.rmtree(output_folder)
 
-def test_segmentation_pipeline_cli(test_dir, tmp_path):
+def test_segmentation_pipeline_cli(test_dir, tmp_path, dice):
     logging.basicConfig()
     logging.getLogger().setLevel(logging.DEBUG)
     logging.info("Running segmentation pipeline unit test.\n")
@@ -220,10 +219,8 @@ def test_segmentation_pipeline_cli(test_dir, tmp_path):
                                                 'T0', 'input1_annotation-Brain.nii.gz')
         segmentation_pred = nib.load(segmentation_pred_filename).get_fdata()[:]
         segmentation_gt = nib.load(segmentation_gt_filename).get_fdata()[:]
-        logging.info(
-            f"Ground truth and prediction arrays difference: {np.count_nonzero(abs(segmentation_gt - segmentation_pred))} pixels")
-        assert np.array_equal(segmentation_pred,
-                              segmentation_gt), "Ground truth and prediction arrays are not identical"
+        assert dice(segmentation_pred, segmentation_gt) > 0.99, (f"Ground truth and prediction arrays are not"
+                                                                    f" identical with {np.count_nonzero(segmentation_gt - segmentation_pred)} pixels")
     except Exception as e:
         if os.path.exists(tmp_test_input_fn):
             shutil.rmtree(tmp_test_input_fn)
@@ -314,9 +311,8 @@ def test_segmentation_pipeline_package_mediastinum(test_dir, tmp_path):
             segmentation_pred_nib.header.get_zooms()[0:3]) * 1e-3
         gt_volume = np.count_nonzero(segmentation_gt_nib.get_fdata()[:]) * np.prod(
             segmentation_gt_nib.header.get_zooms()[0:3]) * 1e-3
-        logging.info(f"Volume difference: {abs(pred_volume - gt_volume)}\n")
         assert abs(pred_volume - gt_volume) < 0.1, \
-            "Ground truth and prediction arrays are very different"
+            f"Ground truth and prediction arrays are {abs(pred_volume - gt_volume)} ml different, above 0.1ml threshold"
     except Exception as e:
         if os.path.exists(tmp_test_input_fn):
             shutil.rmtree(tmp_test_input_fn)

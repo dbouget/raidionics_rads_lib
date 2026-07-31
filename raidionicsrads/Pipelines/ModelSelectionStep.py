@@ -1,7 +1,7 @@
 import os
 import shutil
 from copy import deepcopy
-
+import tempfile
 import numpy as np
 import nibabel as nib
 import logging
@@ -22,9 +22,6 @@ class ModelSelectionStep(AbstractPipelineStep):
     For each model, a subset of models has been trained based on the provided inputs.
     The identification of the best fitting model for the current patient is performed here and the corresponding
     pipeline json file is generated matching the required inputs.
-
-    @TODO. Should this step be generalized in case the targeted input or timestamp has to be adjusted on-the-fly
-    from the default pipeline.json found on disk?
     """
     _base_model_name = None  # Basename of the folder containing all the sub-models to choose from.
     _patient_parameters = None  # Overall patient parameters, updated on-the-fly
@@ -33,8 +30,8 @@ class ModelSelectionStep(AbstractPipelineStep):
     _predictions_format = None
 
     def __init__(self, step_json: dict):
+        self._reset()
         super(ModelSelectionStep, self).__init__(step_json=step_json)
-        self.__reset()
         step_keys = list(self._step_json.keys())
         self._base_model_name = self._step_json["model"] if "model" in step_keys else None
         self._target_timestamp = int(self._step_json["timestamp"]) if "timestamp" in step_keys else None
@@ -42,7 +39,7 @@ class ModelSelectionStep(AbstractPipelineStep):
         self.sequences_names_intern = ["T1-CE", "T1-w", "FLAIR", "T2", "High-resolution"]
         self.sequences_names_models = ["t1c", "t1w", "t2f", "t2w", "hr"]
 
-    def __reset(self):
+    def _reset(self):
         self._base_model_name = None
         self._patient_parameters = None
         self._working_folder = None
@@ -68,7 +65,7 @@ class ModelSelectionStep(AbstractPipelineStep):
         """
         self._patient_parameters = patient_parameters
 
-        self._working_folder = os.path.join(ResourcesConfiguration.getInstance().output_folder, "modelselection_tmp")
+        self._working_folder = tempfile.mkdtemp()
         os.makedirs(self._working_folder, exist_ok=True)
         try:
             base_model_path = os.path.join(ResourcesConfiguration.getInstance().model_folder, self._base_model_name)
@@ -80,7 +77,71 @@ class ModelSelectionStep(AbstractPipelineStep):
             self.skip = True
             raise ValueError(f"[ModelSelectionStep] setup failed with: {e}.")
 
-    def execute(self) -> {}:
+    def execute(self) -> dict:
+        return self.__execute_minimal()
+
+    def __execute_minimal(self) -> dict:
+        """
+        Executes the current step.
+
+        @TODO. Same issue for the brain model that can segment over any MR sequence, have to find a way to adjust the
+        value on-the-fly (most likely only use-case when coming from Raidionics). Or should Raidionics deal with it?
+
+        Returns
+        -------
+        dict
+            Dictionary containing all the steps for the selected model, which will be appended to the rest of the
+            existing pipeline.
+        """
+        if self.skip:
+            logging.info("Model selection step skipped, no matching combination of available models and"
+                         " provided inputs was found!")
+            return
+
+        try:
+            base_model_path = os.path.join(ResourcesConfiguration.getInstance().model_folder, self._base_model_name)
+            if ResourcesConfiguration.getInstance().diagnosis_task == 'neuro_diagnosis':
+                model_name = self.__identify_model_from_mri_inputs(base_model_path=base_model_path)
+            else:
+                model_name = self.__identify_model_from_ct_inputs(base_model_path=base_model_path)
+        except Exception as e:
+            if os.path.exists(self._working_folder):
+                shutil.rmtree(self._working_folder)
+            raise ValueError(f"[ModelSelectionStep] failed with: {e}.")
+
+        if model_name is None:
+            raise ValueError(f"[ModelSelectionStep] failed, no model could be selected.")
+        model_pipeline_fn = os.path.join(ResourcesConfiguration.getInstance().model_folder, model_name, "pipeline.json")
+        model_pipeline = None
+        with open(model_pipeline_fn, 'r') as infile:
+            model_pipeline = json.load(infile)
+
+        model_pipeline = self.__identify(model_pipeline)
+        if self.target_timestamp is not None:
+            # If the timestamp is left unspecified (i.e., for some generic models (brain, flair changes), it should be
+            # modified inside the pipeline based on self.timestamp.
+            adjusted_model_pipeline = deepcopy(model_pipeline)
+            for st in list(model_pipeline.keys()):
+                if model_pipeline[st]["task"] in ["Segmentation", "Segmentation refinement"]:
+                    for i in list(model_pipeline[st]["inputs"].keys()):
+                        if model_pipeline[st]["inputs"][i]["timestamp"] == -1:
+                            adjusted_model_pipeline[st]["inputs"][i]["timestamp"] = self.target_timestamp
+                        if model_pipeline[st]["inputs"][i]["space"]["timestamp"] == -1:
+                            adjusted_model_pipeline[st]["inputs"][i]["space"]["timestamp"] = self.target_timestamp
+                    if "format" not in list(model_pipeline[st].keys()):
+                        adjusted_model_pipeline[st]["format"] = self._predictions_format
+                elif model_pipeline[st]["task"] in ["Registration", "Apply registration"]:
+                    adjusted_model_pipeline[st]["moving"]["timestamp"] = self.target_timestamp
+                    adjusted_model_pipeline[st]["fixed"]["timestamp"] = self.target_timestamp
+                adjusted_model_pipeline[st]["inclusion"] = self.inclusion
+            model_pipeline = adjusted_model_pipeline
+
+        if os.path.exists(self._working_folder):
+            shutil.rmtree(self._working_folder)
+
+        return model_pipeline
+
+    def __execute(self) -> dict:
         """
         Executes the current step.
 
@@ -240,3 +301,27 @@ class ModelSelectionStep(AbstractPipelineStep):
         except Exception as e:
             raise ValueError(e)
         return final_model_name
+
+    def __identify(self, model_pipeline):
+        """
+        Handling only segmentation cases to avoid recomputation
+        """
+        for s in list(model_pipeline.keys())[::-1]:
+            step = model_pipeline[s]
+            if step['task'] == "Segmentation":
+                from raidionicsrads.Pipelines.SegmentationStep import SegmentationStep
+                adjusted_step = deepcopy(step)
+                for i in list(step["inputs"].keys()):
+                    if step["inputs"][i]["timestamp"] == -1:
+                        adjusted_step["inputs"][i]["timestamp"] = self.target_timestamp
+                    if step["inputs"][i]["space"]["timestamp"] == -1:
+                        adjusted_step["inputs"][i]["space"]["timestamp"] = self.target_timestamp
+                temp_step = SegmentationStep(adjusted_step)
+                temp_step.dry_run = True
+                temp_step.setup(self._patient_parameters)
+                if not temp_step.skip:
+                    return model_pipeline
+                else:
+                    return {}
+
+        return model_pipeline

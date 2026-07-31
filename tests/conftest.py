@@ -2,6 +2,7 @@ import os
 import shutil
 import pytest
 import logging
+import numpy as np
 from tests.download_resources import download_resources
 
 
@@ -18,3 +19,11 @@ def test_dir():
     logging.info(f"Removing the temporary directory for tests.")
     if os.path.exists(test_dir):
         shutil.rmtree(test_dir)
+
+@pytest.fixture(scope="session")
+def dice() -> float:
+    def _dice(pred: np.ndarray, gt: np.ndarray):
+        intersection = np.logical_and(pred, gt).sum()
+        dice = 2. * intersection / (pred.sum() + gt.sum())
+        return dice
+    return _dice

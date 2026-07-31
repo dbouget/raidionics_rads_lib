@@ -28,12 +28,13 @@ class SegmentationRefinementStep(AbstractPipelineStep):
     _refinement_args = None  # Generic arguments needed for the specified refinement operation
 
     def __init__(self, step_json: dict):
+        self._reset()
         super(SegmentationRefinementStep, self).__init__(step_json=step_json)
-        self.__reset()
         self._refinement_operation = self._step_json["operation"]
         self._refinement_args = self._step_json["args"]
 
-    def __reset(self):
+    def _reset(self):
+        super()._reset()
         self._input_volume_uid = None
         self._input_annotation_uid = None
         self._patient_parameters = None

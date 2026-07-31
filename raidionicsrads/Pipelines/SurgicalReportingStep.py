@@ -18,16 +18,17 @@ class SurgicalReportingStep(AbstractPipelineStep):
     _tumor_type = None
 
     def __init__(self, step_json: dict) -> None:
+        self._reset()
         super(SurgicalReportingStep, self).__init__(step_json=step_json)
-        self.__reset()
         step_keys = list(self._step_json.keys())
         self._tumor_type = self._step_json["tumor_type"] if "tumor_type" in step_keys else None
 
-    def __reset(self):
+    def _reset(self):
         """
         All objects share class or static variables.
         An instance or non-static variables are different for different objects (every object has a copy).
         """
+        super()._reset()
         self._patient_parameters = None
         self._report = None
         self._tumor_type = None
