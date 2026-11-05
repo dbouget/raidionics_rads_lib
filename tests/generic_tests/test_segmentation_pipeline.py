@@ -234,6 +234,104 @@ def test_segmentation_pipeline_cli(test_dir, tmp_path, dice):
     if os.path.exists(output_folder):
         shutil.rmtree(output_folder)
 
+def test_segmentation_pipeline_generic_seq(test_dir, tmp_path, dice):
+    logging.basicConfig()
+    logging.getLogger().setLevel(logging.DEBUG)
+    logging.info("Running segmentation pipeline unit test.\n")
+
+    logging.info("Preparing configuration file.\n")
+    try:
+        output_folder = os.path.join(tmp_path, "results", "output_generic_seq_seg_package")
+        if os.path.exists(output_folder):
+            shutil.rmtree(output_folder)
+        os.makedirs(output_folder)
+
+        test_raw_input_fn = os.path.join(test_dir, "patients", 'patient-UnitTest1')
+        tmp_test_input_fn = os.path.join(tmp_path, "results", "input_generic_seg_seg_package")
+        if os.path.exists(tmp_test_input_fn):
+            shutil.rmtree(tmp_test_input_fn)
+        shutil.copytree(test_raw_input_fn, tmp_test_input_fn)
+
+        using_skull_stripped_inputs = False
+
+        rads_config = configparser.ConfigParser()
+        rads_config.add_section('Default')
+        rads_config.set('Default', 'task', 'neuro_diagnosis')
+        rads_config.set('Default', 'caller', '')
+        rads_config.add_section('System')
+        rads_config.set('System', 'gpu_id', "-1")
+        rads_config.set('System', 'input_folder', os.path.join(tmp_test_input_fn, "inputs"))
+        rads_config.set('System', 'output_folder', output_folder)
+        rads_config.set('System', 'model_folder', os.path.join(test_dir, "models"))
+        rads_config.set('System', 'pipeline_filename', os.path.join(output_folder,
+                                                                    'test_pipeline.json'))
+        rads_config.add_section('Runtime')
+        rads_config.set('Runtime', 'reconstruction_method', 'thresholding')
+        rads_config.set('Runtime', 'reconstruction_order', 'resample_first')
+        rads_config.set('Runtime', 'use_stripped_data', 'True' if using_skull_stripped_inputs else 'False')
+        rads_config_filename = os.path.join(output_folder, 'rads_config.ini')
+        with open(rads_config_filename, 'w') as outfile:
+            rads_config.write(outfile)
+
+        pipeline_json = {}
+        step_index = 1
+        step_str = str(step_index)
+        pipeline_json[step_str] = {}
+        pipeline_json[step_str]["task"] = "Classification"
+        pipeline_json[step_str]["inputs"] = {}  # Empty input means running it on all existing data for the patient
+        pipeline_json[step_str]["target"] = ["MRSequence"]
+        pipeline_json[step_str]["model"] = "MRI_SequenceClassifier"
+        pipeline_json[step_str]["description"] = "Classification of the MRI sequence type for all input scans."
+
+        step_index = step_index + 1
+        step_str = str(step_index)
+        pipeline_json[step_str] = {}
+        pipeline_json[step_str]["task"] = "Model selection"
+        pipeline_json[step_str]["model"] = "MRI_Brain"
+        pipeline_json[step_str]["timestamp"] = 0
+        pipeline_json[step_str]["target_sequence"] = "FLAIR"
+        pipeline_json[step_str]["format"] = "thresholding"
+        pipeline_json[step_str]["description"] = "Brain segmentation in FLAIR (T0)."
+
+        with open(os.path.join(output_folder, 'test_pipeline.json'), 'w', newline='\n') as outfile:
+            json.dump(pipeline_json, outfile, indent=4, sort_keys=True)
+
+        with StringIO() as s:
+            rads_config.write(s)
+            config_string = s.getvalue()
+        logging.debug(f"\n\nExecuted config:\n {config_string}")
+        pip_s = json.dumps(pipeline_json, indent=4)
+        logging.debug(f"\n\nExecuted pipeline:\n {pip_s}")
+
+        logging.info("Running segmentation pipeline unit test.\n")
+        try:
+            from raidionicsrads.compute import run_rads
+            run_rads(rads_config_filename)
+        except Exception as e:
+            raise ValueError(f"Error during the package call with {e}")
+
+        logging.info("Collecting and comparing results.\n")
+        segmentation_pred_filename = os.path.join(output_folder, 'T0',
+                                                  'input0_annotation-Brain_MRI_Brain.nii.gz')
+        assert os.path.exists(segmentation_pred_filename), "No brain segmentation mask was generated.\n"
+        segmentation_gt_filename = os.path.join(tmp_test_input_fn, "verif",
+                                                'T0', 'input0_annotation-Brain.nii.gz')
+        segmentation_pred = nib.load(segmentation_pred_filename).get_fdata()[:]
+        segmentation_gt = nib.load(segmentation_gt_filename).get_fdata()[:]
+        assert dice(segmentation_pred, segmentation_gt) > 0.99, (f"Ground truth and prediction arrays are not"
+                                                                f" identical with {np.count_nonzero(segmentation_gt - segmentation_pred)} pixels")
+    except Exception as e:
+        if os.path.exists(tmp_test_input_fn):
+            shutil.rmtree(tmp_test_input_fn)
+        if os.path.exists(output_folder):
+            shutil.rmtree(output_folder)
+        raise ValueError(f"Error during segmentation pipeline unit test with {e}\n{traceback.format_exc()}")
+
+    logging.info("Segmentation pipeline unit test succeeded.\n")
+    if os.path.exists(tmp_test_input_fn):
+        shutil.rmtree(tmp_test_input_fn)
+    if os.path.exists(output_folder):
+        shutil.rmtree(output_folder)
 
 def test_segmentation_pipeline_package_mediastinum(test_dir, tmp_path):
     logging.basicConfig()

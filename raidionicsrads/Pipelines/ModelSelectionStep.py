@@ -27,6 +27,7 @@ class ModelSelectionStep(AbstractPipelineStep):
     _patient_parameters = None  # Overall patient parameters, updated on-the-fly
     _working_folder = None  # Temporary directory on disk to store inputs/outputs for the segmentation
     _target_timestamp = None # Timestamp for the inputs to run the model on (if on-the-fly adaptation is needed)
+    _target_sequence = None # For models trained on multiple sequences, indicating which to run on
     _predictions_format = None
 
     def __init__(self, step_json: dict):
@@ -36,6 +37,8 @@ class ModelSelectionStep(AbstractPipelineStep):
         self._base_model_name = self._step_json["model"] if "model" in step_keys else None
         self._target_timestamp = int(self._step_json["timestamp"]) if "timestamp" in step_keys else None
         self._predictions_format = self._step_json["format"] if "format" in step_keys else None
+        if self._base_model_name == "MRI_Brain":
+            self._target_sequence = self._step_json["target_sequence"] if "target_sequence" in step_keys else None
         self.sequences_names_intern = ["T1-CE", "T1-w", "FLAIR", "T2", "High-resolution"]
         self.sequences_names_models = ["t1c", "t1w", "t2f", "t2w", "hr"]
 
@@ -45,6 +48,7 @@ class ModelSelectionStep(AbstractPipelineStep):
         self._working_folder = None
         self._target_timestamp = None
         self._predictions_format = None
+        self._target_sequence = None
 
     @property
     def target_timestamp(self) -> int:
@@ -53,6 +57,14 @@ class ModelSelectionStep(AbstractPipelineStep):
     @target_timestamp.setter
     def target_timestamp(self, ts: int) -> None:
         self._target_timestamp = ts
+
+    @property
+    def target_sequence(self) -> int:
+        return self._target_sequence
+
+    @target_sequence.setter
+    def target_sequence(self, seq: str) -> None:
+        self._target_sequence = seq
 
     def setup(self, patient_parameters: PatientParameters) -> None:
         """
@@ -128,6 +140,9 @@ class ModelSelectionStep(AbstractPipelineStep):
                             adjusted_model_pipeline[st]["inputs"][i]["timestamp"] = self.target_timestamp
                         if model_pipeline[st]["inputs"][i]["space"]["timestamp"] == -1:
                             adjusted_model_pipeline[st]["inputs"][i]["space"]["timestamp"] = self.target_timestamp
+                        if self.target_sequence:
+                            adjusted_model_pipeline[st]["inputs"][i]["sequence"] = self.target_sequence
+                            adjusted_model_pipeline[st]["inputs"][i]["space"]["sequence"] = self.target_sequence
                     if "format" not in list(model_pipeline[st].keys()):
                         adjusted_model_pipeline[st]["format"] = self._predictions_format
                 elif model_pipeline[st]["task"] in ["Registration", "Apply registration"]:
@@ -187,6 +202,9 @@ class ModelSelectionStep(AbstractPipelineStep):
                             adjusted_model_pipeline[st]["inputs"][i]["timestamp"] = self.target_timestamp
                         if model_pipeline[st]["inputs"][i]["space"]["timestamp"] == -1:
                             adjusted_model_pipeline[st]["inputs"][i]["space"]["timestamp"] = self.target_timestamp
+                        if self.target_sequence:
+                            adjusted_model_pipeline[st]["inputs"][i]["sequence"] = self.target_sequence
+                            adjusted_model_pipeline[st]["inputs"][i]["space"]["sequence"] = self.target_sequence
                     if "format" not in list(model_pipeline[st].keys()):
                         adjusted_model_pipeline[st]["format"] = self._predictions_format
                 elif model_pipeline[st]["task"] in ["Registration", "Apply registration"]:
@@ -305,6 +323,7 @@ class ModelSelectionStep(AbstractPipelineStep):
     def __identify(self, model_pipeline):
         """
         Handling only segmentation cases to avoid recomputation
+        @TODO. Handlding of the brain model properly here or in DBUtils?
         """
         for s in list(model_pipeline.keys())[::-1]:
             step = model_pipeline[s]

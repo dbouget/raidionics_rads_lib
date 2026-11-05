@@ -18,6 +18,7 @@ class RegistrationStep(AbstractPipelineStep):
     """
     @TODO. Have to improve the different use-cases, and properly deal with potentially more than one atlas.
     @TODO. Should there be two flags (one for the co-registration between sequences, and one for the co-registration towards an atlas?
+    @TODO. Have to update the registration to MATCH_TARGET strategy, and use the resample_label from DBUtils
     """
     _patient_parameters = None  # Placeholder for all patient related data
     _moving_volume_uid = None  # Internal unique identifier for the radiological volume to register
