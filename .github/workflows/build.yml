@@ -175,7 +175,18 @@ jobs:
           run: |
               pip install pytest pytest-cov pytest-timeout requests
               cd test_env
-              pytest -vvv --cov=raidionicsrads tests/generic_tests --cov-report=xml --timeout=1500 --log-cli-level=DEBUG
+              pytest -vvv --cov=raidionicsrads tests/generic_tests --cov-report=xml --timeout=1500 --log-cli-level=DEBUG --basetemp=pytest_tmp
+
+        - name: Upload test outputs for inspection
+          if: failure()
+          uses: actions/upload-artifact@v7
+          with:
+            name: test-outputs-${{ matrix.os }}-py${{ matrix.python-version }}
+            path: |
+              test_env/pytest_tmp
+              test_env/tests/unit_tests_results_dir/results
+            if-no-files-found: ignore
+            retention-days: 1
 
         - name: Upload coverage to Codecov
           if: ${{ matrix.os == 'ubuntu-22.04' && matrix.python-version == '3.12' }}

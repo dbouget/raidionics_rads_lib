@@ -139,12 +139,12 @@ def test_registration_pipeline_package(test_dir, tmp_path):
 
         logging.info("Registration CLI unit test succeeded.\n")
     except Exception as e:
-        logging.error(f"Error during registration pipeline unit test with: {e}\n {traceback.format_exc()}.\n")
-        if os.path.exists(tmp_test_input_fn):
-            shutil.rmtree(tmp_test_input_fn)
-        if os.path.exists(output_folder):
-            shutil.rmtree(output_folder)
-        raise ValueError("Error during registration pipeline unit test with.\n")
+        # logging.error(f"Error during registration pipeline unit test with: {e}\n {traceback.format_exc()}.\n")
+        # if os.path.exists(tmp_test_input_fn):
+        #     shutil.rmtree(tmp_test_input_fn)
+        # if os.path.exists(output_folder):
+        #     shutil.rmtree(output_folder)
+        raise ValueError(f"Error during registration pipeline unit test with {e}.\n")
 
     logging.info("Registration pipeline unit test succeeded.\n")
     if os.path.exists(tmp_test_input_fn):
@@ -279,12 +279,12 @@ def test_registration_pipeline_cli(test_dir, tmp_path):
 
         logging.info("Registration CLI unit test succeeded.\n")
     except Exception as e:
-        logging.error(f"Error during registration pipeline unit test with: {e}\n {traceback.format_exc()}.\n")
-        if os.path.exists(tmp_test_input_fn):
-            shutil.rmtree(tmp_test_input_fn)
-        if os.path.exists(output_folder):
-            shutil.rmtree(output_folder)
-        raise ValueError("Error during registration pipeline unit test with.\n")
+        # logging.error(f"Error during registration pipeline unit test with: {e}\n {traceback.format_exc()}.\n")
+        # if os.path.exists(tmp_test_input_fn):
+        #     shutil.rmtree(tmp_test_input_fn)
+        # if os.path.exists(output_folder):
+        #     shutil.rmtree(output_folder)
+        raise ValueError(f"Error during registration pipeline unit test with {e}.\n")
 
     logging.info("Registration pipeline unit test succeeded.\n")
     if os.path.exists(tmp_test_input_fn):

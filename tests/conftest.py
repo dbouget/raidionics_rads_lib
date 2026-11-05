@@ -16,9 +16,9 @@ def test_dir():
 
     download_resources(test_dir=test_dir)
     yield test_dir
-    logging.info(f"Removing the temporary directory for tests.")
-    if os.path.exists(os.path.join(test_dir, "results")):
-        shutil.rmtree(os.path.join(test_dir, "results"))
+    # logging.info(f"Removing the temporary directory for tests.")
+    # if os.path.exists(os.path.join(test_dir, "results")):
+    #     shutil.rmtree(os.path.join(test_dir, "results"))
 
 @pytest.fixture(scope="session")
 def dice() -> float:

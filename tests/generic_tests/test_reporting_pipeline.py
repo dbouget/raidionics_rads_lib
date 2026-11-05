@@ -109,12 +109,12 @@ def test_reporting_pipeline_package(test_dir, tmp_path):
         assert os.path.exists(mni_structures_filename), "No MNI cortical structures atlas was generated"
 
     except Exception as e:
-        logging.error(f"Error during reporting pipeline unit test with: {e}\n {traceback.format_exc()}.\n")
-        if os.path.exists(tmp_test_input_fn):
-            shutil.rmtree(tmp_test_input_fn)
-        if os.path.exists(output_folder):
-            shutil.rmtree(output_folder)
-        raise ValueError("Error during reporting pipeline unit test with.\n")
+        # logging.error(f"Error during reporting pipeline unit test with: {e}\n {traceback.format_exc()}.\n")
+        # if os.path.exists(tmp_test_input_fn):
+        #     shutil.rmtree(tmp_test_input_fn)
+        # if os.path.exists(output_folder):
+        #     shutil.rmtree(output_folder)
+        raise ValueError(f"Error during reporting pipeline unit test with {e}.\n")
 
     logging.info("Reporting pipeline unit test succeeded.\n")
     if os.path.exists(tmp_test_input_fn):
@@ -247,12 +247,12 @@ def test_reporting_pipeline_surgical(test_dir, tmp_path):
         assert os.path.exists(report_filename_surgical_json), "No surgical report generated in json format."
 
     except Exception as e:
-        logging.error(f"Error during reporting pipeline unit test with: {e}\n {traceback.format_exc()}.\n")
-        if os.path.exists(tmp_test_input_fn):
-            shutil.rmtree(tmp_test_input_fn)
-        if os.path.exists(output_folder):
-            shutil.rmtree(output_folder)
-        raise ValueError("Error during reporting pipeline unit test with.\n")
+        # logging.error(f"Error during reporting pipeline unit test with: {e}\n {traceback.format_exc()}.\n")
+        # if os.path.exists(tmp_test_input_fn):
+        #     shutil.rmtree(tmp_test_input_fn)
+        # if os.path.exists(output_folder):
+        #     shutil.rmtree(output_folder)
+        raise ValueError(f"Error during reporting pipeline unit test with {e}.\n")
 
     logging.info("Reporting pipeline unit test succeeded.\n")
     if os.path.exists(tmp_test_input_fn):
