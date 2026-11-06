@@ -225,7 +225,7 @@ class PatientParameters:
                         # The UID prefix is regenerated at random on every PatientParameters
                         # instantiation, so it cannot be matched against -- strip it (and the
                         # "_Seq-..." suffix) to recover the stable raw-file basename instead.
-                        rr_basename = re.sub(r'^V\d+_', '', rr).split('_Seq-')[0]
+                        rr_basename = re.sub(r'^V\d+_', '', rr.split('.')[0]).split('_Seq-')[0]
                         reg_volume = self.get_radiological_volume_by_base_filename(base_fn=rr_basename)
                         if reg_volume is None:
                             logging.warning("[PatientStructure] No radiological volume matching registered file {}.".format(rr))

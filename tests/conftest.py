@@ -9,16 +9,16 @@ from tests.download_resources import download_resources
 @pytest.fixture(scope="session")
 def test_dir():
     test_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'unit_tests_results_dir')
-    # Always start fresh
-    if os.path.exists(test_dir):
-        shutil.rmtree(test_dir)
-    os.makedirs(test_dir)
+    os.makedirs(test_dir, exist_ok=True)
+    # Always remove potential results from a previous run
+    if os.path.exists(os.path.join(test_dir, "results")):
+        shutil.rmtree(os.path.join(test_dir, "results"))
 
     download_resources(test_dir=test_dir)
     yield test_dir
-    logging.info(f"Removing the temporary directory for tests.")
-    if os.path.exists(test_dir):
-        shutil.rmtree(test_dir)
+    # logging.info(f"Removing the temporary directory for tests.")
+    # if os.path.exists(os.path.join(test_dir, "results")):
+    #     shutil.rmtree(os.path.join(test_dir, "results"))
 
 @pytest.fixture(scope="session")
 def dice() -> float:

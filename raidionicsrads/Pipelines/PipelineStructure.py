@@ -131,6 +131,8 @@ class Pipeline:
         classification which is mandatory for further disambiguation in model selection...
         @TODO. How to propagate down the probabilities/thresholding decision for the segmentation models (is it
         enough with the main_config.ini parameter?
+        @TODO: Should have a variable to specify if structure features should be computed in native or atlas space, 
+        to avoid unnecessary registration steps...
 
         Parameters
         ----------
