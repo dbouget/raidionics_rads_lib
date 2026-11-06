@@ -26,7 +26,7 @@ class FeaturesComputationStep(AbstractPipelineStep):
         self._reset()
         super(FeaturesComputationStep, self).__init__(step_json=step_json)
         self._report_space = self._step_json["space"]
-        self._targets = self._step_json["target"]
+        self._targets = [x.strip() for x in self._step_json["targets"]]
 
     @property
     def report_space(self) -> str:
@@ -37,11 +37,11 @@ class FeaturesComputationStep(AbstractPipelineStep):
         self.report_space = text
 
     @property
-    def targets(self) -> str:
+    def targets(self) -> List[str]:
         return self._targets
 
     @targets.setter
-    def targets(self, targets: str) -> None:
+    def targets(self, targets: List[str]) -> None:
         self._targets = targets
 
     def _reset(self):
@@ -60,8 +60,8 @@ class FeaturesComputationStep(AbstractPipelineStep):
         """
         Verify that the requirements are met for executing the step
         """
-        if self.report_space != "MNI":
-            raise ValueError(f"Features computation only implemented for MNI space, "
+        if self.report_space not in ["Patient", "MNI"]:
+            raise ValueError(f"Features computation only implemented for Patient and MNI spaces, "
                              f"unknown key \"{self.report_space}\" provided.")
         self._patient_parameters = patient_parameters
 
@@ -147,7 +147,7 @@ class FeaturesComputationStep(AbstractPipelineStep):
                 logging.error(f"No segmentation file found nor assembled for structure: {t}")
                 continue
             else:
-                res = compute_structure_statistics(input_mask=structure_nib, brain_mask=brain_nib)
+                res = compute_structure_statistics(input_mask=structure_nib, brain_mask=brain_nib, space=self.report_space)
                 report.include_statistics(structure=t, statistics=res, space=self.report_space)
                 if self.report_space != 'Patient':
                     # Including the tumor volume in original patient space, quick fix for now as the only

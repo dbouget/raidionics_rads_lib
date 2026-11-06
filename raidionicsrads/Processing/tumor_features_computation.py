@@ -50,21 +50,23 @@ def compute_diameters(volume: np.ndarray, spacing: Tuple) -> Tuple[float, float,
     short_axis = -1.
     feret = -1.
     equivalent = -1.
-    logging.debug("Computing diameter characteristics.")
-    clusters = measurements.label(volume)[0]
-    clusters_labels = regionprops(clusters)
+    try:
+        logging.debug("Computing diameter characteristics.")
+        clusters = measurements.label(volume)[0]
+        clusters_labels = regionprops(clusters)
 
-    max_area = 0.
-    for c in clusters_labels:
-        if c.area > max_area:
-            max_area = c.area
-            long_axis = c.axis_major_length * np.prod(spacing[0:3])
-            short_axis = c.axis_minor_length * np.prod(spacing[0:3])
-            feret = c.feret_diameter_max * np.prod(spacing[0:3])
-            equivalent = c.equivalent_diameter_area * np.prod(spacing[0:3])
-
+        max_area = 0.
+        for c in clusters_labels:
+            if c.area > max_area:
+                max_area = c.area
+                long_axis = c.axis_major_length * np.prod(spacing[0:3])
+                short_axis = c.axis_minor_length * np.prod(spacing[0:3])
+                feret = c.feret_diameter_max * np.prod(spacing[0:3])
+                equivalent = c.equivalent_diameter_area * np.prod(spacing[0:3])
+    except Exception as e:
+        raise ValueError(f'Diameter computation failed with: {e}')
+    
     return float(long_axis), float(short_axis), float(feret), float(equivalent)
-
 
 def compute_multifocality(volume: np.ndarray, spacing: Tuple,
                           volume_threshold: float = 0.,
@@ -134,6 +136,36 @@ def compute_multifocality(volume: np.ndarray, spacing: Tuple,
 
     return multifocal_status, multifocal_elements, float(multifocal_largest_minimum_distance)
 
+def compute_depth(structure_mask: np.ndarray, target_mask: np.ndarray) -> Tuple[float, float, float]:
+    """
+    Parameters
+    ----------
+    structure_mask : np.ndarray
+        Annotation mask for the structure of interest.
+    target_mask: np.ndarray
+        Annotation mask for the structure of reference.
+    Returns
+    -------
+    float
+    float
+    float
+    """
+    min_depth = -1.
+    max_depth = -1.
+    mean_depth = -1.
+
+    try:
+        target_inner = binary_erosion(target_mask)
+        target_surface = target_mask.astype('bool') ^ target_inner
+        distance_to_surface = distance_transform_edt(~target_surface)
+        structure_depths = distance_to_surface[structure_mask == 1]
+        max_depth = structure_depths.max()
+        mean_depth = structure_depths.mean()
+        min_depth = structure_depths.min()
+    except Exception as e:
+        raise ValueError(f'Depth computation failed with {e}.')
+
+    return min_depth, max_depth, mean_depth
 
 def compute_lateralisation(volume: np.ndarray, brain_mask: np.ndarray,
                            target: str = 'full') -> Tuple[float, float, bool]:

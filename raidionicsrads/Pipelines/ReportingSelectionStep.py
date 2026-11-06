@@ -204,7 +204,7 @@ class ReportingSelectionStep(AbstractPipelineStep):
                     pip[pip_num] = {}
                     pip[pip_num]["task"] = "Features computation"
                     pip[pip_num]["timestamp"] = self.timestamps[0]
-                    pip[pip_num]["target"] = ["Tumor", "TumorCE"] # @TODO. Should we open for both if not knowing if preop or postop?
+                    pip[pip_num]["targets"] = ["Tumor", "TumorCE"] # @TODO. Should we open for both if not knowing if preop or postop?
                     pip[pip_num]["space"] = "MNI"
                     pip[pip_num]["tumor_type"] = self.tumor_type
                     pip[pip_num]["description"] = f"Standardized features computation for timestamp {self.timestamps[0]}"
@@ -268,7 +268,7 @@ class ReportingSelectionStep(AbstractPipelineStep):
                     pip[pip_num] = {}
                     pip[pip_num]["task"] = "Features computation"
                     pip[pip_num]["timestamp"] = self.timestamps[0]
-                    pip[pip_num]["target"] = ["FLAIRChanges"]
+                    pip[pip_num]["targets"] = ["FLAIRChanges"]
                     pip[pip_num]["space"] = "MNI"
                     pip[pip_num]["tumor_type"] = self.tumor_type
                     pip[pip_num]["description"] = "Standardized features computation for timestamp 0"

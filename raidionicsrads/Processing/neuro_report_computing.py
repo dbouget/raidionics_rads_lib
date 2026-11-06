@@ -96,8 +96,9 @@ def compute_neuro_report(input_filename: str, report: NeuroReportingStructure) -
             report._statistics['Main']['Overall'].mni_space_resectability_index = average
 
         for s in ResourcesConfiguration.getInstance().neuro_features_cortical_structures:
-            overlap = compute_cortical_structures_location(volume=refined_image, reference=s)
+            overlap, distances = compute_cortical_structures_location(volume=refined_image, reference=s)
             report._statistics['Main']['Overall'].mni_space_cortical_structures_overlap[s] = overlap
+            report._statistics['Main']['Overall'].mni_space_cortical_structures_distance[s] = distances
             # if self.from_slicer:
             #     ordered_l = collections.OrderedDict(sorted(report._statistics['Main']['Overall'].mni_space_cortical_structures_overlap[s].items(), key=operator.itemgetter(1), reverse=True))
             #     report._statistics['Main']['Overall'].mni_space_cortical_structures_overlap[s] = ordered_l
@@ -123,7 +124,8 @@ def compute_neuro_report(input_filename: str, report: NeuroReportingStructure) -
 
 
 def compute_structure_statistics(input_mask: nib.Nifti1Image,
-                                 brain_mask: nib.Nifti1Image = None) -> NeuroStructureStatistics:
+                                 brain_mask: nib.Nifti1Image = None,
+                                 space: str = "Patient") -> NeuroStructureStatistics:
     """
 
     Return
@@ -160,12 +162,18 @@ def compute_structure_statistics(input_mask: nib.Nifti1Image,
                                                  volume_threshold=0.1, distance_threshold=5.0)
         result.multifocality = NeuroMultifocalityStatistics(status=status, parts=nb, distance=dist)
 
+        if space == "Patient":
+            # Early exit - no registration to MNI
+            return result
+        
         # Computing localisation features
         brain_lateralisation_mask_ni = load_nifti_volume(
             ResourcesConfiguration.getInstance().mni_atlas_lateralisation_mask_filepath)
         brain_lateralisation_mask = brain_lateralisation_mask_ni.get_fdata()[:]
         left, right, crossing = compute_lateralisation(volume=refined_image, brain_mask=brain_lateralisation_mask)
-        result.location = NeuroLocationStatistics(left=left, right=right, crossing=crossing)
+        d_min, d_max, d_mean = compute_depth(structure_mask=refined_image, target_mask=brain_array)
+        result.location = NeuroLocationStatistics(left=left, right=right, crossing=crossing, depth_min=d_min,
+                                                  depth_max=d_max, depth_mean=d_mean)
 
         # Compute resectability parameters -- @TODO. Should add a check on tumor type (should be only available for GBM)
         if left >= 50.0:
@@ -181,8 +189,8 @@ def compute_structure_statistics(input_mask: nib.Nifti1Image,
         
         # Computing cortical, subcortical, and infiltration profiles
         for s in ResourcesConfiguration.getInstance().neuro_features_cortical_structures:
-            overlaps = compute_cortical_structures_location(volume=refined_image, reference=s)
-            result.cortical[s] = NeuroCorticalStatistics(overlap=overlaps, distance=None)
+            overlaps, distances = compute_cortical_structures_location(volume=refined_image, reference=s)
+            result.cortical[s] = NeuroCorticalStatistics(overlap=overlaps, distance=distances)
         for s in ResourcesConfiguration.getInstance().neuro_features_subcortical_structures:
             overlaps, distances = compute_subcortical_structures_location(volume=refined_image,
                                                                           category='Main', reference=s)
@@ -198,7 +206,7 @@ def compute_structure_statistics(input_mask: nib.Nifti1Image,
         raise ValueError(f"Structure features computation failed with: {e}")
 
 
-def compute_cortical_structures_location(volume, reference='MNI'):
+def compute_cortical_structures_location(volume, reference='MNI') -> Tuple[dict, dict]:
     logging.debug("Computing cortical structures location with {}.".format(reference))
     regions_data = ResourcesConfiguration.getInstance().cortical_structures['MNI'][reference]
     region_mask_ni = nib.load(regions_data['Mask'])
@@ -222,10 +230,14 @@ def compute_cortical_structures_location(volume, reference='MNI'):
 
     total_lobes_labels = np.unique(region_mask)[1:]  # Removing the background label with value 0.
     overlap_per_lobe = {}
+    distance_from_lobe = {}
     for li in total_lobes_labels:
         overlap = volume[region_mask == li]
         ratio_in_lobe = np.count_nonzero(overlap) / np.count_nonzero(volume)
         overlap = float(round(ratio_in_lobe * 100., 2))
+        structure_mask = np.zeros(region_mask.shape)
+        structure_mask[region_mask == li] = 1
+        min_d, _, _ = compute_depth(structure_mask=volume, target_mask=structure_mask)
         region_name = ''
         if reference == 'MNI':
             region_name = '-'.join(str(lobes_description.loc[lobes_description['Label'] == li]['Region'].values[0]).strip().split(' ')) + '_' + (str(lobes_description.loc[lobes_description['Label'] == li]['Laterality'].values[0]).strip() if str(lobes_description.loc[lobes_description['Label'] == li]['Laterality'].values[0]).strip() != 'None' else '')
@@ -234,8 +246,9 @@ def compute_cortical_structures_location(volume, reference='MNI'):
         else:
             region_name = '_'.join(lobes_description.loc[lobes_description['Label'] == li]['Region'].values[0].strip().split(' '))
         overlap_per_lobe[region_name] = overlap
+        distance_from_lobe[region_name] = min_d
 
-    return overlap_per_lobe
+    return overlap_per_lobe, distance_from_lobe
 
 
 def compute_subcortical_structures_location(volume, category=None, reference='BCB'):
