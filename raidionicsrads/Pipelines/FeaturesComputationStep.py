@@ -147,9 +147,14 @@ class FeaturesComputationStep(AbstractPipelineStep):
                 logging.error(f"No segmentation file found nor assembled for structure: {t}")
                 continue
             else:
-                res = compute_structure_statistics(input_mask=structure_nib, brain_mask=brain_nib, space=self.report_space)
+                res, clustered_nib = compute_structure_statistics(input_mask=structure_nib, brain_mask=brain_nib,
+                                                   params={"report_space": self.report_space, "structure": t})
                 report.include_statistics(structure=t, statistics=res, space=self.report_space)
+                dest_ccl_fn = os.path.join(ResourcesConfiguration.getInstance().output_folder, "reporting", f'T{self.step_json["timestamp"]}', f'input-{base_radiological_volume[0].get_sequence_type_str()}_space-{self.report_space}_class-{struct_annotations[0].get_annotation_type_str()}_CC-labelled.nii.gz')
+                os.makedirs(os.path.dirname(dest_ccl_fn), exist_ok=True)
+                nib.save(clustered_nib, dest_ccl_fn)
                 if self.report_space != 'Patient':
+                    # @TODO. To deprecate
                     # Including the tumor volume in original patient space, quick fix for now as the only
                     # supported report_space is MNI
                     pat_space_result = NeuroStructureStatistics()

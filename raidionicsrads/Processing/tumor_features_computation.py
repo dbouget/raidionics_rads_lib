@@ -1,12 +1,14 @@
 import logging
+import operator
 import traceback
 import numpy as np
 from typing import Tuple, List, Union
 from scipy.ndimage.measurements import center_of_mass
-from scipy.ndimage import measurements, label
+from scipy.ndimage import measurements, label, find_objects
 from skimage.measure import regionprops
 from scipy.ndimage import binary_closing, _ni_support
 from scipy.ndimage import distance_transform_edt, binary_erosion, generate_binary_structure
+from ..Utils.utilities import round
 
 
 def compute_volume(volume: np.ndarray, spacing: Tuple, brain_mask: np.ndarray = None) -> Tuple[float, float]:
@@ -59,14 +61,120 @@ def compute_diameters(volume: np.ndarray, spacing: Tuple) -> Tuple[float, float,
         for c in clusters_labels:
             if c.area > max_area:
                 max_area = c.area
-                long_axis = c.axis_major_length * np.prod(spacing[0:3])
-                short_axis = c.axis_minor_length * np.prod(spacing[0:3])
-                feret = c.feret_diameter_max * np.prod(spacing[0:3])
+                long_axis = round(c.axis_major_length * np.prod(spacing[0:3]), 3)
+                short_axis = round(c.axis_minor_length * np.prod(spacing[0:3]), 3)
+                feret = round(c.feret_diameter_max * np.prod(spacing[0:3]), 3)
                 equivalent = c.equivalent_diameter_area * np.prod(spacing[0:3])
     except Exception as e:
         raise ValueError(f'Diameter computation failed with: {e}')
     
     return float(long_axis), float(short_axis), float(feret), float(equivalent)
+
+def group_foci(volume: np.ndarray, spacing: Tuple, min_volume_ml: float = 0., distance_threshold_mm: float = 0.,
+               connectivity: int = 1) -> list:
+    """
+    Foci of the object, as [volume in ml, focus mask, number of connected components], ranked by decreasing volume.
+    Connected components whose minimum distance (between voxel centers, in mm) is below distance_threshold_mm are
+    grouped as a single focus, transitively (A close to B and B close to C makes a single focus). The foci smaller than
+    min_volume_ml are then discarded, so that a fragmented lesion made of small close parts is kept as one focus.
+    The connectivity is the one of scipy.ndimage.generate_binary_structure (1 = faces only, 3 = faces, edges and corners).
+    """
+    foci = []
+    try:
+        spacing = np.asarray(spacing[0:3], dtype=float)
+        clusters, nb_clusters = label(volume > 0, structure=generate_binary_structure(3, connectivity))
+        # Group index of each component, merged groups take the smallest index
+        group_ids = np.arange(nb_clusters + 1)
+        if distance_threshold_mm > 0. and nb_clusters > 1:
+            margin = np.ceil(distance_threshold_mm / spacing).astype(int) + 1
+            bounding_boxes = find_objects(clusters)
+            for c in range(1, nb_clusters + 1):
+                # Only the components within the threshold of the bounding box can be close enough
+                crop = []
+                for d in range(3):
+                    crop.append(slice(max(bounding_boxes[c - 1][d].start - margin[d], 0),
+                                      min(bounding_boxes[c - 1][d].stop + margin[d], clusters.shape[d])))
+                crop = tuple(crop)
+                crop_clusters = clusters[crop]
+                neighbours = np.unique(crop_clusters)
+                neighbours = neighbours[neighbours > c]
+                if len(neighbours) == 0:
+                    continue
+                distances = distance_transform_edt(crop_clusters != c, sampling=spacing)
+                for n in neighbours:
+                    if np.min(distances[crop_clusters == n]) < distance_threshold_mm:
+                        old_id = max(group_ids[c], group_ids[n])
+                        new_id = min(group_ids[c], group_ids[n])
+                        group_ids[group_ids == old_id] = new_id
+
+        for g in np.unique(group_ids[1:]):
+            members = np.where(group_ids == g)[0]
+            members = members[members > 0]
+            focus = np.isin(clusters, members)
+            focus_volume = np.count_nonzero(focus) * np.prod(spacing) * 1e-3
+            if focus_volume >= min_volume_ml:
+                foci.append([focus_volume, focus, len(members)])
+        foci = sorted(foci, key=operator.itemgetter(0), reverse=True)
+    except Exception as e:
+        raise ValueError('Foci grouping failed with: {}'.format(e))
+    return foci
+
+def compute_foci(volume: np.ndarray, spacing: Tuple, affine: np.ndarray = None, min_volume_ml: float = 0.1,
+                 distance_threshold_mm: float = 5., connectivity: int = 1) -> list:
+    """
+    Every focus of the object, as FocusStatistics ranked by decreasing volume, with the same thresholds as
+    compute_multifocality (pathology-dependent): the parts closer than distance_threshold_mm are grouped as a single
+    focus and measured together, and the foci smaller than min_volume_ml are discarded (see group_foci).
+    Each satellite focus gets its distance to the main focus, both the HD95 reported by compute_multifocality and the
+    minimum distance (always at least distance_threshold_mm, the foci being grouped otherwise).
+    """
+    from ..Utils.DataStructures.StatisticsStructure import FocusStatistics, DiameterStatistics
+    from .common_features_computation import compute_diameters
+    
+    foci = []
+    nb_focus = None
+    multifocality_status = None
+    max_distance = -1.
+    try:
+        grouped_volume = np.zeros(volume.shape)
+        spacing = np.asarray(spacing[0:3], dtype=float)
+        grouped_foci = group_foci(volume=volume, spacing=spacing, min_volume_ml=min_volume_ml,
+                                  distance_threshold_mm=distance_threshold_mm, connectivity=connectivity)
+        for i, foc in enumerate(grouped_foci):
+            grouped_volume[foc[1]] = i + 1
+        nb_focus = len(grouped_foci)
+        multifocality_status = nb_focus > 1
+        main_focus = None
+        main_focus_distances = None
+        for i in range(len(grouped_foci)):
+            focus_volume, focus, components = grouped_foci[i]
+            distance_to_main = 0.
+            min_distance_to_main = 0.
+            if i == 0:
+                main_focus = focus
+                main_focus_distances = distance_transform_edt(np.logical_not(main_focus), sampling=spacing)
+            else:
+                distance_to_main = float(compute_hd95(focus, main_focus, voxelspacing=spacing, connectivity=1))
+                min_distance_to_main = float(np.min(main_focus_distances[focus]))
+                if min_distance_to_main > max_distance:
+                    max_distance = min_distance_to_main
+            long_axis, short_axis, feret, equivalent = compute_diameters(volume=focus, spacing=spacing,
+                                                                                             affine=affine)
+            centroid = np.asarray(center_of_mass(focus))
+            if affine is not None:
+                centroid = np.asarray(affine)[0:3, 0:3] @ centroid + np.asarray(affine)[0:3, 3]
+            else:
+                centroid = centroid * spacing
+            foci.append(FocusStatistics(rank=i + 1, volume=focus_volume, centroid=list(centroid),
+                                        diameters=DiameterStatistics(long_axis_diameter=long_axis,
+                                                                     short_axis_diameter=short_axis,
+                                                                     feret_diameter=feret,
+                                                                     equivalent_diameter_area=equivalent),
+                                        measurement_slice=None, distance_to_main=distance_to_main,
+                                        min_distance_to_main=min_distance_to_main, components=components))
+    except Exception as e:
+        raise ValueError('Foci computation failed with: {}'.format(e))
+    return multifocality_status, nb_focus, max_distance, foci, grouped_volume
 
 def compute_multifocality(volume: np.ndarray, spacing: Tuple,
                           volume_threshold: float = 0.,

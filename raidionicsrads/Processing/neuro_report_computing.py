@@ -1,18 +1,21 @@
 import traceback
-
 import pandas as pd
+from typing import Tuple, List
 from copy import deepcopy
 import operator
 import collections
 import nibabel as nib
 from skimage.morphology import ball
-from scipy.ndimage import binary_closing
-from ..Processing.tumor_features_computation import *
+from scipy.ndimage import binary_closing, measurements
+from skimage.measure import regionprops
+from .common_features_computation import compute_volume, compute_diameters, compute_depth
+from .tumor_features_computation import compute_lateralisation, compute_resectability_index, compute_multifocality, compute_foci
 from ..Utils.DataStructures.RadiologicalVolumeStructure import MRISequenceType
 from ..Utils.io import load_nifti_volume
 from ..Utils.configuration_parser import ResourcesConfiguration
 from ..Utils.ReportingStructures.NeuroReportingStructure import *
 from ..Utils.ReportingStructures.NeuroSurgicalReportingStructure import *
+from ..Utils.DataStructures.StatisticsStructure import MultifocalityStatistics
 
 
 def compute_neuro_report(input_filename: str, report: NeuroReportingStructure) -> NeuroReportingStructure:
@@ -125,18 +128,21 @@ def compute_neuro_report(input_filename: str, report: NeuroReportingStructure) -
 
 def compute_structure_statistics(input_mask: nib.Nifti1Image,
                                  brain_mask: nib.Nifti1Image = None,
-                                 space: str = "Patient") -> NeuroStructureStatistics:
+                                 params: dict = {}) -> NeuroStructureStatistics:
     """
-
+    @TODO. Should have a first check: is it 1,2,3 label values, or is it a 255 label only (might have to cast to 1 then)?
     Return
     -------
 
     """
     try:
+        report_space = params["report_space"] if "report_space" in params.keys() else "Patient"
+        structure = params["structure"] if "structure" in params.keys() else "Tumor"
+
         result = NeuroStructureStatistics()
         input_array = input_mask.get_fdata()[:]
 
-        # Cleaning the segmentation mask just in case, removing potential small and noisy areas
+        # 1. Cleaning the segmentation mask just in case, removing potential small and noisy areas
         cluster_size_cutoff_in_pixels = 100
         kernel = ball(radius=2)
         img_ero = binary_closing(input_array, structure=kernel, iterations=1)
@@ -147,33 +153,44 @@ def compute_structure_statistics(input_mask: nib.Nifti1Image,
                 refined_image[refined_image == c] = 0
         refined_image[refined_image != 0] = 1
 
+        # status, nb, dist = compute_multifocality(volume=refined_image, spacing=input_mask.header.get_zooms(),
+        #                                          volume_threshold=0.1, distance_threshold=5.0)
+        multifocality_status, nb_focus, max_distance, foci, clustered_refined_image = compute_foci(volume=refined_image, spacing=input_mask.header.get_zooms(),
+                                                 affine=input_mask.affine, min_volume_ml=0.1, distance_threshold_mm=5., connectivity=1)
+        result.multifocality = MultifocalityStatistics(status=multifocality_status, parts=nb_focus, distance=max_distance, foci=foci)
+        # result.multifocality.foci, clustered_refined_image = compute_foci(volume=refined_image, spacing=input_mask.header.get_zooms(),
+        #                                          affine=input_mask.affine, min_volume_ml=0.1, connectivity=1)
+        result.multifocality.foci_parameters = {"connectivity": 1, "min_volume_ml": 0.1, "closing_radius_voxels": 2,
+                                                "min_cluster_voxels": cluster_size_cutoff_in_pixels}
+
+        clustered_refined_nib = nib.Nifti1Image(clustered_refined_image, affine=input_mask.affine, header=input_mask.header)
         brain_array = None
         if brain_mask:
             brain_array = brain_mask.get_fdata()[:]
+            if brain_array.shape != input_array.shape:
+                raise ValueError("Structure and brain masks have incompatible shapes")
+
         volume, brain_perc = compute_volume(volume=refined_image, spacing=input_mask.header.get_zooms(),
-                                            brain_mask=brain_array)
+                                            base_mask=brain_array)
         result.volume = NeuroVolumeStatistics(volume=volume, brain_percentage=brain_perc)
 
         longa, shorta, feret, equi = compute_diameters(volume=refined_image, spacing=input_mask.header.get_zooms())
         result.diameters = NeuroDiameterStatistics(long_axis_diameter=longa, short_axis_diameter=shorta, feret_diameter=feret,
                                                equivalent_diameter_area=equi)
+        
+        d_min, d_max, d_mean = compute_depth(structure_mask=refined_image, target_mask=brain_array, spacing=input_mask.header.get_zooms())
+        result.location = NeuroLocationStatistics(depth_min=d_min, depth_max=d_max, depth_mean=d_mean)
 
-        status, nb, dist = compute_multifocality(volume=refined_image, spacing=input_mask.header.get_zooms(),
-                                                 volume_threshold=0.1, distance_threshold=5.0)
-        result.multifocality = NeuroMultifocalityStatistics(status=status, parts=nb, distance=dist)
-
-        if space == "Patient":
+        # @TODO. Do we allow the exact same as above for each foci?
+        if report_space == "Patient":
             # Early exit - no registration to MNI
-            return result
+            return result, clustered_refined_nib
         
         # Computing localisation features
         brain_lateralisation_mask_ni = load_nifti_volume(
             ResourcesConfiguration.getInstance().mni_atlas_lateralisation_mask_filepath)
         brain_lateralisation_mask = brain_lateralisation_mask_ni.get_fdata()[:]
         left, right, crossing = compute_lateralisation(volume=refined_image, brain_mask=brain_lateralisation_mask)
-        d_min, d_max, d_mean = compute_depth(structure_mask=refined_image, target_mask=brain_array)
-        result.location = NeuroLocationStatistics(left=left, right=right, crossing=crossing, depth_min=d_min,
-                                                  depth_max=d_max, depth_mean=d_mean)
 
         # Compute resectability parameters -- @TODO. Should add a check on tumor type (should be only available for GBM)
         if left >= 50.0:
@@ -201,7 +218,7 @@ def compute_structure_statistics(input_mask: nib.Nifti1Image,
                                                                                            reference=s)
             result.infiltration[s] = NeuroInfiltrationStatistics(overlap=overlap_per_voxel, count=infiltrated_voxels)
 
-        return result
+        return result, clustered_refined_nib
     except Exception as e:
         raise ValueError(f"Structure features computation failed with: {e}")
 

@@ -9,6 +9,7 @@ import pandas as pd
 from typing import Dict
 import collections
 from ..configuration_parser import ResourcesConfiguration
+from ..DataStructures.StatisticsStructure import StructureStatistics
 from ..io import generate_cortical_structures_labels_for_slicer, generate_subcortical_structures_labels_for_slicer, generate_braingrid_structures_labels_for_slicer
 
 
@@ -228,6 +229,21 @@ class NeuroMultifocalityStatistics:
     @max_distance.setter
     def max_distance(self, value: float) -> None:
         self._max_distance = value
+
+# class NeuroVolumeStatistics(VolumeStatistics):
+#     """
+#     Volume statistics with the brain as reference structure.
+#     """
+#     def __init__(self, volume: float = -1., brain_percentage: float = -1.):
+#         super(NeuroVolumeStatistics, self).__init__(volume=volume, reference_percentage=brain_percentage)
+
+#     @property
+#     def brain_percentage(self) -> float:
+#         return self.reference_percentage
+
+#     @brain_percentage.setter
+#     def brain_percentage(self, value: float) -> None:
+#         self.reference_percentage = value
 
 class NeuroLocationStatistics:
     _left_laterality_percentage = -1.
@@ -762,7 +778,8 @@ class NeuroReportingStructure:
     def to_csv(self) -> None:
         """
         Exporting the standardized report to a csv file on disk.
-        @TODO. Makes more sense to make one csv per structure maybe?
+        @TODO. Makes more sense to make one csv per structure maybe? Have to deal with varying lenght, should extend
+        with fixex length of empty values when nothing for a structure if single csv for all structures...
         """
         try:
             filename = os.path.join(self._output_folder, "reporting",

@@ -5,6 +5,7 @@ from typing import Union
 import os
 import SimpleITK as sitk
 import numpy as np
+import math
 
 
 def get_type_from_string(enum_type: Enum, string: str) -> Union[str, int]:
@@ -81,3 +82,7 @@ def input_file_type_conversion(input_filename: str, output_folder: str) -> str:
         filename = nifti_outfilename
 
     return filename
+
+def round(input:float, decimals: int) -> float:
+    multiplier = 10 ** decimals
+    return math.ceil(input * multiplier) / multiplier
