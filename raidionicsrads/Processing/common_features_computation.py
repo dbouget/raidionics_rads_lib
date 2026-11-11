@@ -38,7 +38,7 @@ def compute_volume(volume: np.ndarray, spacing: Tuple, base_mask: np.ndarray = N
         if base_mask is not None:
             base_volume = np.count_nonzero(base_mask) * voxel_size * 1e-3
             base_perc = volume_ml / base_volume
-            base_perc = round(base_perc, 4)
+            base_perc = round(base_perc, 4) * 100.
     except Exception as e:
         raise ValueError('Volume computation failed with: {}'.format(e))
 
@@ -89,38 +89,8 @@ def compute_depth(structure_mask: np.ndarray, target_mask: np.ndarray, spacing: 
     except Exception as e:
         raise ValueError(f'Depth computation failed with {e}.')
 
-    return min_depth, max_depth, mean_depth
+    return round(min_depth, 3), round(max_depth, 3), round(mean_depth, 3)
 
-def compute_depth_old(structure_mask: np.ndarray, target_mask: np.ndarray) -> Tuple[float, float, float]:
-    """
-    Parameters
-    ----------
-    structure_mask : np.ndarray
-        Annotation mask for the structure of interest.
-    target_mask: np.ndarray
-        Annotation mask for the structure of reference.
-    Returns
-    -------
-    float
-    float
-    float
-    """
-    min_depth = -1.
-    max_depth = -1.
-    mean_depth = -1.
-
-    try:
-        target_inner = binary_erosion(target_mask)
-        target_surface = target_mask.astype('bool') ^ target_inner
-        distance_to_surface = distance_transform_edt(~target_surface)
-        structure_depths = distance_to_surface[structure_mask == 1]
-        max_depth = structure_depths.max()
-        mean_depth = structure_depths.mean()
-        min_depth = structure_depths.min()
-    except Exception as e:
-        raise ValueError(f'Depth computation failed with {e}.')
-
-    return min_depth, max_depth, mean_depth
 
 def compute_diameters(volume: np.ndarray, spacing: Tuple, affine: np.ndarray = None) -> Tuple[float, float, float, float]:
     """
@@ -276,42 +246,3 @@ def __compute_perpendicular_diameter(mask: np.ndarray, spacing: np.ndarray, p1: 
         if len(starts) != 0:
             longest_run = max(longest_run, int(np.max(ends - starts)))
     return float(longest_run * step)
-
-
-# def compute_foci(volume: np.ndarray, spacing: Tuple, affine: np.ndarray = None, min_volume_ml: float = 0.1,
-#                  connectivity: int = 1) -> list:
-#     """
-#     Every focus (connected component) of the object of at least min_volume_ml, ranked by decreasing volume, as
-#     FocusStatistics. The connectivity is the one of scipy.ndimage.generate_binary_structure (1 = faces only, 3 = faces,
-#     edges and corners).
-#     """
-#     from ..Utils.DataStructures.StatisticsStructure import FocusStatistics, DiameterStatistics
-#     foci = []
-#     try:
-#         spacing = np.asarray(spacing[0:3], dtype=float)
-#         clusters, nb_clusters = label(volume > 0, structure=generate_binary_structure(3, connectivity))
-#         candidates = []
-#         for c in range(1, nb_clusters + 1):
-#             focus = clusters == c
-#             focus_volume = np.count_nonzero(focus) * np.prod(spacing) * 1e-3
-#             if focus_volume >= min_volume_ml:
-#                 candidates.append([focus_volume, c])
-#         candidates = sorted(candidates, reverse=True)
-#         for i in range(len(candidates)):
-#             focus = clusters == candidates[i][1]
-#             long_axis, short_axis, feret, equivalent, slice_index = compute_focus_diameters(focus=focus, spacing=spacing,
-#                                                                                              affine=affine)
-#             centroid = np.asarray(center_of_mass(focus))
-#             if affine is not None:
-#                 centroid = np.asarray(affine)[0:3, 0:3] @ centroid + np.asarray(affine)[0:3, 3]
-#             else:
-#                 centroid = centroid * spacing
-#             foci.append(FocusStatistics(rank=i + 1, volume=candidates[i][0], centroid=list(centroid),
-#                                         diameters=DiameterStatistics(long_axis_diameter=long_axis,
-#                                                                      short_axis_diameter=short_axis,
-#                                                                      feret_diameter=feret,
-#                                                                      equivalent_diameter_area=equivalent),
-#                                         measurement_slice=slice_index))
-#     except Exception as e:
-#         raise ValueError('Foci computation failed with: {}'.format(e))
-#     return foci

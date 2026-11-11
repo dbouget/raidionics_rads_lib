@@ -9,13 +9,14 @@ from skimage.morphology import ball
 from scipy.ndimage import binary_closing, measurements
 from skimage.measure import regionprops
 from .common_features_computation import compute_volume, compute_diameters, compute_depth
-from .tumor_features_computation import compute_lateralisation, compute_resectability_index, compute_multifocality, compute_foci
+from .tumor_features_computation import compute_lateralisation, compute_resectability_index, compute_multifocality, compute_foci, compute_hd95
+from ..Utils.utilities import round
 from ..Utils.DataStructures.RadiologicalVolumeStructure import MRISequenceType
 from ..Utils.io import load_nifti_volume
 from ..Utils.configuration_parser import ResourcesConfiguration
 from ..Utils.ReportingStructures.NeuroReportingStructure import *
 from ..Utils.ReportingStructures.NeuroSurgicalReportingStructure import *
-from ..Utils.DataStructures.StatisticsStructure import MultifocalityStatistics
+from ..Utils.DataStructures.StatisticsStructure import VolumeStatistics, DiameterStatistics, MultifocalityStatistics
 
 
 def compute_neuro_report(input_filename: str, report: NeuroReportingStructure) -> NeuroReportingStructure:
@@ -161,7 +162,7 @@ def compute_structure_statistics(input_mask: nib.Nifti1Image,
         # result.multifocality.foci, clustered_refined_image = compute_foci(volume=refined_image, spacing=input_mask.header.get_zooms(),
         #                                          affine=input_mask.affine, min_volume_ml=0.1, connectivity=1)
         result.multifocality.foci_parameters = {"connectivity": 1, "min_volume_ml": 0.1, "closing_radius_voxels": 2,
-                                                "min_cluster_voxels": cluster_size_cutoff_in_pixels}
+                                                "distance_threshold_mm": 5.0, "min_cluster_voxels": cluster_size_cutoff_in_pixels}
 
         clustered_refined_nib = nib.Nifti1Image(clustered_refined_image, affine=input_mask.affine, header=input_mask.header)
         brain_array = None
@@ -172,50 +173,55 @@ def compute_structure_statistics(input_mask: nib.Nifti1Image,
 
         volume, brain_perc = compute_volume(volume=refined_image, spacing=input_mask.header.get_zooms(),
                                             base_mask=brain_array)
-        result.volume = NeuroVolumeStatistics(volume=volume, brain_percentage=brain_perc)
+        result.volume = VolumeStatistics(volume=volume, reference_percentage=brain_perc)
 
         longa, shorta, feret, equi = compute_diameters(volume=refined_image, spacing=input_mask.header.get_zooms())
-        result.diameters = NeuroDiameterStatistics(long_axis_diameter=longa, short_axis_diameter=shorta, feret_diameter=feret,
+        result.diameters = DiameterStatistics(long_axis_diameter=longa, short_axis_diameter=shorta, feret_diameter=feret,
                                                equivalent_diameter_area=equi)
         
         d_min, d_max, d_mean = compute_depth(structure_mask=refined_image, target_mask=brain_array, spacing=input_mask.header.get_zooms())
         result.location = NeuroLocationStatistics(depth_min=d_min, depth_max=d_max, depth_mean=d_mean)
 
         # @TODO. Do we allow the exact same as above for each foci?
-        if report_space == "Patient":
-            # Early exit - no registration to MNI
-            return result, clustered_refined_nib
         
         # Computing localisation features
-        brain_lateralisation_mask_ni = load_nifti_volume(
-            ResourcesConfiguration.getInstance().mni_atlas_lateralisation_mask_filepath)
-        brain_lateralisation_mask = brain_lateralisation_mask_ni.get_fdata()[:]
-        left, right, crossing = compute_lateralisation(volume=refined_image, brain_mask=brain_lateralisation_mask)
+        if report_space != "Patient":  # @TODO. Assuming MNI only atlas for now
+            brain_lateralisation_mask_ni = load_nifti_volume(
+                ResourcesConfiguration.getInstance().mni_atlas_lateralisation_mask_filepath)
+            brain_lateralisation_mask = brain_lateralisation_mask_ni.get_fdata()[:]
+            left, right, crossing = compute_lateralisation(volume=refined_image, brain_mask=brain_lateralisation_mask)
+            result.location.left_laterality_percentage = left
+            result.location.right_laterality_percentage = right
+            result.location.laterality_midline_crossing = crossing
 
-        # Compute resectability parameters -- @TODO. Should add a check on tumor type (should be only available for GBM)
-        if left >= 50.0:
-                map_filepath = ResourcesConfiguration.getInstance().mni_resection_maps['Probability']['Left']
+        # Compute resectability parameters
+        if report_space != "Patient" and structure in ["Tumor", "FLAIRChanges"]: # @TODO. Should add a check on tumor type (should be only available for glioblastoma)
+            if left >= 50.0:
+                    map_filepath = ResourcesConfiguration.getInstance().mni_resection_maps['Probability']['Left']
+            else:
+                map_filepath = ResourcesConfiguration.getInstance().mni_resection_maps['Probability']['Right']
+            resection_probability_map_ni = nib.load(map_filepath)
+            resection_probability_map = resection_probability_map_ni.get_fdata()[:]
+
+            residual, resectable, average = compute_resectability_index(volume=refined_image,
+                                                                        resectability_map=resection_probability_map)
+            result.resectability = NeuroResectabilityStatistics(resectable=resectable, residual=residual, index=average)
         else:
-            map_filepath = ResourcesConfiguration.getInstance().mni_resection_maps['Probability']['Right']
-        resection_probability_map_ni = nib.load(map_filepath)
-        resection_probability_map = resection_probability_map_ni.get_fdata()[:]
-
-        residual, resectable, average = compute_resectability_index(volume=refined_image,
-                                                                    resectability_map=resection_probability_map)
-        result.resectability = NeuroResectabilityStatistics(resectable=resectable, residual=residual, index=average)
+            result.resectability = NeuroResectabilityStatistics()
         
         # Computing cortical, subcortical, and infiltration profiles
+        dryrun = True if report_space == "Patient" else False
         for s in ResourcesConfiguration.getInstance().neuro_features_cortical_structures:
-            overlaps, distances = compute_cortical_structures_location(volume=refined_image, reference=s)
-            result.cortical[s] = NeuroCorticalStatistics(overlap=overlaps, distance=distances)
+            overlaps, distances = compute_cortical_structures_location(volume=refined_image, reference=s, dryrun=dryrun)
+            result.cortical[s] = AtlasOverlapStatistics(atlas=s, overlap=overlaps, distance=distances)
         for s in ResourcesConfiguration.getInstance().neuro_features_subcortical_structures:
             overlaps, distances = compute_subcortical_structures_location(volume=refined_image,
-                                                                          category='Main', reference=s)
-            result.subcortical[s] = NeuroSubCorticalStatistics(overlap=overlaps, distance=distances)
+                                                                          category='Main', reference=s,dryrun=dryrun)
+            result.subcortical[s] = AtlasOverlapStatistics(atlas=s, overlap=overlaps, distance=distances)
         for s in ResourcesConfiguration.getInstance().neuro_features_braingrid:
             overlap_per_voxel, infiltrated_voxels = compute_braingrid_voxels_infiltration(volume=refined_image,
                                                                                            category='Main',
-                                                                                           reference=s)
+                                                                                           reference=s, dryrun=dryrun)
             result.infiltration[s] = NeuroInfiltrationStatistics(overlap=overlap_per_voxel, count=infiltrated_voxels)
 
         return result, clustered_refined_nib
@@ -223,7 +229,7 @@ def compute_structure_statistics(input_mask: nib.Nifti1Image,
         raise ValueError(f"Structure features computation failed with: {e}")
 
 
-def compute_cortical_structures_location(volume, reference='MNI') -> Tuple[dict, dict]:
+def compute_cortical_structures_location(volume, reference='MNI', dryrun: bool = False) -> Tuple[dict, dict]:
     logging.debug("Computing cortical structures location with {}.".format(reference))
     regions_data = ResourcesConfiguration.getInstance().cortical_structures['MNI'][reference]
     region_mask_ni = nib.load(regions_data['Mask'])
@@ -249,12 +255,6 @@ def compute_cortical_structures_location(volume, reference='MNI') -> Tuple[dict,
     overlap_per_lobe = {}
     distance_from_lobe = {}
     for li in total_lobes_labels:
-        overlap = volume[region_mask == li]
-        ratio_in_lobe = np.count_nonzero(overlap) / np.count_nonzero(volume)
-        overlap = float(round(ratio_in_lobe * 100., 2))
-        structure_mask = np.zeros(region_mask.shape)
-        structure_mask[region_mask == li] = 1
-        min_d, _, _ = compute_depth(structure_mask=volume, target_mask=structure_mask)
         region_name = ''
         if reference == 'MNI':
             region_name = '-'.join(str(lobes_description.loc[lobes_description['Label'] == li]['Region'].values[0]).strip().split(' ')) + '_' + (str(lobes_description.loc[lobes_description['Label'] == li]['Laterality'].values[0]).strip() if str(lobes_description.loc[lobes_description['Label'] == li]['Laterality'].values[0]).strip() != 'None' else '')
@@ -262,13 +262,25 @@ def compute_cortical_structures_location(volume, reference='MNI') -> Tuple[dict,
             region_name = '-'.join(lobes_description.loc[lobes_description['Label'] == li]['Region'].values[0].strip().split(' '))
         else:
             region_name = '_'.join(lobes_description.loc[lobes_description['Label'] == li]['Region'].values[0].strip().split(' '))
+
+        if dryrun:
+            overlap = -1
+            min_d = -1
+        else:
+            overlap = volume[region_mask == li]
+            ratio_in_lobe = np.count_nonzero(overlap) / np.count_nonzero(volume)
+            overlap = round(ratio_in_lobe, 4) * 100.
+            structure_mask = np.zeros(region_mask.shape)
+            structure_mask[region_mask == li] = 1
+            min_d, _, _ = compute_depth(structure_mask=volume, target_mask=structure_mask)
+
         overlap_per_lobe[region_name] = overlap
-        distance_from_lobe[region_name] = min_d
+        distance_from_lobe[region_name] = round(min_d, 3)
 
     return overlap_per_lobe, distance_from_lobe
 
 
-def compute_subcortical_structures_location(volume, category=None, reference='BCB'):
+def compute_subcortical_structures_location(volume, category=None, reference='BCB', dryrun: bool = False):
     logging.debug("Computing subcortical structures location with {}.".format(reference))
     distances = {}
     overlaps = {}
@@ -282,25 +294,31 @@ def compute_subcortical_structures_location(volume, category=None, reference='BC
     for i, tfn in enumerate(tracts_dict.keys()):
         dist = -1.
         try:
-            reg_tract_ni = nib.load(tracts_dict[tfn])
-            reg_tract = reg_tract_ni.get_fdata()[:]
-            reg_tract[reg_tract < tract_cutoff] = 0
-            reg_tract[reg_tract >= tract_cutoff] = 1
-            overlap_volume = np.logical_and(reg_tract, volume).astype('uint8')
             if reference == "BCB":
                 distances_columns.append('distance_' + tfn.split('.')[0][:-4] + '_' + category)
                 overlaps_columns.append('overlap_' + tfn.split('.')[0][:-4] + '_' + category)
             else:
                 distances_columns.append('distance_' + tfn.split('.')[0] + '_' + category)
                 overlaps_columns.append('overlap_' + tfn.split('.')[0] + '_' + category)
-            if np.count_nonzero(overlap_volume) != 0:
-                distances[tfn] = dist
-                overlaps[tfn] = float((np.count_nonzero(overlap_volume) / np.count_nonzero(volume)) * 100.)
+
+            if dryrun:
+                distances[tfn] = -1.
+                overlaps[tfn] = -1.
             else:
-                if np.count_nonzero(reg_tract) > 0:
-                    dist = compute_hd95(volume, reg_tract, voxelspacing=reg_tract_ni.header.get_zooms(), connectivity=1)
-                distances[tfn] = dist
-                overlaps[tfn] = 0.
+                reg_tract_ni = nib.load(tracts_dict[tfn])
+                reg_tract = reg_tract_ni.get_fdata()[:]
+                reg_tract[reg_tract < tract_cutoff] = 0
+                reg_tract[reg_tract >= tract_cutoff] = 1
+                overlap_volume = np.logical_and(reg_tract, volume).astype('uint8')
+
+                if np.count_nonzero(overlap_volume) != 0:
+                    distances[tfn] = dist
+                    overlaps[tfn] = round(np.count_nonzero(overlap_volume) / np.count_nonzero(volume), 4) * 100.
+                else:
+                    if np.count_nonzero(reg_tract) > 0:
+                        dist = compute_hd95(volume, reg_tract, voxelspacing=reg_tract_ni.header.get_zooms(), connectivity=1)
+                    distances[tfn] = round(dist, 3)
+                    overlaps[tfn] = 0.
         except Exception:
             print("Tumor distance to subcortical structure could not be computed.")
             print(traceback.format_exc())
@@ -308,7 +326,7 @@ def compute_subcortical_structures_location(volume, category=None, reference='BC
     return overlaps, distances
 
 
-def compute_braingrid_voxels_infiltration(volume, category=None, reference='Voxels'):
+def compute_braingrid_voxels_infiltration(volume, category=None, reference='Voxels', dryrun: bool = False):
     logging.debug("Computing BrainGrid infiltration with {}.".format(reference))
     regions_data = ResourcesConfiguration.getInstance().braingrid_structures['MNI'][reference]
     region_mask_ni = nib.load(regions_data['Mask'])
@@ -319,12 +337,15 @@ def compute_braingrid_voxels_infiltration(volume, category=None, reference='Voxe
     overlap_per_voxel = {}
     infiltrated_voxels = 0
     for li in total_voxels_labels:
-        overlap = volume[region_mask == li]
-        ratio_in_voxel = np.count_nonzero(overlap) / np.count_nonzero(volume)
-        overlap = float(round(ratio_in_voxel * 100., 2))
         region_name = ''
         if reference == 'Voxels':
             region_name = '_'.join(lobes_description.loc[lobes_description['Label'] == li]['Region'].values[0].strip().split(' '))
+        if dryrun:
+            overlap = -1.
+        else:
+            overlap = volume[region_mask == li]
+            ratio_in_voxel = np.count_nonzero(overlap) / np.count_nonzero(volume)
+            overlap = round(ratio_in_voxel, 4) * 100.
         overlap_per_voxel[region_name] = overlap
         if overlap > 0:
             infiltrated_voxels += 1
@@ -423,10 +444,10 @@ def compute_acquisition_infos(radiological_volumes: List[str]) -> NeuroAcquisiti
     t2w_stats = None
     for v in radiological_volumes:
         rad_vol_nib = nib.load(v.usable_input_filepath)
-        stats = NeuroRadiologicalVolumeStatistics(dim_x=rad_vol_nib.shape[0], dim_y=rad_vol_nib.shape[1],
-                                                  dim_z=rad_vol_nib.shape[2], spac_x=rad_vol_nib.header.get_zooms()[0],
-                                                  spac_y=rad_vol_nib.header.get_zooms()[1],
-                                                  spac_z=rad_vol_nib.header.get_zooms()[2])
+        stats = RadiologicalVolumeStatistics(dim_x=rad_vol_nib.shape[0], dim_y=rad_vol_nib.shape[1],
+                                             dim_z=rad_vol_nib.shape[2], spac_x=rad_vol_nib.header.get_zooms()[0],
+                                             spac_y=rad_vol_nib.header.get_zooms()[1],
+                                             spac_z=rad_vol_nib.header.get_zooms()[2])
         if v.get_sequence_type_enum() == MRISequenceType.T1c:
             t1c_stats = stats
         elif v.get_sequence_type_enum() == MRISequenceType.T1w:

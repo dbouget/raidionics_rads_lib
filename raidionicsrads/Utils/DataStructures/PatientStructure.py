@@ -201,26 +201,27 @@ class PatientParameters:
                                 registered_labels.append(f)
                             else:
                                 registered_radiological_volumes.append(f)
-                    for rr in registered_radiological_volumes:
-                        # The destination-space folder is named "<timestamp>_<sequence>_space" (or
-                        # "MNI_space" for the atlas), not after any radiological volume's filename --
-                        # match by (timestamp, sequence) instead of trying to reverse a basename.
-                        space_name = os.path.basename(rf).replace("_space", "")
-                        if space_name == "MNI":
-                            fixed_volume_uid = "MNI"
-                        else:
-                            ts_part, seq_part = space_name.split("_", 1)
-                            sequence_type_cls = MRISequenceType if ResourcesConfiguration.getInstance().diagnosis_task == 'neuro_diagnosis' else CTSequenceType
-                            try:
-                                sequence_type = sequence_type_cls[seq_part]
-                            except KeyError:
-                                logging.warning("[PatientStructure] Unrecognized sequence type {} in registration folder {}.".format(seq_part, space_name))
-                                continue
-                            fixed_volume_uid = self.get_radiological_volume_uid(timestamp=int(ts_part[1:]), sequence=str(sequence_type))
-                        if fixed_volume_uid == "-1":
-                            logging.warning("[PatientStructure] No radiological volume matching registration space {}.".format(space_name))
-                            continue
 
+                    # The destination-space folder is named "<timestamp>_<sequence>_space" (or
+                    # "MNI_space" for the atlas), not after any radiological volume's filename --
+                    # match by (timestamp, sequence) instead of trying to reverse a basename.
+                    space_name = os.path.basename(rf).replace("_space", "")
+                    if space_name == "MNI":
+                        fixed_volume_uid = "MNI"
+                    else:
+                        ts_part, seq_part = space_name.split("_", 1)
+                        sequence_type_cls = MRISequenceType if ResourcesConfiguration.getInstance().diagnosis_task == 'neuro_diagnosis' else CTSequenceType
+                        try:
+                            sequence_type = sequence_type_cls[seq_part]
+                        except KeyError:
+                            logging.warning("[PatientStructure] Unrecognized sequence type {} in registration folder {}.".format(seq_part, space_name))
+                            continue
+                        fixed_volume_uid = self.get_radiological_volume_uid(timestamp=int(ts_part[1:]), sequence=str(sequence_type))
+                    if fixed_volume_uid == "-1":
+                        logging.warning("[PatientStructure] No radiological volume matching registration space {}.".format(space_name))
+                        continue
+
+                    for rr in registered_radiological_volumes:
                         # Registered filenames are "<MovingUID>_<basename>_Seq-<Type>_registered_to_...".
                         # The UID prefix is regenerated at random on every PatientParameters
                         # instantiation, so it cannot be matched against -- strip it (and the
@@ -233,7 +234,28 @@ class PatientParameters:
 
                         reg_volume.include_registered_volume(filepath=os.path.join(rf, rr), registration_uid=None,
                                                              destination_space_uid=fixed_volume_uid)
+                    for rl in registered_labels:
+                        # @TODO. Not tried with raidionicsrads output yet!
+                        rr_basename = re.sub(r'^V\d+_', '', rl.split('.')[0]).split('_Seq-')[0]
+                        if ResourcesConfiguration.getInstance().caller == 'raidionics':
+                            class_name = get_type_from_enum_name(AnnotationClassType, rr_basename.split('annotation')[1][1:])
+                            ori_name = rr_basename.split('annotation')[0][:-1]
+                        else:
+                            class_name = get_type_from_enum_name(AnnotationClassType, rr_basename.split('label')[1][1:])
+                            ori_name = rr_basename.split('label')[0][:-1]
+                        reg_volume = self.get_radiological_volume_by_base_filename(base_fn=ori_name)
+                        if reg_volume is None:
+                            logging.warning("[PatientStructure] No radiological volume matching registered file {}.".format(rl))
+                            continue
+                        reg_anno = self.get_all_annotations_uids_class_radiological_volume(volume_uid=reg_volume.unique_id, annotation_class=class_name)
 
+                        if len(reg_anno) == 0:
+                            logging.warning("[PatientStructure] No label matching registered file {}.".format(rl))
+                            continue
+                        reg_anno = self.get_annotation(annotation_uid=reg_anno[0])
+                        reg_anno.include_registered_volume(filepath=os.path.join(rf, rl), registration_uid=None,
+                                                            destination_space_uid=fixed_volume_uid)
+                        
             sequences_filename = os.path.join(self._input_filepath, 'mri_sequences.csv')
             if os.path.exists(sequences_filename):
                 df = pd.read_csv(sequences_filename)

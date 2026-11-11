@@ -89,7 +89,7 @@ class ReportingSelectionStep(AbstractPipelineStep):
         except Exception as e:
             raise ValueError(f"[ReportingSelectionStep] setup failed with: {e}.")
 
-    def execute(self) -> {}:
+    def execute(self) -> dict:
         """
         Executes the current step.
 
@@ -113,6 +113,7 @@ class ReportingSelectionStep(AbstractPipelineStep):
         pass
 
     def __generate_neuro_reporting_pipeline(self) -> dict:
+        """@TODO. To cleanup - also have a check on which spaces, which registrations might be needed, etc..."""
         pip = {}
         pip_num_int = 0
         try:

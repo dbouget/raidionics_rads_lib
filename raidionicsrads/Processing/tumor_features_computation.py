@@ -25,7 +25,7 @@ def compute_volume(volume: np.ndarray, spacing: Tuple, brain_mask: np.ndarray = 
     float
         Object volume in milliliters, rounded at two decimals.
     """
-    res_volume = 0.
+    res_volume = -1.
     brain_perc = -1.
     try:
         logging.debug("Computing tumor volume.")
@@ -132,8 +132,8 @@ def compute_foci(volume: np.ndarray, spacing: Tuple, affine: np.ndarray = None, 
     from .common_features_computation import compute_diameters
     
     foci = []
-    nb_focus = None
-    multifocality_status = None
+    nb_focus = -1
+    multifocality_status = False
     max_distance = -1.
     try:
         grouped_volume = np.zeros(volume.shape)
@@ -154,8 +154,8 @@ def compute_foci(volume: np.ndarray, spacing: Tuple, affine: np.ndarray = None, 
                 main_focus = focus
                 main_focus_distances = distance_transform_edt(np.logical_not(main_focus), sampling=spacing)
             else:
-                distance_to_main = float(compute_hd95(focus, main_focus, voxelspacing=spacing, connectivity=1))
-                min_distance_to_main = float(np.min(main_focus_distances[focus]))
+                distance_to_main = round(compute_hd95(focus, main_focus, voxelspacing=spacing, connectivity=1), 2)
+                min_distance_to_main = round(np.min(main_focus_distances[focus]), 2)
                 if min_distance_to_main > max_distance:
                     max_distance = min_distance_to_main
             long_axis, short_axis, feret, equivalent = compute_diameters(volume=focus, spacing=spacing,
@@ -170,11 +170,11 @@ def compute_foci(volume: np.ndarray, spacing: Tuple, affine: np.ndarray = None, 
                                                                      short_axis_diameter=short_axis,
                                                                      feret_diameter=feret,
                                                                      equivalent_diameter_area=equivalent),
-                                        measurement_slice=None, distance_to_main=distance_to_main,
+                                        measurement_slice=-1, distance_to_main=distance_to_main,
                                         min_distance_to_main=min_distance_to_main, components=components))
     except Exception as e:
         raise ValueError('Foci computation failed with: {}'.format(e))
-    return multifocality_status, nb_focus, max_distance, foci, grouped_volume
+    return multifocality_status, nb_focus, round(max_distance, 2), foci, grouped_volume
 
 def compute_multifocality(volume: np.ndarray, spacing: Tuple,
                           volume_threshold: float = 0.,
@@ -242,7 +242,7 @@ def compute_multifocality(volume: np.ndarray, spacing: Tuple,
     except Exception as e:
         raise ValueError('Multifocality computation failed with: {}'.format(e))
 
-    return multifocal_status, multifocal_elements, float(multifocal_largest_minimum_distance)
+    return multifocal_status, multifocal_elements, multifocal_largest_minimum_distance
 
 def compute_depth(structure_mask: np.ndarray, target_mask: np.ndarray) -> Tuple[float, float, float]:
     """
@@ -373,7 +373,7 @@ def compute_resectability_index(volume: np.ndarray, resectability_map: np.ndarra
         avg_resectability = total_resectability / tumor_voxels_count
     except Exception as e:
         raise ValueError('Resectability index computation failed with {}'.format(e))
-    return float(residual_tumor_volume), float(resectable_volume), float(avg_resectability)
+    return round(residual_tumor_volume, 2), round(resectable_volume, 2), round(avg_resectability, 2)
 
 
 def compute_hd95(reference, result, voxelspacing=None, connectivity=1):
