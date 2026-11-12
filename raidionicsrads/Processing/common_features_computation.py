@@ -75,7 +75,7 @@ def compute_depth(structure_mask: np.ndarray, target_mask: np.ndarray, spacing: 
 
     try:
         structure = structure_mask > 0
-        if np.count_nonzero(structure) == 0:
+        if np.count_nonzero(structure) == 0 or target_mask is None or np.count_nonzero(target_mask) == 0:
             return min_depth, max_depth, mean_depth
         target = binary_fill_holes(target_mask > 0)
         target_surface = np.logical_and(target, np.logical_not(binary_erosion(target)))

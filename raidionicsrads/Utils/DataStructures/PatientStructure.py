@@ -269,6 +269,7 @@ class PatientParameters:
 
             # Setting up masks (i.e., brain or lungs) if stripped inputs are used.
             if ResourcesConfiguration.getInstance().predictions_use_stripped_data:
+                from ..volume_utilities import compute_mask_from_stripped_volume
                 target_type = AnnotationClassType.Brain if ResourcesConfiguration.getInstance().diagnosis_task == 'neuro_diagnosis' else AnnotationClassType.Lungs
                 for uid in self.get_all_radiological_volume_uids():
                     # If a brain/lungs annotation has been provided anyway (by running a segmentation process beforehand),
@@ -277,8 +278,8 @@ class PatientParameters:
                         volume = self.get_radiological_volume(uid)
                         volume_nib = nib.load(volume.raw_input_filepath)
                         img_data = volume_nib.get_fdata()[:]
-                        mask = np.zeros(img_data.shape)
-                        mask[img_data != 0] = 1
+                        # Non-zero voxels without the isolated noisy ones, same mask as in the timepoint reporting
+                        mask = compute_mask_from_stripped_volume(volume=img_data).astype('uint8')
                         mask_fn = os.path.join(volume.output_folder,
                                                os.path.basename(volume.raw_input_filepath).split('.')[0] + '_label_' + str(target_type) + '.nii.gz')
 
@@ -289,7 +290,7 @@ class PatientParameters:
                             anno_uid = 'A' + str(np.random.randint(0, 10000))
                             if anno_uid not in self.get_all_annotations_uids():
                                 non_available_uid = False
-                        self.annotation_volumes[anno_uid] = Annotation(uid=data_uid, input_filename=mask_fn,
+                        self.annotation_volumes[anno_uid] = Annotation(uid=anno_uid, input_filename=mask_fn,
                                                                         output_folder=volume.output_folder,
                                                                         radiological_volume_uid=uid,
                                                                         annotation_class=target_type)
@@ -302,6 +303,18 @@ class PatientParameters:
     def include_registration(self, reg_uid, registration):
         self.registrations[reg_uid] = registration
 
+    def generate_reporting_uid(self, prefix: str = "RADS") -> str:
+        """
+        Random unique identifier, not used yet by any of the reports of the patient, e.g. RADS4242.
+        """
+        non_available_uid = True
+        report_uid = None
+        while non_available_uid:
+            report_uid = prefix + str(np.random.randint(0, 10000))
+            if report_uid not in self.get_all_reportings_uids():
+                non_available_uid = False
+        return report_uid
+    
     def include_reporting(self, report_uid, report):
         self.reportings[report_uid] = report
 

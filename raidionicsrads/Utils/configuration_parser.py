@@ -82,6 +82,54 @@ class ResourcesConfiguration:
         self.neuro_features_subcortical_structures = []
         self.neuro_features_braingrid = []
 
+    def _cfg(self, section: str, key: str, default=None) -> str | None:
+        """
+        Return stripped config value (ignoring inline comments), or None if absent/empty.
+        """
+        if self.config.has_option(section, key):
+            val = self.config[section][key].split('#')[0].strip()
+            if val:
+                return val
+        return default
+
+    def _cfg_dir(self, section: str, key: str) -> str | None:
+        val = self._cfg(section, key)
+        return val if (val is not None and os.path.isdir(val)) else None
+
+    def _cfg_file(self, section: str, key: str) -> str | None:
+        val = self._cfg(section, key)
+        return val if (val is not None and os.path.exists(val)) else None
+
+    def _cfg_bool(self, section: str, key: str, default: bool = False) -> bool:
+        val = self._cfg(section, key)
+        return val.lower() == 'true' if val is not None else default
+
+    def _cfg_int(self, section: str, key: str, default: int = 0) -> int:
+        val = self._cfg(section, key)
+        return int(val) if val is not None else default
+
+    def _cfg_float(self, section: str, key: str, default: float = 0.0) -> float:
+        val = self._cfg(section, key)
+        return float(val) if val is not None else default
+
+    def _cfg_list(self, section: str, key: str, default: list = []) -> list:
+        val = self._cfg(section, key)
+        return [x.strip() for x in val.split(',')] if val is not None else default
+
+    def _cfg_list_int(self, section: str, key: str, default: list = []) -> list:
+        val = self._cfg(section, key)
+        try:
+            return [int(x.strip()) for x in val.split(',')] if val is not None else default
+        except:
+            return default
+        
+    def _cfg_list_float(self, section: str, key: str, default: list = []) -> list:
+        val = self._cfg(section, key)
+        try:
+            return [float(x.strip()) for x in val.split(',')] if val is not None else default
+        except:
+            return default
+    
     def set_environment(self, config_path=None):
         self.__reset()
         self.config = configparser.ConfigParser()
@@ -405,30 +453,22 @@ class ResourcesConfiguration:
     def __parse_default_parameters(self):
         eligible_tasks = ['neuro_diagnosis', 'mediastinum_diagnosis']
 
-        if self.config.has_option('Default', 'task'):
-            if self.config['Default']['task'].split('#')[0].strip() != '':
-                self.diagnosis_task = self.config['Default']['task'].split('#')[0].strip()
-
+        ckey = "Default"
+        self.diagnosis_task = self._cfg(section=ckey, key="task")
         if self.diagnosis_task not in eligible_tasks:
-            raise AttributeError("Requested task {} not eligible. Please choose within: {}".format(self.diagnosis_task,
-                                                                                                   eligible_tasks))
-        if self.config.has_option('Default', 'trace'):
-            if self.config['Default']['trace'].split('#')[0].strip() != '':
-                self.diagnosis_full_trace = True if self.config['Default']['trace'].split('#')[0].strip().lower() == 'true' else False
-
-        if self.config.has_option('Default', 'caller'):
-            if self.config['Default']['caller'].split('#')[0].strip() != '':
-                self.caller = self.config['Default']['caller'].split('#')[0].strip()
+            raise AttributeError(f"Requested task {self.diagnosis_task} not eligible."
+                                 f"Please choose within: {eligible_tasks}")
+        self.diagnosis_full_trace = self._cfg_bool(section=ckey, key="trace", default=False)
+        self.caller = self._cfg(section=ckey, key="caller")
 
     def __parse_system_parameters(self):
-        """
-
-        """
-        if self.config.has_option('System', 'ants_root'):
-            if self.config['System']['ants_root'].split('#')[0].strip() != '' and \
-                    os.path.isdir(self.config['System']['ants_root'].split('#')[0].strip()):
-                self.ants_root = self.config['System']['ants_root'].split('#')[0].strip()
-        elif platform.system() == 'Darwin' and platform.processor() == 'arm':  # Specific for macOS ARM processor
+        ckey = "System"
+        self.ants_root = self._cfg_dir(section=ckey, key="ants_root")
+        # if self.config.has_option('System', 'ants_root'):
+        #     if self.config['System']['ants_root'].split('#')[0].strip() != '' and \
+        #             os.path.isdir(self.config['System']['ants_root'].split('#')[0].strip()):
+        #         self.ants_root = self.config['System']['ants_root'].split('#')[0].strip()
+        if self.ants_root is None and platform.system() == 'Darwin' and platform.processor() == 'arm':  # Specific for macOS ARM processor
             # No Python ANTs supported for such machines
             self.system_ants_backend = 'cpp'
             if not os.path.exists(self.ants_root):
@@ -450,7 +490,7 @@ class ResourcesConfiguration:
                         logging.error(f"Failed to download ANTs binaries: {e}")
                         raise RuntimeError("ANTs required but not available.")
 
-        if os.path.exists(self.ants_root) and os.path.exists(os.path.join(self.ants_root, "bin")):
+        if self.ants_root is not None and os.path.exists(self.ants_root) and os.path.exists(os.path.join(self.ants_root, "bin")):
             os.environ["ANTSPATH"] = os.path.join(self.ants_root, "bin")
             self.ants_reg_dir = os.path.join(self.ants_root, 'Scripts')
             self.ants_apply_dir = os.path.join(self.ants_root, 'bin')
@@ -464,36 +504,24 @@ class ResourcesConfiguration:
         logging.debug(f"ANTs scripts directory: {self.ants_reg_dir}")
         logging.debug(f"ANTs binary directory: {self.ants_apply_dir}")
 
-        if self.config.has_option("System", "gpu_id"):
-            if self.config["System"]["gpu_id"].split("#")[0].strip() != "":
-                self.gpu_id = self.config["System"]["gpu_id"].split("#")[0].strip()
+        self.gpu_id = self._cfg(section=ckey, key="gpu_id")
 
-        if self.config.has_option("System", "acceleration"):
-            if self.config["System"]["acceleration"].split("#")[0].strip() != "":
-                self.system_acceleration = self.config["System"]["acceleration"].split("#")[0].strip()
+        self.system_acceleration = self._cfg(section=ckey, key="acceleration", default="cpu")
         if self.system_acceleration not in ["cpu", "torch"]:
             self.system_acceleration = "cpu"
 
-        if self.config.has_option('System', 'output_folder'):
-            if self.config['System']['output_folder'].split('#')[0].strip() != '':
-                self.output_folder = self.config['System']['output_folder'].split('#')[0].strip()
-
-        if self.config.has_option('System', 'input_folder'):
-            if self.config['System']['input_folder'].split('#')[0].strip() != '':
-                self.input_folder = self.config['System']['input_folder'].split('#')[0].strip()
-
-        if self.config.has_option('System', 'model_folder'):
-            if self.config['System']['model_folder'].split('#')[0].strip() != '':
-                self.model_folder = self.config['System']['model_folder'].split('#')[0].strip()
-
-        if self.config.has_option('System', 'pipeline_filename'):
-            if self.config['System']['pipeline_filename'].split('#')[0].strip() != '':
-                self.pipeline_filename = self.config['System']['pipeline_filename'].split('#')[0].strip()
+        # Output folder does not need to exist prior to running raidionicsrads
+        self.output_folder = self._cfg(section=ckey, key="output_folder")
+        self.input_folder = self._cfg_dir(section=ckey, key="input_folder")
+        self.model_folder = self._cfg_dir(section=ckey, key="model_folder")
+        self.pipeline_filename = self._cfg_file(section=ckey, key="pipeline_filename")
 
     def __parse_runtime_parameters(self):
-        if self.config.has_option('Runtime', 'overlapping_ratio'):
-            if self.config['Runtime']['overlapping_ratio'].split('#')[0].strip() != '':
-                self.predictions_overlapping_ratio = float(self.config['Runtime']['overlapping_ratio'].split('#')[0].strip())
+        ckey = "Runtime"
+        self.predictions_overlapping_ratio = self._cfg_float(section=ckey, key="overlapping_ratio", default=0.)
+        # if self.config.has_option('Runtime', 'overlapping_ratio'):
+        #     if self.config['Runtime']['overlapping_ratio'].split('#')[0].strip() != '':
+        #         self.predictions_overlapping_ratio = float(self.config['Runtime']['overlapping_ratio'].split('#')[0].strip())
         if self.predictions_overlapping_ratio < 0.:
             self.predictions_overlapping_ratio = 0.
 

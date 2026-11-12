@@ -63,7 +63,7 @@ class FeaturesComputationStep(AbstractPipelineStep):
         if True in [x not in ["Patient", "MNI"] for x in self.report_spaces]:
             raise ValueError(f"Features computation only implemented for Patient and MNI spaces, "
                              f"unknown key provided in \"{self.report_spaces}\".")
-        self._patient_parameters = patient_parameters
+        self._patient_parameters = patient_parameters        
 
     def execute(self):
         """
@@ -154,7 +154,7 @@ class FeaturesComputationStep(AbstractPipelineStep):
                     res, clustered_nib = compute_structure_statistics(input_mask=structure_nib, brain_mask=brain_nib,
                                                     params={"report_space":sp, "structure": t})
                     report.include_statistics(structure=t, statistics=res, space=sp)
-                    dest_ccl_fn = os.path.join(ResourcesConfiguration.getInstance().output_folder, "reporting", f'T{self.step_json["timestamp"]}', f'input-{base_radiological_volume[0].get_sequence_type_str()}_space-{sp}_class-{struct_annotations[0].get_annotation_type_str()}_CC-labelled.nii.gz')
+                    dest_ccl_fn = os.path.join(ResourcesConfiguration.getInstance().output_folder, "reporting", f'T{self.step_json["timestamp"]}', f'input-{base_radiological_volume[0].get_sequence_type_str()}_space-{sp}_class-{struct_annotations[0].get_annotation_type_name()}_CC-labelled.nii.gz')
                     os.makedirs(os.path.dirname(dest_ccl_fn), exist_ok=True)
                     nib.save(clustered_nib, dest_ccl_fn)
         # Include the acquisition infos here for now

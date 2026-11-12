@@ -2,7 +2,7 @@ import numpy as np
 from copy import deepcopy
 import nibabel as nib
 from skimage.transform import resize
-from scipy.ndimage import binary_fill_holes, measurements
+from scipy.ndimage import binary_fill_holes, measurements, label
 from skimage.measure import regionprops
 from skimage.morphology import binary_dilation, ball
 from .configuration_parser import *
@@ -93,6 +93,24 @@ def volume_cropping(volume, mask, output_filename):
     """
     pass
 
+
+def compute_mask_from_stripped_volume(volume: np.ndarray) -> np.ndarray:
+    """
+    Crude mask of what remains visible in a stripped volume (e.g., the brain in a skull-stripped MRI, where every other
+    voxel was set to 0): the non-zero voxels, restricted to the largest connected component so that isolated noisy
+    voxels outside of it are left out. Holes inside (e.g., dark ventricles at exactly 0) are kept as they are.
+    """
+    try:
+        visible = np.nan_to_num(volume) != 0
+        components, nb_components = label(visible)
+        if nb_components == 0:
+            return visible
+        components_sizes = np.bincount(components.ravel())
+        components_sizes[0] = 0
+        mask = components == int(np.argmax(components_sizes))
+    except Exception as e:
+        raise ValueError(f"Mask computation from the stripped volume failed with: {e}")
+    return mask
 
 def prediction_binary_dilation(prediction_filepath: str, arg: int) -> None:
     """

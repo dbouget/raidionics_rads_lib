@@ -576,12 +576,10 @@ class NeuroReportingStructure:
                         column_names.extend(location_names)
                     structure_values.extend(location_values)
 
-                    # @TODO. Should be only for glioblastoma, but no tumor type classification yet
-                    if "Tumor" in s:
-                        resectability_names, resectability_values = self.statistics[s][sp].resectability.to_csv_inputs()
-                        if i == 0:
-                            column_names.extend(resectability_names)
-                        structure_values.extend(resectability_values)
+                    resectability_names, resectability_values = self.statistics[s][sp].resectability.to_csv_inputs()
+                    if i == 0:
+                        column_names.extend(resectability_names)
+                    structure_values.extend(resectability_values)
 
                     for t in self.statistics[s][sp].cortical.keys():
                         atlas_names, atlas_values = self.statistics[s][sp].cortical[t].to_csv_inputs()
@@ -607,7 +605,7 @@ class NeuroReportingStructure:
                     all_values.append(structure_values)
                     i = i + 1
 
-            values_df = pd.DataFrame(np.asarray(all_values), columns=column_names)
+            values_df = pd.DataFrame(np.asarray(all_values), columns=column_names) if len(np.asarray(all_values)) > 1 else pd.DataFrame()
             values_df.to_csv(filename, index=False)
         except Exception as e:
             raise RuntimeError(f"Standardized report dump on disk for T{self.timestamp} as csv failed with {e}")

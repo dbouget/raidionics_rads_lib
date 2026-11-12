@@ -209,6 +209,17 @@ class ReportingSelectionStep(AbstractPipelineStep):
                     pip[pip_num]["space"] = "MNI"
                     pip[pip_num]["tumor_type"] = self.tumor_type
                     pip[pip_num]["description"] = f"Standardized features computation for timestamp {self.timestamps[0]}"
+
+                    # Relations between the segmented compartments, optional so that it never stops the reporting
+                    pip_num_int = pip_num_int + 1
+                    pip_num = str(pip_num_int)
+                    pip[pip_num] = {}
+                    pip[pip_num]["task"] = "Timepoint reporting"
+                    pip[pip_num]["timestamp"] = self.timestamps[0]
+                    pip[pip_num]["tumor_type"] = self.tumor_type
+                    pip[pip_num]["space"] = "Patient"
+                    pip[pip_num]["inclusion"] = "optional"
+                    pip[pip_num]["description"] = f"Timepoint reporting for timestamp {self.timestamps[0]}"
                 else:
                     pip_num_int = pip_num_int + 1
                     pip_num = str(pip_num_int)
@@ -273,6 +284,17 @@ class ReportingSelectionStep(AbstractPipelineStep):
                     pip[pip_num]["space"] = "MNI"
                     pip[pip_num]["tumor_type"] = self.tumor_type
                     pip[pip_num]["description"] = "Standardized features computation for timestamp 0"
+
+                    # Relations between the segmented compartments, optional so that it never stops the reporting
+                    pip_num_int = pip_num_int + 1
+                    pip_num = str(pip_num_int)
+                    pip[pip_num] = {}
+                    pip[pip_num]["task"] = "Timepoint reporting"
+                    pip[pip_num]["timestamp"] = self.timestamps[0]
+                    pip[pip_num]["tumor_type"] = self.tumor_type
+                    pip[pip_num]["space"] = "Patient"
+                    pip[pip_num]["inclusion"] = "optional"
+                    pip[pip_num]["description"] = f"Timepoint reporting for timestamp {self.timestamps[0]}"
             elif self.scope_reporting == "surgical":
                 # for ts in self.timestamps:
                 #     if self.tumor_type == "contrast-enhancing":

@@ -19,6 +19,7 @@ from .FeaturesComputationStep import FeaturesComputationStep
 from .SurgicalReportingStep import SurgicalReportingStep
 from .ModelSelectionStep import ModelSelectionStep
 from .ReportingSelectionStep import ReportingSelectionStep
+from .TimepointReportingStep import TimepointReportingStep
 
 
 @unique
@@ -37,6 +38,7 @@ class TaskType(Enum):
     SegRef = 6, "Segmentation refinement"
     ModSelec = 7, "Model selection"
     ReportSelec = 8, "Reporting selection"
+    TRep = 9, "Timepoint reporting"
 
     def __str__(self):
         return self.string
@@ -98,6 +100,8 @@ class Pipeline:
                 step = RegistrationDeployerStep(pipeline[s])
             elif task == TaskType.FComp:
                 step = FeaturesComputationStep(pipeline[s])
+            elif task == TaskType.TRep:
+                step = TimepointReportingStep(pipeline[s])
             elif task == TaskType.SRep:
                 step = SurgicalReportingStep(pipeline[s])
             elif task == TaskType.ModSelec:
